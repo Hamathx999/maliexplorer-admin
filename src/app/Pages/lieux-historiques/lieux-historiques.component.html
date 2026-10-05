@@ -1,0 +1,206 @@
+<div class="page-container">
+  <!-- Top Header -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">{{ isEditing ? (editingLieu ? 'Modifier le Lieu Historique' : 'Ajouter un Lieu Historique') : 'Gestion des Lieux Historiques' }}</h1>
+      <p class="page-subtitle">Monuments, mosquées séculaires, falaises et trésors du patrimoine malien</p>
+    </div>
+    <div *ngIf="!isEditing">
+      <button class="btn-primary" (click)="startAdd()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        Ajouter un lieu historique
+      </button>
+    </div>
+  </div>
+
+  <!-- VIEW 1: LIST OF LIEUX -->
+  <div *ngIf="!isEditing">
+    <!-- Filter bar -->
+    <div class="filter-bar">
+      <div class="search-box">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input
+          type="text"
+          placeholder="Rechercher par nom, ville ou époque..."
+          [(ngModel)]="searchTerm"
+          (input)="filterLieux()"
+        />
+      </div>
+
+      <div class="filter-group">
+        <label>Région :</label>
+        <select [(ngModel)]="selectedRegion" (change)="filterLieux()">
+          <option value="TOUTES">Toutes les régions</option>
+          <option value="Tombouctou">Tombouctou</option>
+          <option value="Mopti">Mopti</option>
+          <option value="Ségou">Ségou</option>
+          <option value="Gao">Gao</option>
+          <option value="Koulikoro">Koulikoro</option>
+          <option value="Kayes">Kayes</option>
+          <option value="Bamako">Bamako</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-card">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Nom du monument</th>
+            <th>Époque</th>
+            <th>Ville</th>
+            <th>Région</th>
+            <th>UNESCO</th>
+            <th class="actions-col">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let lieu of filteredLieux">
+            <td>
+              <div class="lieu-cell">
+                <span class="lieu-icon">🏛️</span>
+                <div>
+                  <strong>{{ lieu.nom }}</strong>
+                  <span class="lieu-gps" *ngIf="lieu.coordonneesGps">📍 {{ lieu.coordonneesGps }}</span>
+                </div>
+              </div>
+            </td>
+            <td>{{ lieu.epoque }}</td>
+            <td>{{ lieu.ville }}</td>
+            <td>
+              <span class="region-badge">{{ lieu.region }}</span>
+            </td>
+            <td>
+              <span class="unesco-tag" *ngIf="lieu.classeUnesco">🏆 Classé UNESCO</span>
+              <span class="non-unesco" *ngIf="!lieu.classeUnesco">National</span>
+            </td>
+            <td class="actions-col">
+              <button class="action-btn edit" title="Modifier" (click)="startEdit(lieu)">✏️</button>
+              <button class="action-btn delete" title="Supprimer" (click)="deleteLieu(lieu)">🗑️</button>
+            </td>
+          </tr>
+
+          <tr *ngIf="filteredLieux.length === 0">
+            <td colspan="6" class="empty-state">Aucun lieu historique trouvé.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- VIEW 2: 3-SECTION FORM (Matching Figma "Ajouter un lieu historique") -->
+  <div class="form-wrapper" *ngIf="isEditing">
+    <div class="form-sections-grid">
+      <!-- Section 1: Informations Générales -->
+      <div class="form-section-card">
+        <h3 class="section-title">
+          <span class="section-num">1</span>
+          Informations Générales
+        </h3>
+
+        <div class="form-group">
+          <label>Nom du monument ou site *</label>
+          <input type="text" [(ngModel)]="formData.nom" placeholder="ex: Mosquée Djingareyber" required />
+        </div>
+
+        <div class="form-group">
+          <label>Époque de construction / Fondation *</label>
+          <input type="text" [(ngModel)]="formData.epoque" placeholder="ex: XIVe siècle (1327)" required />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Région *</label>
+            <select [(ngModel)]="formData.region">
+              <option value="Tombouctou">Tombouctou</option>
+              <option value="Mopti">Mopti</option>
+              <option value="Ségou">Ségou</option>
+              <option value="Gao">Gao</option>
+              <option value="Koulikoro">Koulikoro</option>
+              <option value="Kayes">Kayes</option>
+              <option value="Bamako">Bamako</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Ville *</label>
+            <input type="text" [(ngModel)]="formData.ville" placeholder="ex: Tombouctou" required />
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2: Localisation & Détails -->
+      <div class="form-section-card">
+        <h3 class="section-title">
+          <span class="section-num">2</span>
+          Localisation & Histoire
+        </h3>
+
+        <div class="form-group">
+          <label>Coordonnées GPS</label>
+          <input type="text" [(ngModel)]="formData.coordonneesGps" placeholder="ex: 16.7719° N, 3.0088° W" />
+        </div>
+
+        <div class="form-group checkbox-group">
+          <label class="custom-checkbox">
+            <input type="checkbox" [(ngModel)]="formData.classeUnesco" />
+            <span class="checkmark"></span>
+            Site inscrit au Patrimoine Mondial de l'UNESCO
+          </label>
+        </div>
+
+        <div class="form-group">
+          <label>Description historique complète</label>
+          <textarea rows="4" [(ngModel)]="formData.description" placeholder="Récit de l'histoire du monument, architecture en terre crue banco, souverains associés..."></textarea>
+        </div>
+      </div>
+
+      <!-- Section 3: Médias & Photos -->
+      <div class="form-section-card full-width">
+        <h3 class="section-title">
+          <span class="section-num">3</span>
+          Médias & Photos
+        </h3>
+
+        <!-- Dropzone -->
+        <div class="dropzone">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          <p class="dropzone-text">Glissez vos photos ici ou <span class="browse-link">parcourez vos fichiers</span></p>
+          <p class="dropzone-hint">Formats acceptés : JPG, PNG, WEBP (Max 10 MB par image)</p>
+        </div>
+
+        <!-- Uploaded items list -->
+        <div class="uploaded-files-list" *ngIf="formData.images && formData.images.length > 0">
+          <div class="file-item" *ngFor="let file of formData.images; let i = index">
+            <div class="file-info">
+              <span class="file-icon">🖼️</span>
+              <div>
+                <p class="file-name">{{ file.nom }}</p>
+                <span class="file-size">{{ file.taille }}</span>
+              </div>
+            </div>
+            <button class="file-delete" (click)="removeImage(i)">✕</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Bar -->
+    <div class="form-actions">
+      <button class="btn-secondary" (click)="cancelEdit()">Annuler</button>
+      <button class="btn-primary" (click)="saveLieu()">
+        {{ editingLieu ? 'Mettre à jour le monument' : 'Enregistrer le lieu historique' }}
+      </button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,90 @@
+<div class="regions-page-container">
+  @if (successMessage) {
+    <div class="toast toast-success">
+      <span>{{ successMessage }}</span>
+    </div>
+  }
+  @if (errorMessage) {
+    <div class="toast toast-error">
+      <span>{{ errorMessage }}</span>
+    </div>
+  }
+
+  <section class="form-section">
+    <div class="section-header">
+      <h2 class="section-title">{{ editingEthnieId ? "Modifier l'ethnie" : "Ajouter une nouvelle ethnie" }}</h2>
+      <p class="section-description">Gérez les différents groupes ethniques et cultures traditionnelles du Mali.</p>
+    </div>
+
+    <div class="card form-card">
+      <h3 class="card-section-title">Informations générales</h3>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label" for="nomEthnie">Nom de l'ethnie *</label>
+          <input id="nomEthnie" type="text" class="form-input" placeholder="Ex: Bambara" [(ngModel)]="nom" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="langueEthnie">Langue(s) parlée(s) *</label>
+          <input id="langueEthnie" type="text" class="form-input" placeholder="Ex: Bamanankan" [(ngModel)]="langues" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="regionEthnie">Région(s) principale(s)</label>
+          <input id="regionEthnie" type="text" class="form-input" placeholder="Ex: Ségou, Koulikoro" [(ngModel)]="region" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="descEthnie">Description et traditions</label>
+        <textarea id="descEthnie" class="form-input" rows="3" placeholder="Présentation de l'ethnie..." [(ngModel)]="description"></textarea>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="button" class="btn btn-cancel" (click)="resetForm()">Annuler</button>
+      <button type="button" class="btn btn-primary" (click)="onSubmit()">
+        {{ editingEthnieId ? "Modifier l'ethnie" : "Ajouter l'ethnie" }}
+      </button>
+    </div>
+  </section>
+
+  <section class="card table-card">
+    <div class="table-responsive">
+      <table class="regions-table">
+        <thead>
+          <tr>
+            <th>Nom de l'ethnie</th>
+            <th>Langue(s)</th>
+            <th>Région(s)</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (isLoading) {
+            <tr><td colspan="4" class="state-cell">Chargement des ethnies...</td></tr>
+          } @else if (ethnies.length === 0) {
+            <tr><td colspan="4" class="state-cell">Aucune ethnie trouvée.</td></tr>
+          } @else {
+            @for (ethnie of ethnies; track ethnie.id ?? ethnie.nom) {
+              <tr>
+                <td class="region-name-cell">{{ ethnie.nom }}</td>
+                <td>{{ ethnie.langues }}</td>
+                <td>{{ ethnie.region || '—' }}</td>
+                <td class="region-actions-cell">
+                  <button type="button" class="action-btn edit-btn" (click)="onEdit(ethnie)" title="Modifier">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                  </button>
+                  <button type="button" class="action-btn delete-btn" (click)="onDelete(ethnie)" title="Supprimer">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                  </button>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>

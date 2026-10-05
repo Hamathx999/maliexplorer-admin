@@ -1,0 +1,89 @@
+<div class="regions-page-container">
+  @if (successMessage) {
+    <div class="toast toast-success">
+      <span>{{ successMessage }}</span>
+    </div>
+  }
+  @if (errorMessage) {
+    <div class="toast toast-error">
+      <span>{{ errorMessage }}</span>
+    </div>
+  }
+
+  <section class="form-section">
+    <div class="section-header">
+      <h2 class="section-title">{{ editingVilleId ? 'Modifier la ville' : 'Ajouter une nouvelle ville' }}</h2>
+      <p class="section-description">Gérez les villes et communes urbaines du Mali.</p>
+    </div>
+
+    <div class="card form-card">
+      <h3 class="card-section-title">Informations générales</h3>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label" for="nomVille">Nom de la ville *</label>
+          <input id="nomVille" type="text" class="form-input" placeholder="Ex: Djenné" [(ngModel)]="nom" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="regionVille">Région *</label>
+          <select id="regionVille" class="form-input" [(ngModel)]="selectedRegion">
+            @for (reg of regions; track reg.nom) {
+              <option [value]="reg.nom">{{ reg.nom }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="popVille">Population estimée</label>
+          <input id="popVille" type="text" class="form-input" placeholder="Ex: 35 000 hab" [(ngModel)]="population" />
+        </div>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="button" class="btn btn-cancel" (click)="resetForm()">Annuler</button>
+      <button type="button" class="btn btn-primary" (click)="onSubmit()">
+        {{ editingVilleId ? 'Modifier la ville' : 'Ajouter la ville' }}
+      </button>
+    </div>
+  </section>
+
+  <section class="card table-card">
+    <div class="table-responsive">
+      <table class="regions-table">
+        <thead>
+          <tr>
+            <th>Nom de la ville</th>
+            <th>Région</th>
+            <th>Population</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (isLoading) {
+            <tr><td colspan="4" class="state-cell">Chargement des villes...</td></tr>
+          } @else if (villes.length === 0) {
+            <tr><td colspan="4" class="state-cell">Aucune ville trouvée.</td></tr>
+          } @else {
+            @for (ville of villes; track ville.id ?? ville.nom) {
+              <tr>
+                <td class="region-name-cell">{{ ville.nom }}</td>
+                <td>{{ ville.region }}</td>
+                <td>{{ ville.population || '—' }}</td>
+                <td class="region-actions-cell">
+                  <button type="button" class="action-btn edit-btn" (click)="onEdit(ville)" title="Modifier">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                  </button>
+                  <button type="button" class="action-btn delete-btn" (click)="onDelete(ville)" title="Supprimer">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                  </button>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>

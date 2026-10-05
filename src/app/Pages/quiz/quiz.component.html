@@ -1,0 +1,112 @@
+<div class="page-container">
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Gestion des Quiz & Énigmes</h1>
+      <p class="page-subtitle">Créez et configurez les quiz culturels et leurs récompenses en points</p>
+    </div>
+    <div class="header-buttons">
+      <a routerLink="/questions" class="btn-secondary">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+        Gérer les Questions
+      </a>
+      <button class="btn-primary" (click)="openAddModal()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        Ajouter un quiz
+      </button>
+    </div>
+  </div>
+
+  <!-- Search -->
+  <div class="filter-bar">
+    <div class="search-box">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input
+        type="text"
+        placeholder="Rechercher par titre de quiz ou catégorie..."
+        [(ngModel)]="searchTerm"
+        (input)="filterQuiz()"
+      />
+    </div>
+  </div>
+
+  <!-- Quiz Grid -->
+  <div class="quiz-grid">
+    <div class="quiz-card" *ngFor="let q of filteredQuiz">
+      <div class="quiz-header">
+        <span class="badge-cat">{{ q.categorie || 'Culture Générale' }}</span>
+        <span class="badge-points">🏆 +{{ q.points }} pts</span>
+      </div>
+
+      <h3 class="quiz-title">{{ q.nomQuiz }}</h3>
+      <p class="quiz-desc">{{ q.description || 'Testez vos connaissances sur le patrimoine et l’histoire du Mali.' }}</p>
+
+      <div class="quiz-footer">
+        <span class="quiz-count">❓ {{ q.nombreQuestions || 5 }} questions associées</span>
+        <div class="quiz-actions">
+          <button class="action-btn edit" title="Modifier" (click)="openEditModal(q)">✏️</button>
+          <button class="action-btn delete" title="Supprimer" (click)="deleteQuiz(q)">🗑️</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="filteredQuiz.length === 0" class="empty-state">
+    <p>Aucun quiz trouvé.</p>
+  </div>
+
+  <!-- Modal "Ajouter un quiz" (Figma) -->
+  <div class="modal-overlay" *ngIf="showModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h2>{{ editingQuiz ? 'Modifier le quiz' : 'Ajouter un quiz' }}</h2>
+        <button class="close-btn" (click)="closeModal()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Titre du Quiz *</label>
+          <input type="text" [(ngModel)]="formData.nomQuiz" placeholder="ex: L'Empire du Mandé et Soundiata Keïta" required />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Points attribués au gagnant *</label>
+            <input type="number" [(ngModel)]="formData.points" placeholder="100" />
+          </div>
+          <div class="form-group">
+            <label>Catégorie / Thème</label>
+            <select [(ngModel)]="formData.categorie">
+              <option value="Histoire & Empires">Histoire & Empires</option>
+              <option value="Monuments & Géographie">Monuments & Géographie</option>
+              <option value="Traditions & Musique">Traditions & Musique</option>
+              <option value="Gastronomie Malienne">Gastronomie Malienne</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Description explicative</label>
+          <textarea rows="3" [(ngModel)]="formData.description" placeholder="Description du quiz visible par les explorateurs..."></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeModal()">Annuler</button>
+        <button class="btn-primary" (click)="saveQuiz()">
+          {{ editingQuiz ? 'Mettre à jour' : 'Créer le quiz' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

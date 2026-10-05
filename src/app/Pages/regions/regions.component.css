@@ -1,0 +1,252 @@
+.regions-page-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 1300px;
+  margin: 0 auto;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.toast {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.toast-success {
+  background-color: #ECFDF5;
+  color: #065F46;
+  border: 1px solid #A7F3D0;
+}
+
+.toast-error {
+  background-color: #FEF2F2;
+  color: #991B1B;
+  border: 1px solid #FECACA;
+}
+
+.toast-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #16332D;
+  margin: 0 0 0.25rem 0;
+}
+
+.section-description {
+  font-size: 0.9rem;
+  color: #64748B;
+  margin: 0;
+}
+
+.card {
+  background-color: #FFFFFF;
+  border-radius: 16px;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.form-card {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.card-section-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #16332D;
+  margin: 0;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.form-label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #CBD5E1;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  color: #1E293B;
+  box-sizing: border-box;
+  background-color: #FFFFFF;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #0E8F76;
+  box-shadow: 0 0 0 3px rgba(14, 143, 118, 0.12);
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  padding: 0 1.5rem;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+}
+
+.btn-primary {
+  background-color: #0E8F76;
+  color: #FFFFFF;
+}
+
+.btn-primary:hover {
+  background-color: #0A6B58;
+}
+
+.btn-cancel {
+  background-color: #F1F5F9;
+  color: #475569;
+}
+
+.btn-cancel:hover {
+  background-color: #E2E8F0;
+}
+
+.table-card {
+  overflow: hidden;
+}
+
+.table-responsive {
+  overflow-x: auto;
+  width: 100%;
+}
+
+.regions-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.regions-table th {
+  background-color: #F8FAFC;
+  padding: 1rem 1.25rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #E2E8F0;
+  text-align: left;
+}
+
+.regions-table td {
+  padding: 1.1rem 1.25rem;
+  font-size: 0.95rem;
+  color: #334155;
+  border-bottom: 1px solid #F1F5F9;
+  vertical-align: middle;
+}
+
+.region-name-cell {
+  font-weight: 600;
+  color: #16332D;
+}
+
+.region-actions-cell {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.action-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #E2E8F0;
+  background-color: #FFFFFF;
+  cursor: pointer;
+}
+
+.action-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.edit-btn {
+  color: #64748B;
+}
+
+.edit-btn:hover {
+  background-color: #EFF6FF;
+  border-color: #BFDBFE;
+  color: #2563EB;
+}
+
+.delete-btn {
+  color: #EF4444;
+  border-color: #FEE2E2;
+  background-color: #FEF2F2;
+}
+
+.delete-btn:hover {
+  background-color: #FEE2E2;
+  border-color: #FECACA;
+  color: #DC2626;
+}
+
+.state-cell {
+  text-align: center;
+  padding: 3rem 1rem !important;
+  color: #94A3B8;
+}
+
+.loading-spinner {
+  display: inline-block;
+  width: 28px;
+  height: 28px;
+  border: 3px solid #E2E8F0;
+  border-top-color: #0E8F76;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 0.5rem;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
