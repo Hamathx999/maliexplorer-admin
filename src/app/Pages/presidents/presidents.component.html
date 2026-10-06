@@ -46,7 +46,9 @@
                 <tr>
                   <td>
                     <div style="display: flex; align-items: center; gap: 12px;">
-                      <div style="width: 36px; height: 36px; border-radius: 50%; background: #E2E8F0; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #16332D;">
+                      <div [style.background]="getAvatarColor(pres.nom).bg"
+                           [style.color]="getAvatarColor(pres.nom).color"
+                           style="width: 36px; height: 36px; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0;">
                         <img *ngIf="pres.photoUrl || pres.imageUrl" [src]="pres.photoUrl || pres.imageUrl" [alt]="pres.nom" style="width: 100%; height: 100%; object-fit: cover;" />
                         <span *ngIf="!pres.photoUrl && !pres.imageUrl">{{ pres.nom.charAt(0) }}</span>
                       </div>

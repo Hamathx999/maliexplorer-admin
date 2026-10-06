@@ -5,6 +5,7 @@ export interface User {
   email: string;
   role?: string;
   avatar?: string;
+  photoUrl?: string;
   statut?: 'ACTIF' | 'BLOQUE' | 'EN_ATTENTE' | string;
   points?: number;
   dateInscription?: string;

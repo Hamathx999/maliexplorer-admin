@@ -110,33 +110,35 @@ export class PlatsComponent implements OnInit {
   }
 
   savePlat(): void {
-    if (!this.formData.nom || !this.formData.nom.trim()) {
-      alert('Veuillez renseigner le nom du plat.');
-      return;
-    }
+    // if (!this.formData.nom || !this.formData.nom.trim()) {
+    //   alert('Veuillez renseigner le nom du plat.');
+    //   return;
+    // }
 
-    if (this.editingPlat && this.editingPlat.id) {
-      this.platService.updatePlat(this.editingPlat.id, this.formData as Plat).subscribe({
-        next: (updated) => {
-          const idx = this.plats.findIndex((p) => String(p.id) === String(updated.id));
-          if (idx !== -1) {
-            this.plats[idx] = updated;
-          } else {
-            this.loadPlats();
-          }
-          this.filterPlats();
-          this.cancelEdit();
-        }
-      });
-    } else {
-      this.platService.createPlat(this.formData as Plat).subscribe({
-        next: (created) => {
-          this.plats.unshift(created);
-          this.filterPlats();
-          this.cancelEdit();
-        }
-      });
-    }
+    // if (this.editingPlat && this.editingPlat.id) {
+    //   this.platService.updatePlat(this.editingPlat.id, this.formData as Plat).subscribe({
+    //     next: (updated) => {
+    //       const idx = this.plats.findIndex((p) => String(p.id) === String(updated.id));
+    //       if (idx !== -1) {
+    //         this.plats[idx] = updated;
+    //       } else {
+    //         this.loadPlats();
+    //       }
+    //       this.filterPlats();
+    //       this.cancelEdit();
+    //     }
+    //   });
+    // } else {
+    //   this.platService.createPlat(this.formData as Plat).subscribe({
+    //     next: (created) => {
+    //       this.plats.unshift(created);
+    //       this.filterPlats();
+    //       this.cancelEdit();
+    //     }
+    //   });
+    // }
+    
+    console.log(this.formData.ingredientPrincipal?.split(","));
   }
 
   deletePlat(plat: Plat): void {

@@ -78,7 +78,12 @@
 
       <div class="figma-form-group">
         <label class="figma-label">Ingrédient</label>
-        <input type="text" class="figma-input" [(ngModel)]="formData.ingredientPrincipal" placeholder="Ex: Pâte d'arachide, feuilles de corète séchées, fonio..." />
+        <select name="select" id="select">
+          
+
+        </select>
+        <input type="text" class="figma-input" [(ngModel)]="formData.ingredientPrincipal" placeholder="Ex: Pâte d'arachide, feuilles de corète séchées, fonio..." list="lis"/>
+        
       </div>
 
       <div class="figma-form-group">

@@ -40,7 +40,25 @@ export class PresidentsComponent implements OnInit {
         this.cdr.detectChanges();
       });
   }
-//
+  getAvatarColor(name: string): { bg: string; color: string } {
+    const palette = [
+      { bg: '#E8F5E9', color: '#1B5E20' },
+      { bg: '#E3F2FD', color: '#0D47A1' },
+      { bg: '#FFF3E0', color: '#E65100' },
+      { bg: '#F3E5F5', color: '#4A148C' },
+      { bg: '#FCE4EC', color: '#880E4F' },
+      { bg: '#E0F2F1', color: '#004D40' },
+      { bg: '#FEF9C3', color: '#854D0E' }
+    ];
+    let hash = 0;
+    const str = (name || 'Président').trim();
+    for (let i = 0; i < str.length; i++) {
+      hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % palette.length;
+    return palette[index];
+  }
+
   private checkRoute(url: string): void {
     if (url.includes('/presidents/ajouter')) {
       if (!this.isEditing) {
