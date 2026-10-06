@@ -1,7 +1,8 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router, NavigationEnd } from '@angular/router';
+import { filter } from 'rxjs';
 import { QuestionService } from '../../services/question.service';
 import { Question } from '../../models/question.model';
 
@@ -14,16 +15,18 @@ import { Question } from '../../models/question.model';
 })
 export class QuestionsComponent implements OnInit {
   private readonly questionService = inject(QuestionService);
+  private readonly router = inject(Router);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   questions: Question[] = [];
   filteredQuestions: Question[] = [];
   searchTerm: string = '';
   selectedTheme: string = 'TOUS';
 
-  showModal: boolean = false;
+  isEditing: boolean = false;
   editingQuestion: Question | null = null;
   formData: Partial<Question> = {
-    theme: 'Histoire du Mali',
+    theme: 'Culture générale',
     question: '',
     reponse: '',
     duree: '30s',
@@ -33,6 +36,24 @@ export class QuestionsComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadQuestions();
+    this.checkRoute(this.router.url);
+
+    this.router.events
+      .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
+      .subscribe((event: NavigationEnd) => {
+        this.checkRoute(event.urlAfterRedirects);
+        this.cdr.detectChanges();
+      });
+  }
+
+  private checkRoute(url: string): void {
+    if (url.includes('/questions/ajouter')) {
+      if (!this.isEditing) {
+        this.isEditing = true;
+      }
+    } else if (!this.editingQuestion && this.isEditing) {
+      this.isEditing = false;
+    }
   }
 
   loadQuestions(): void {
@@ -40,6 +61,7 @@ export class QuestionsComponent implements OnInit {
       next: (data) => {
         this.questions = data;
         this.filterQuestions();
+        this.cdr.markForCheck();
       },
       error: (err) => console.error('Erreur chargement questions', err)
     });
@@ -47,79 +69,105 @@ export class QuestionsComponent implements OnInit {
 
   filterQuestions(): void {
     this.filteredQuestions = this.questions.filter((q) => {
+      const qText = q.question || q.nomQuestion || '';
       const matchSearch =
         !this.searchTerm ||
-        q.question.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-        q.reponse.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-        q.theme.toLowerCase().includes(this.searchTerm.toLowerCase());
+        qText.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+        (q.reponse && q.reponse.toLowerCase().includes(this.searchTerm.toLowerCase())) ||
+        (q.theme && q.theme.toLowerCase().includes(this.searchTerm.toLowerCase()));
 
       const matchTheme =
         this.selectedTheme === 'TOUS' ||
-        q.theme.toLowerCase() === this.selectedTheme.toLowerCase();
+        (q.theme && q.theme.toLowerCase() === this.selectedTheme.toLowerCase());
 
       return matchSearch && matchTheme;
     });
   }
 
-  openAddModal(): void {
+  startAdd(): void {
     this.editingQuestion = null;
     this.formData = {
-      theme: 'Histoire du Mali',
+      theme: 'Culture générale',
       question: '',
       reponse: '',
       duree: '30s',
       options: ['', '', '', ''],
       explication: ''
     };
-    this.showModal = true;
+    this.isEditing = true;
+    this.router.navigate(['/questions/ajouter']);
   }
 
-  openEditModal(q: Question): void {
+  startEdit(q: Question): void {
     this.editingQuestion = q;
     this.formData = {
       ...q,
+      question: q.question || q.nomQuestion || '',
       options: q.options && q.options.length === 4 ? [...q.options] : [q.reponse, '', '', '']
     };
-    this.showModal = true;
+    this.isEditing = true;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  closeModal(): void {
-    this.showModal = false;
+  cancelEdit(): void {
+    this.isEditing = false;
     this.editingQuestion = null;
+    this.router.navigate(['/questions']);
   }
 
   saveQuestion(): void {
-    if (!this.formData.question || !this.formData.reponse) {
-      alert('Veuillez renseigner l’énoncé de la question et la bonne réponse.');
+    const questionText = (this.formData.question || this.formData.nomQuestion || '').trim();
+    const reponseText = (this.formData.reponse || '').trim();
+
+    if (!questionText || !reponseText) {
+      alert('Veuillez renseigner l’énoncé de la question et la réponse.');
       return;
     }
 
-    if (this.editingQuestion && this.editingQuestion.id) {
-      this.questionService.updateQuestion(this.editingQuestion.id, this.formData as Question).subscribe({
-        next: (updated) => {
-          const idx = this.questions.findIndex((q) => q.id === updated.id);
-          if (idx !== -1) this.questions[idx] = updated;
-          this.filterQuestions();
-          this.closeModal();
+    const questionToSave: Question = {
+      ...this.formData,
+      question: questionText,
+      nomQuestion: questionText,
+      reponse: reponseText,
+      theme: this.formData.theme?.trim() || 'Culture générale',
+      duree: this.formData.duree || '30s',
+      options: this.formData.options || [reponseText]
+    };
+
+    const targetId = this.editingQuestion?.id ?? this.editingQuestion?.idQuestion;
+    if (this.editingQuestion && targetId) {
+      this.questionService.updateQuestion(targetId, questionToSave).subscribe({
+        next: () => {
+          this.loadQuestions();
+          this.cancelEdit();
+        },
+        error: (err) => {
+          console.error('Erreur mise à jour question', err);
+          alert('Erreur lors de la modification de la question.');
         }
       });
     } else {
-      this.questionService.createQuestion(this.formData as Question).subscribe({
-        next: (created) => {
-          this.questions.unshift(created);
-          this.filterQuestions();
-          this.closeModal();
+      this.questionService.createQuestion(questionToSave).subscribe({
+        next: () => {
+          this.loadQuestions();
+          this.cancelEdit();
+        },
+        error: (err) => {
+          console.error('Erreur création question', err);
+          alert('Erreur lors de la création de la question.');
         }
       });
     }
   }
 
   deleteQuestion(q: Question): void {
-    if (!q.id) return;
-    if (confirm(`Confirmez-vous la suppression de cette question ?`)) {
-      this.questionService.deleteQuestion(q.id).subscribe({
+    const targetId = q.id ?? q.idQuestion;
+    if (!targetId) return;
+    const questionText = q.question || q.nomQuestion || 'cette question';
+    if (confirm(`Confirmez-vous la suppression de la question "${questionText}" ?`)) {
+      this.questionService.deleteQuestion(targetId).subscribe({
         next: () => {
-          this.questions = this.questions.filter((item) => item.id !== q.id);
+          this.questions = this.questions.filter((item) => (item.id ?? item.idQuestion) !== targetId);
           this.filterQuestions();
         }
       });

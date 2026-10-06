@@ -1,7 +1,8 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router, NavigationEnd } from '@angular/router';
+import { filter } from 'rxjs';
 import { PlatService } from '../../services/plat.service';
 import { Plat } from '../../models/plat.model';
 
@@ -14,13 +15,15 @@ import { Plat } from '../../models/plat.model';
 })
 export class PlatsComponent implements OnInit {
   private readonly platService = inject(PlatService);
+  private readonly router = inject(Router);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   plats: Plat[] = [];
   filteredPlats: Plat[] = [];
   searchTerm: string = '';
   selectedRegion: string = 'TOUTES';
 
-  showModal: boolean = false;
+  isEditing: boolean = false;
   editingPlat: Plat | null = null;
   formData: Partial<Plat> = {
     nom: '',
@@ -33,6 +36,24 @@ export class PlatsComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadPlats();
+    this.checkRoute(this.router.url);
+
+    this.router.events
+      .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
+      .subscribe((event: NavigationEnd) => {
+        this.checkRoute(event.urlAfterRedirects);
+        this.cdr.detectChanges();
+      });
+  }
+
+  private checkRoute(url: string): void {
+    if (url.includes('/plats/ajouter')) {
+      if (!this.isEditing) {
+        this.isEditing = true;
+      }
+    } else if (!this.editingPlat && this.isEditing) {
+      this.isEditing = false;
+    }
   }
 
   loadPlats(): void {
@@ -40,6 +61,7 @@ export class PlatsComponent implements OnInit {
       next: (data) => {
         this.plats = data;
         this.filterPlats();
+        this.cdr.markForCheck();
       },
       error: (err) => console.error('Erreur chargement plats', err)
     });
@@ -60,7 +82,7 @@ export class PlatsComponent implements OnInit {
     });
   }
 
-  openAddModal(): void {
+  startAdd(): void {
     this.editingPlat = null;
     this.formData = {
       nom: '',
@@ -70,33 +92,40 @@ export class PlatsComponent implements OnInit {
       difficulte: 'Moyen',
       description: ''
     };
-    this.showModal = true;
+    this.isEditing = true;
+    this.router.navigate(['/plats/ajouter']);
   }
 
-  openEditModal(plat: Plat): void {
+  startEdit(plat: Plat): void {
     this.editingPlat = plat;
     this.formData = { ...plat };
-    this.showModal = true;
+    this.isEditing = true;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  closeModal(): void {
-    this.showModal = false;
+  cancelEdit(): void {
+    this.isEditing = false;
     this.editingPlat = null;
+    this.router.navigate(['/plats']);
   }
 
   savePlat(): void {
-    if (!this.formData.nom || !this.formData.ingredientPrincipal) {
-      alert('Veuillez renseigner le nom du plat et son ingrédient principal.');
+    if (!this.formData.nom || !this.formData.nom.trim()) {
+      alert('Veuillez renseigner le nom du plat.');
       return;
     }
 
     if (this.editingPlat && this.editingPlat.id) {
       this.platService.updatePlat(this.editingPlat.id, this.formData as Plat).subscribe({
         next: (updated) => {
-          const idx = this.plats.findIndex((p) => p.id === updated.id);
-          if (idx !== -1) this.plats[idx] = updated;
+          const idx = this.plats.findIndex((p) => String(p.id) === String(updated.id));
+          if (idx !== -1) {
+            this.plats[idx] = updated;
+          } else {
+            this.loadPlats();
+          }
           this.filterPlats();
-          this.closeModal();
+          this.cancelEdit();
         }
       });
     } else {
@@ -104,7 +133,7 @@ export class PlatsComponent implements OnInit {
         next: (created) => {
           this.plats.unshift(created);
           this.filterPlats();
-          this.closeModal();
+          this.cancelEdit();
         }
       });
     }
@@ -112,10 +141,10 @@ export class PlatsComponent implements OnInit {
 
   deletePlat(plat: Plat): void {
     if (!plat.id) return;
-    if (confirm(`Confirmez-vous la suppression du plat "${plat.nom}" ?`)) {
+    if (confirm(`Confirmez-vous la suppression du plat traditionnel "${plat.nom}" ?`)) {
       this.platService.deletePlat(plat.id).subscribe({
         next: () => {
-          this.plats = this.plats.filter((p) => p.id !== plat.id);
+          this.plats = this.plats.filter((p) => String(p.id) !== String(plat.id));
           this.filterPlats();
         }
       });

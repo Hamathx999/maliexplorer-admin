@@ -1,6 +1,8 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router, NavigationEnd } from '@angular/router';
+import { filter } from 'rxjs';
 import { RegionService } from '../../services/region.service';
 import { Region } from '../../models/region.model';
 
@@ -13,16 +15,44 @@ import { Region } from '../../models/region.model';
 })
 export class RegionsComponent implements OnInit {
   private readonly regionService = inject(RegionService);
+  private readonly router = inject(Router);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   regions: Region[] = [];
   regionName: string = '';
   editingRegionId: number | string | null = null;
+  isEditing: boolean = false;
   isLoading: boolean = false;
   successMessage: string = '';
   errorMessage: string = '';
 
   ngOnInit(): void {
     this.loadRegions();
+    this.checkRoute(this.router.url);
+
+    this.router.events
+      .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
+      .subscribe((event: NavigationEnd) => {
+        this.checkRoute(event.urlAfterRedirects);
+        this.cdr.detectChanges();
+      });
+  }
+
+  private checkRoute(url: string): void {
+    if (url.includes('/regions/ajouter')) {
+      if (!this.isEditing) {
+        this.isEditing = true;
+      }
+    } else if (!this.editingRegionId && this.isEditing) {
+      this.isEditing = false;
+    }
+  }
+
+  startAdd(): void {
+    this.editingRegionId = null;
+    this.regionName = '';
+    this.isEditing = true;
+    this.router.navigate(['/regions/ajouter']);
   }
 
   loadRegions(): void {
@@ -31,9 +61,11 @@ export class RegionsComponent implements OnInit {
       next: (data) => {
         this.regions = data;
         this.isLoading = false;
+        this.cdr.markForCheck();
       },
       error: () => {
         this.isLoading = false;
+        this.cdr.markForCheck();
       }
     });
   }
@@ -73,6 +105,7 @@ export class RegionsComponent implements OnInit {
   onEdit(region: Region): void {
     this.editingRegionId = region.id ?? null;
     this.regionName = region.nom;
+    this.isEditing = true;
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -95,6 +128,8 @@ export class RegionsComponent implements OnInit {
   resetForm(): void {
     this.regionName = '';
     this.editingRegionId = null;
+    this.isEditing = false;
+    this.router.navigate(['/regions']);
   }
 
   private showNotification(msg: string, isError: boolean = false): void {
@@ -103,7 +138,8 @@ export class RegionsComponent implements OnInit {
       setTimeout(() => (this.errorMessage = ''), 4000);
     } else {
       this.successMessage = msg;
-      setTimeout(() => (this.successMessage = ''), 4000);
+      setTimeout(() => (this.successMessage = ''), 3500);
     }
+    this.cdr.markForCheck();
   }
 }

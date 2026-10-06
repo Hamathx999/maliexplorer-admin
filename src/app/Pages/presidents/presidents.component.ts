@@ -1,6 +1,8 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router, NavigationEnd } from '@angular/router';
+import { filter } from 'rxjs';
 import { PresidentService } from '../../services/president.service';
 import { President } from '../../models/president.model';
 
@@ -8,46 +10,92 @@ import { President } from '../../models/president.model';
   selector: 'app-presidents',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './presidents.component.html',
-  // styleUrl: './presidents.component.css'
+  templateUrl: './presidents.component.html'
 })
 export class PresidentsComponent implements OnInit {
   private readonly presidentService = inject(PresidentService);
+  private readonly router = inject(Router);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   presidents: President[] = [];
   nom: string = '';
+  prenom: string = '';
   periode: string = '';
   titre: string = '';
   biographie: string = '';
   editingPresidentId: number | string | null = null;
+  isEditing: boolean = false;
   isLoading: boolean = false;
   successMessage: string = '';
   errorMessage: string = '';
 
   ngOnInit(): void {
     this.loadPresidents();
+    this.checkRoute(this.router.url);
+
+    this.router.events
+      .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
+      .subscribe((event: NavigationEnd) => {
+        this.checkRoute(event.urlAfterRedirects);
+        this.cdr.detectChanges();
+      });
+  }
+
+  private checkRoute(url: string): void {
+    if (url.includes('/presidents/ajouter')) {
+      if (!this.isEditing) {
+        this.isEditing = true;
+      }
+    } else if (!this.editingPresidentId && this.isEditing) {
+      this.isEditing = false;
+    }
+  }
+
+  startAdd(): void {
+    this.editingPresidentId = null;
+    this.nom = '';
+    this.prenom = '';
+    this.periode = '';
+    this.titre = '';
+    this.biographie = '';
+    this.isEditing = true;
+    this.router.navigate(['/presidents/ajouter']);
   }
 
   loadPresidents(): void {
     this.isLoading = true;
     this.presidentService.getPresidents().subscribe({
       next: (data) => {
-        this.presidents = data;
+        this.presidents = data.map((p) => ({
+          ...p,
+          periode: p.periodeMandat || p.periode || '',
+          periodeMandat: p.periodeMandat || p.periode || ''
+        }));
         this.isLoading = false;
+        this.cdr.markForCheck();
       },
-      error: () => (this.isLoading = false)
+      error: () => {
+        this.isLoading = false;
+        this.cdr.markForCheck();
+      }
     });
   }
 
   onSubmit(): void {
-    if (!this.nom.trim() || !this.periode.trim()) {
+    const nom = this.nom.trim();
+    const prenom = this.prenom.trim();
+    const periode = this.periode.trim();
+
+    if (!nom || !periode) {
       this.showNotification('Veuillez renseigner le nom et la période du chef d’État.', true);
       return;
     }
 
     const payload: President = {
-      nom: this.nom.trim(),
-      periode: this.periode.trim(),
+      nom: nom,
+      prenom: prenom,
+      periode: periode,
+      periodeMandat: periode,
       titre: this.titre.trim(),
       biographie: this.biographie.trim()
     };
@@ -75,10 +123,12 @@ export class PresidentsComponent implements OnInit {
 
   onEdit(president: President): void {
     this.editingPresidentId = president.id ?? null;
-    this.nom = president.nom;
-    this.periode = president.periode;
+    this.nom = president.nom || '';
+    this.prenom = president.prenom || '';
+    this.periode = president.periodeMandat || president.periode || '';
     this.titre = president.titre || '';
     this.biographie = president.biographie || '';
+    this.isEditing = true;
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -97,10 +147,13 @@ export class PresidentsComponent implements OnInit {
 
   resetForm(): void {
     this.nom = '';
+    this.prenom = '';
     this.periode = '';
     this.titre = '';
     this.biographie = '';
     this.editingPresidentId = null;
+    this.isEditing = false;
+    this.router.navigate(['/presidents']);
   }
 
   private showNotification(msg: string, isError: boolean = false): void {
@@ -109,7 +162,8 @@ export class PresidentsComponent implements OnInit {
       setTimeout(() => (this.errorMessage = ''), 4000);
     } else {
       this.successMessage = msg;
-      setTimeout(() => (this.successMessage = ''), 4000);
+      setTimeout(() => (this.successMessage = ''), 3500);
     }
+    this.cdr.markForCheck();
   }
 }

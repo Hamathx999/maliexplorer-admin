@@ -1,8 +1,11 @@
 export interface President {
   id?: number | string;
   nom: string;
-  periode: string;
+  prenom?: string;
+  periode?: string;
+  periodeMandat?: string;
   biographie?: string;
   titre?: string;
   imageUrl?: string;
+  photoUrl?: string;
 }

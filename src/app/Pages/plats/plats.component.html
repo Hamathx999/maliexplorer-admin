@@ -1,20 +1,8 @@
 <div class="page-container">
-  <!-- Header -->
-  <div class="page-header">
-    <div>
-      <h1 class="page-title">Gastronomie & Plats Maliens</h1>
-      <p class="page-subtitle">Découvrez les trésors culinaires, recettes traditionnelles et saveurs du Mali</p>
-    </div>
-    <div class="header-buttons">
-      <a routerLink="/ingredients" class="btn-secondary">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="12" y1="8" x2="12" y2="12"></line>
-          <line x1="12" y1="16" x2="12.01" y2="16"></line>
-        </svg>
-        Gérer les Ingrédients
-      </a>
-      <button class="btn-primary" (click)="openAddModal()">
+  <!-- VUE 1 : LISTE DES PLATS (Figma) -->
+  @if (!isEditing) {
+    <div class="figma-list-topbar">
+      <button type="button" class="figma-btn-header-add" (click)="startAdd()">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <line x1="12" y1="5" x2="12" y2="19"></line>
           <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -22,131 +10,88 @@
         Ajouter un plat
       </button>
     </div>
-  </div>
 
-  <!-- Filter -->
-  <div class="filter-bar">
-    <div class="search-box">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="11" cy="11" r="8"></circle>
-        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-      </svg>
-      <input
-        type="text"
-        placeholder="Rechercher par nom de plat ou ingrédient principal..."
-        [(ngModel)]="searchTerm"
-        (input)="filterPlats()"
-      />
-    </div>
+    <div class="figma-card">
+      <h2 class="figma-card-title-center">Liste des plats</h2>
 
-    <div class="filter-group">
-      <label>Région d'origine :</label>
-      <select [(ngModel)]="selectedRegion" (change)="filterPlats()">
-        <option value="TOUTES">Toutes les régions</option>
-        <option value="Nationale">Nationale</option>
-        <option value="Ségou">Ségou</option>
-        <option value="Mopti">Mopti</option>
-        <option value="Tombouctou">Tombouctou</option>
-        <option value="Gao">Gao</option>
-        <option value="Kayes">Kayes</option>
-        <option value="Sikasso">Sikasso</option>
-      </select>
-    </div>
-  </div>
-
-  <!-- Plats Cards Grid -->
-  <div class="plats-grid">
-    <div class="plat-card" *ngFor="let plat of filteredPlats">
-      <div class="plat-header">
-        <span class="plat-region">{{ plat.region || 'Mali' }}</span>
-        <span class="plat-difficulty">{{ plat.difficulte || 'Facile' }}</span>
+      <div class="table-responsive">
+        <table class="figma-table">
+          <thead>
+            <tr>
+              <th>Nom du plat</th>
+              <th>Description</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @if (filteredPlats.length === 0) {
+              <tr>
+                <td colspan="3" style="text-align: center; padding: 24px; color: #64748B;">Aucun plat trouvé.</td>
+              </tr>
+            } @else {
+              @for (plat of filteredPlats; track plat.id ?? plat.nom) {
+                <tr>
+                  <td><strong>{{ plat.nom }}</strong></td>
+                  <td style="color: #64748B; max-width: 480px;">
+                    {{ plat.description || (plat.ingredientPrincipal ? 'Préparation traditionnelle à base de ' + plat.ingredientPrincipal : 'Plat emblématique de la gastronomie malienne.') }}
+                  </td>
+                  <td>
+                    <div class="figma-action-cell">
+                      <button type="button" class="figma-icon-btn edit" (click)="startEdit(plat)" title="Modifier">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                        </svg>
+                      </button>
+                      <button type="button" class="figma-icon-btn delete" (click)="deletePlat(plat)" title="Supprimer">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <polyline points="3 6 5 6 21 6"></polyline>
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
       </div>
+    </div>
+  }
 
-      <div class="plat-title-row">
-        <span class="plat-icon">🍲</span>
-        <h3 class="plat-name">{{ plat.nom }}</h3>
-      </div>
-
-      <p class="plat-ingredient">
-        <strong>Ingrédient clé :</strong> {{ plat.ingredientPrincipal }}
+  <!-- VUE 2 : PAGE INDÉPENDANTE D'AJOUT / MODIFICATION (Figma) -->
+  @if (isEditing) {
+    <div class="figma-add-header">
+      <h2 class="figma-add-title">{{ editingPlat ? 'Modifier le plat' : 'Ajouter un nouveau plat' }}</h2>
+      <p class="figma-add-subtitle">
+        Renseignez les informations ci-dessous pour ajouter un plat traditionnel de la cuisine malienne sur MaliExplorer.
       </p>
+    </div>
 
-      <p class="plat-desc">{{ plat.description }}</p>
+    <div class="figma-card">
+      <h3 class="figma-section-title">Informations du plat</h3>
 
-      <div class="plat-footer">
-        <span class="prep-time">⏱️ {{ plat.tempsPreparation || '1h' }}</span>
-        <div class="card-actions">
-          <button class="action-btn edit" title="Modifier" (click)="openEditModal(plat)">✏️</button>
-          <button class="action-btn delete" title="Supprimer" (click)="deletePlat(plat)">🗑️</button>
-        </div>
+      <div class="figma-form-group">
+        <label class="figma-label">Nom du plat</label>
+        <input type="text" class="figma-input" [(ngModel)]="formData.nom" placeholder="Ex: Fakoye, Tigadèguè Na, Djouka..." required />
+      </div>
+
+      <div class="figma-form-group">
+        <label class="figma-label">Ingrédient</label>
+        <input type="text" class="figma-input" [(ngModel)]="formData.ingredientPrincipal" placeholder="Ex: Pâte d'arachide, feuilles de corète séchées, fonio..." />
+      </div>
+
+      <div class="figma-form-group">
+        <label class="figma-label">Description</label>
+        <textarea rows="4" class="figma-textarea" [(ngModel)]="formData.description" placeholder="Décrivez l'origine, les spécificités aromatiques et les accompagnements traditionnels recommandés..."></textarea>
       </div>
     </div>
-  </div>
 
-  <div *ngIf="filteredPlats.length === 0" class="empty-state">
-    <p>Aucun plat traditionnel trouvé.</p>
-  </div>
-
-  <!-- Modal "Ajouter un plat" (Figma) -->
-  <div class="modal-overlay" *ngIf="showModal">
-    <div class="modal-container">
-      <div class="modal-header">
-        <h2>{{ editingPlat ? 'Modifier le plat' : 'Ajouter un plat traditionnel' }}</h2>
-        <button class="close-btn" (click)="closeModal()">&times;</button>
-      </div>
-
-      <div class="modal-body">
-        <div class="form-group">
-          <label>Nom du plat *</label>
-          <input type="text" [(ngModel)]="formData.nom" placeholder="ex: Tiga Dégué (Sauce Arachide)" required />
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label>Ingrédient principal *</label>
-            <input type="text" [(ngModel)]="formData.ingredientPrincipal" placeholder="ex: Pâte d'arachide, Viande" required />
-          </div>
-          <div class="form-group">
-            <label>Région / Spécialité</label>
-            <select [(ngModel)]="formData.region">
-              <option value="Nationale">Nationale</option>
-              <option value="Ségou">Ségou</option>
-              <option value="Mopti">Mopti</option>
-              <option value="Tombouctou">Tombouctou</option>
-              <option value="Gao">Gao</option>
-              <option value="Kayes">Kayes</option>
-              <option value="Sikasso">Sikasso</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label>Temps de préparation</label>
-            <input type="text" [(ngModel)]="formData.tempsPreparation" placeholder="ex: 1h 30min" />
-          </div>
-          <div class="form-group">
-            <label>Difficulté</label>
-            <select [(ngModel)]="formData.difficulte">
-              <option value="Facile">Facile</option>
-              <option value="Moyen">Moyen</option>
-              <option value="Difficile">Difficile</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label>Description & Recette</label>
-          <textarea rows="3" [(ngModel)]="formData.description" placeholder="Description du plat, tradition, accompagnements idéaux (Riz, Tô...)..."></textarea>
-        </div>
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn-secondary" (click)="closeModal()">Annuler</button>
-        <button class="btn-primary" (click)="savePlat()">
-          {{ editingPlat ? 'Mettre à jour' : 'Enregistrer le plat' }}
-        </button>
-      </div>
+    <div class="figma-form-actions">
+      <button type="button" class="figma-btn-cancel" (click)="cancelEdit()">Annuler</button>
+      <button type="button" class="figma-btn-primary" (click)="savePlat()">
+        {{ editingPlat ? 'Modifier le plat' : 'Ajouter le plat' }}
+      </button>
     </div>
-  </div>
+  }
 </div>

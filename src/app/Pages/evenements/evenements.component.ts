@@ -1,10 +1,11 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router, NavigationEnd } from '@angular/router';
+import { filter } from 'rxjs';
 import { EvenementService } from '../../services/evenement.service';
 import { Evenement } from '../../models/evenement.model';
-import { Router } from '@angular/router';
+
 @Component({
   selector: 'app-evenements',
   standalone: true,
@@ -14,14 +15,15 @@ import { Router } from '@angular/router';
 })
 export class EvenementsComponent implements OnInit {
   private readonly evenementService = inject(EvenementService);
-  constructor(private router: Router) {}
+  private readonly router = inject(Router);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   evenements: Evenement[] = [];
   filteredEvenements: Evenement[] = [];
   searchTerm: string = '';
   selectedStatut: string = 'TOUS';
 
-  showModal: boolean = false;
+  isEditing: boolean = false;
   editingEvenement: Evenement | null = null;
   formData: Partial<Evenement> = {
     titre: '',
@@ -43,6 +45,25 @@ export class EvenementsComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadEvenements();
+    this.checkRoute(this.router.url);
+
+    this.router.events
+      .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
+      .subscribe((event: NavigationEnd) => {
+        this.checkRoute(event.urlAfterRedirects);
+        this.loadEvenements();
+        this.cdr.detectChanges();
+      });
+  }
+
+  private checkRoute(url: string): void {
+    if (url.includes('/evenements/ajouter')) {
+      if (!this.isEditing) {
+        this.isEditing = true;
+      }
+    } else if (!this.editingEvenement && this.isEditing) {
+      this.isEditing = false;
+    }
   }
 
   loadEvenements(): void {
@@ -50,6 +71,7 @@ export class EvenementsComponent implements OnInit {
       next: (data) => {
         this.evenements = data;
         this.filterEvenements();
+        this.cdr.markForCheck();
       },
       error: (err) => console.error('Erreur chargement événements', err)
     });
@@ -72,7 +94,7 @@ export class EvenementsComponent implements OnInit {
     });
   }
 
-  openAddModal(navigate: Boolean = false): void {
+  startAdd(): void {
     this.editingEvenement = null;
     this.formData = {
       titre: '',
@@ -91,22 +113,21 @@ export class EvenementsComponent implements OnInit {
       description: '',
       prix: 'Gratuit'
     };
-    this.showModal = true;
-    if (navigate && !this.router.url.includes('/ajouter')) {
-      this.router.navigate(['/evenement/ajouter']);
-    }
-    // this.showModal = true;
+    this.isEditing = true;
+    this.router.navigate(['/evenements/ajouter']);
   }
 
-  openEditModal(evt: Evenement): void {
+  startEdit(evt: Evenement): void {
     this.editingEvenement = evt;
     this.formData = { ...evt };
-    this.showModal = true;
+    this.isEditing = true;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  closeModal(): void {
-    this.showModal = false;
+  cancelEdit(): void {
+    this.isEditing = false;
     this.editingEvenement = null;
+    this.router.navigate(['/evenements']);
   }
 
   saveEvenement(): void {
@@ -121,7 +142,7 @@ export class EvenementsComponent implements OnInit {
           const idx = this.evenements.findIndex((e) => e.id === updated.id);
           if (idx !== -1) this.evenements[idx] = updated;
           this.filterEvenements();
-          this.closeModal();
+          this.cancelEdit();
         }
       });
     } else {
@@ -129,7 +150,7 @@ export class EvenementsComponent implements OnInit {
         next: (created) => {
           this.evenements.unshift(created);
           this.filterEvenements();
-          this.closeModal();
+          this.cancelEdit();
         }
       });
     }
@@ -138,7 +159,7 @@ export class EvenementsComponent implements OnInit {
   approve(evt: Evenement): void {
     if (!evt.id) return;
     this.evenementService.approveEvenement(evt.id).subscribe({
-      next: (res) => {
+      next: () => {
         evt.statut = 'APPROUVE';
         this.filterEvenements();
       }
@@ -149,11 +170,16 @@ export class EvenementsComponent implements OnInit {
     if (!evt.id) return;
     const motif = prompt('Veuillez indiquer le motif du refus (optionnel) :');
     this.evenementService.rejectEvenement(evt.id, motif || undefined).subscribe({
-      next: (res) => {
+      next: () => {
         evt.statut = 'REFUSE';
         this.filterEvenements();
       }
     });
+  }
+
+  goToValidation(evt: Evenement): void {
+    const id = evt.id ?? 1;
+    this.router.navigate(['/validation-evenement', id]);
   }
 
   deleteEvenement(evt: Evenement): void {

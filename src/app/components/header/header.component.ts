@@ -57,16 +57,13 @@ export class HeaderComponent implements OnInit {
   private updateTitleByUrl(url: string): void {
     if (url.includes('/validation-evenement') || url.includes('/evenements/validation')) {
       this.title = 'Modération d\'Événements';
-      this.subtitle = 'Espace de validation et d\'examen des contributions des promoteurs';
+      this.subtitle = 'Espace de validation et d\'examen des contributions des promoteurs.';
     } else if (url.includes('/plats')) {
       this.title = 'Gestion des plats';
       this.subtitle = "Bienvenue dans l'administration des spécialités gastronomiques !";
     } else if (url.includes('/ingredients')) {
       this.title = 'Gestion des ingrédients';
       this.subtitle = 'Gérez les ingrédients de base de la cuisine authentique malienne !';
-    } else if (url.includes('/lieux-historiques/ajouter')) {
-      this.title = 'Ajouter un lieu historique';
-      this.subtitle = 'Enregistrer un nouveau monument ou site du patrimoine malien.';
     } else if (url.includes('/lieux-historiques')) {
       this.title = 'Gestion des lieux historiques';
       this.subtitle = 'Ajouter de nouvelles merveilles et cultures maliennes à la plateforme.';

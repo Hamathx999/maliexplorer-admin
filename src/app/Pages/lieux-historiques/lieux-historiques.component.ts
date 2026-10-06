@@ -130,10 +130,28 @@ export class LieuxHistoriquesComponent implements OnInit {
     this.cdr.markForCheck();
   }
 
+  private readonly villeRegionMap: Record<string, string> = {
+    'bamako': 'Bamako',
+    'djenné': 'Mopti',
+    'djenne': 'Mopti',
+    'mopti': 'Mopti',
+    'tombouctou': 'Tombouctou',
+    'ségou': 'Ségou',
+    'segou': 'Ségou',
+    'sikasso': 'Sikasso',
+    'kayes': 'Kayes',
+    'gao': 'Gao',
+    'kidal': 'Kidal',
+    'koulikoro': 'Koulikoro',
+    'san': 'Ségou',
+    'bandiagara': 'Mopti'
+  };
+
   onVilleChange(cityName: string): void {
     if (!cityName) return;
+    const cleanCity = cityName.trim();
     const match = this.availableVilles.find(
-      (v) => v.nom.toLowerCase() === cityName.trim().toLowerCase()
+      (v) => v.nom.toLowerCase() === cleanCity.toLowerCase()
     );
     if (match) {
       if (match.id) {
@@ -141,6 +159,11 @@ export class LieuxHistoriquesComponent implements OnInit {
       }
       if (match.region) {
         this.formData.region = match.region;
+      }
+    } else {
+      const reg = this.villeRegionMap[cleanCity.toLowerCase()];
+      if (reg) {
+        this.formData.region = reg;
       }
     }
   }
@@ -268,6 +291,10 @@ export class LieuxHistoriquesComponent implements OnInit {
       if (match && match.id) {
         this.formData.villeId = typeof match.id === 'string' ? parseInt(match.id, 10) : match.id;
       }
+    }
+
+    if (!this.formData.region && this.formData.ville) {
+      this.formData.region = this.villeRegionMap[this.formData.ville.trim().toLowerCase()] || 'Mali';
     }
 
     this.isSaving = true;

@@ -1,247 +1,205 @@
 <div class="page-container">
-  <!-- Top Header -->
-  <div class="page-header">
-    <div>
-      <h1 class="page-title">{{ pageTitle }}</h1>
-      <p class="page-subtitle">Monuments, mosquées séculaires, falaises et trésors du patrimoine malien</p>
-    </div>
-    @if (!isEditing) {<div>
-      <button class="btn-primary" (click)="startAdd()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="12" y1="5" x2="12" y2="19"></line>
-          <line x1="5" y1="12" x2="19" y2="12"></line>
-        </svg>
-        Ajouter un lieu historique
-      </button>
-    </div>}
-    <!-- <div *ngIf="!isEditing">
-      <button class="btn-primary" (click)="startAdd()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="12" y1="5" x2="12" y2="19"></line>
-          <line x1="5" y1="12" x2="19" y2="12"></line>
-        </svg>
-        Ajouter un lieu historique
-      </button>
-    </div> -->
-  </div>
-
-  <!-- VIEW 1: LIST OF LIEUX -->
-  <div *ngIf="!isEditing">
-    <!-- Filter bar -->
-    <div class="filter-bar">
-      <div class="search-box">
+  <!-- VUE 1 : LISTE DES LIEUX HISTORIQUES (Figma) -->
+  @if (!isEditing) {
+    <div class="figma-list-topbar">
+      <button type="button" class="figma-btn-header-add" (click)="startAdd()">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="11" cy="11" r="8"></circle>
-          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
         </svg>
-        <input
-          type="text"
-          placeholder="Rechercher par nom, ville ou époque..."
-          [(ngModel)]="searchTerm"
-          (input)="filterLieux()"
-        />
-      </div>
-
-      <div class="filter-group">
-        <label>Région :</label>
-        <select [(ngModel)]="selectedRegion" (change)="filterLieux()">
-          <option value="TOUTES">Toutes les régions</option>
-          <option value="Tombouctou">Tombouctou</option>
-          <option value="Mopti">Mopti</option>
-          <option value="Ségou">Ségou</option>
-          <option value="Gao">Gao</option>
-          <option value="Koulikoro">Koulikoro</option>
-          <option value="Kayes">Kayes</option>
-          <option value="Bamako">Bamako</option>
-        </select>
-      </div>
-    </div>
-
-    <!-- Table -->
-    <div class="table-card">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Nom du monument</th>
-            <th>Époque</th>
-            <th>Ville</th>
-            <th>Région</th>
-            <th>UNESCO</th>
-            <th class="actions-col">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let lieu of filteredLieux">
-            <td>
-              <div class="lieu-cell">
-                <span class="lieu-icon">🏛️</span>
-                <div>
-                  <strong>{{ lieu.nom || lieu.nomLieuHisto }}</strong>
-                  <span class="lieu-gps" *ngIf="lieu.coordonneesGps || lieu.cordonnees">📍 {{ lieu.coordonneesGps || lieu.cordonnees }}</span>
-                </div>
-              </div>
-            </td>
-            <td>{{ lieu.epoque }}</td>
-            <td>{{ lieu.ville }}</td>
-            <td>
-              <span class="region-badge">{{ lieu.region }}</span>
-            </td>
-            <td>
-              <span class="unesco-tag" *ngIf="lieu.classeUnesco">🏆 Classé UNESCO</span>
-              <span class="non-unesco" *ngIf="!lieu.classeUnesco">National</span>
-            </td>
-            <td class="actions-col">
-              <button class="action-btn edit" title="Modifier" (click)="startEdit(lieu)">✏️</button>
-              <button class="action-btn delete" title="Supprimer" (click)="deleteLieu(lieu)">🗑️</button>
-            </td>
-          </tr>
-
-          <tr *ngIf="filteredLieux.length === 0">
-            <td colspan="6" class="empty-state">Aucun lieu historique trouvé.</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- VIEW 2: 3-SECTION FORM (Matching Figma "Ajouter un lieu historique") -->
-  <div class="form-wrapper" *ngIf="isEditing">
-    <div class="form-sections-grid">
-      <!-- Section 1: Informations Générales -->
-      <div class="form-section-card">
-        <h3 class="section-title">
-          <span class="section-num">1</span>
-          Informations Générales
-        </h3>
-
-        <div class="form-group">
-          <label>Nom du monument ou site *</label>
-          <input type="text" [(ngModel)]="formData.nom" placeholder="ex: Mosquée Djingareyber" required />
-        </div>
-
-        <div class="form-group">
-          <label>Époque de construction / Fondation *</label>
-          <input type="text" [(ngModel)]="formData.epoque" placeholder="ex: XIVe siècle (1327)" required />
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label>Région *</label>
-            <select [(ngModel)]="formData.region">
-              <option value="Tombouctou">Tombouctou</option>
-              <option value="Mopti">Mopti</option>
-              <option value="Ségou">Ségou</option>
-              <option value="Gao">Gao</option>
-              <option value="Koulikoro">Koulikoro</option>
-              <option value="Kayes">Kayes</option>
-              <option value="Bamako">Bamako</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Ville *</label>
-            <input
-              type="text"
-              list="villesList"
-              [(ngModel)]="formData.ville"
-              (ngModelChange)="onVilleChange($event)"
-              placeholder="ex: Tombouctou"
-              required
-            />
-            <datalist id="villesList">
-              <option *ngFor="let v of availableVilles" [value]="v.nom">{{ v.nom }} ({{ v.region }})</option>
-            </datalist>
-          </div>
-        </div>
-      </div>
-
-      <!-- Section 2: Localisation & Détails -->
-      <div class="form-section-card">
-        <h3 class="section-title">
-          <span class="section-num">2</span>
-          Localisation & Histoire
-        </h3>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label>Coordonnées GPS</label>
-            <input type="text" [(ngModel)]="formData.coordonneesGps" placeholder="ex: 16.7719° N, 3.0088° W" />
-          </div>
-          <div class="form-group">
-            <label>URL Panorama 360° (Visite virtuelle)</label>
-            <input type="text" [(ngModel)]="formData.panorama360Url" placeholder="https://..." />
-          </div>
-        </div>
-
-        <div class="form-group checkbox-group">
-          <label class="custom-checkbox">
-            <input type="checkbox" [(ngModel)]="formData.classeUnesco" />
-            <span class="checkmark"></span>
-            Site inscrit au Patrimoine Mondial de l'UNESCO
-          </label>
-        </div>
-
-        <div class="form-group">
-          <label>Description historique complète</label>
-          <textarea rows="4" [(ngModel)]="formData.description" placeholder="Récit de l'histoire du monument, architecture en terre crue banco, souverains associés..."></textarea>
-        </div>
-      </div>
-
-      <!-- Section 3: Médias & Photos -->
-      <div class="form-section-card full-width">
-        <h3 class="section-title">
-          <span class="section-num">3</span>
-          Médias & Photos
-        </h3>
-
-        <!-- Dropzone -->
-        <div
-          class="dropzone"
-          [class.dragover]="isDragOver"
-          (click)="fileInput.click()"
-          (dragover)="onDragOver($event)"
-          (dragleave)="onDragLeave($event)"
-          (drop)="onDrop($event)"
-        >
-          <input
-            #fileInput
-            type="file"
-            multiple
-            accept="image/png, image/jpeg, image/jpg, image/webp"
-            (change)="onFileSelected($event)"
-            style="display: none;"
-          />
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="17 8 12 3 7 8"></polyline>
-            <line x1="12" y1="3" x2="12" y2="15"></line>
-          </svg>
-          <p class="dropzone-text">Glissez vos photos ici ou <span class="browse-link">parcourez vos fichiers</span></p>
-          <p class="dropzone-hint">Formats acceptés : JPG, PNG, WEBP (Max 10 MB par image)</p>
-        </div>
-
-        <!-- Uploaded items list -->
-        <div class="uploaded-files-list" *ngIf="formData.images && formData.images.length > 0">
-          <div class="file-item" *ngFor="let file of formData.images; let i = index">
-            <div class="file-info">
-              <img *ngIf="file.url" [src]="file.url" [alt]="file.nom" class="file-thumb" />
-              <span *ngIf="!file.url" class="file-icon">🖼️</span>
-              <div>
-                <p class="file-name">{{ file.nom }}</p>
-                <span class="file-size">{{ file.taille }}</span>
-              </div>
-            </div>
-            <button type="button" class="file-delete" (click)="removeImage(i)" title="Supprimer la photo">✕</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Action Bar -->
-    <div class="form-actions">
-      <button class="btn-secondary" (click)="cancelEdit()" [disabled]="isSaving">Annuler</button>
-      <button class="btn-primary" (click)="saveLieu()" [disabled]="isSaving">
-        {{ isSaving ? 'Enregistrement...' : (editingLieu ? 'Mettre à jour le monument' : 'Enregistrer le lieu historique') }}
+        Ajouter un lieu historique
       </button>
     </div>
-  </div>
+
+    <div class="figma-card">
+      <h2 class="figma-card-title-center">Liste des lieux historiques</h2>
+
+      <div class="table-responsive">
+        <table class="figma-table">
+          <thead>
+            <tr>
+              <th>Nom du lieu</th>
+              <th>Époque / Année de fondation</th>
+              <th>Ville</th>
+              <th>Région</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @if (filteredLieux.length === 0) {
+              <tr>
+                <td colspan="5" style="text-align: center; padding: 24px; color: #64748B;">Aucun lieu historique trouvé.</td>
+              </tr>
+            } @else {
+              @for (lieu of filteredLieux; track lieu.id ?? lieu.nom) {
+                <tr>
+                  <td><strong>{{ lieu.nom || lieu.nomLieuHisto }}</strong></td>
+                  <td>{{ lieu.epoque || '—' }}</td>
+                  <td>{{ lieu.ville || '—' }}</td>
+                  <td>{{ lieu.region || '—' }}</td>
+                  <td>
+                    <div class="figma-action-cell">
+                      <button type="button" class="figma-icon-btn edit" (click)="startEdit(lieu)" title="Modifier">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                        </svg>
+                      </button>
+                      <button type="button" class="figma-icon-btn delete" (click)="deleteLieu(lieu)" title="Supprimer">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <polyline points="3 6 5 6 21 6"></polyline>
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+
+  <!-- VUE 2 : PAGE INDÉPENDANTE D'AJOUT / MODIFICATION (Figma) -->
+  @if (isEditing) {
+    <!-- Card 1: Informations Générales -->
+    <div class="figma-card">
+      <h3 class="figma-section-title">Informations générales</h3>
+      <p style="color: #64748B; font-size: 13px; margin-top: -16px; margin-bottom: 20px;">
+        Définissez le titre et le résumé principal de la fiche.
+      </p>
+
+      <div class="figma-form-group">
+        <label class="figma-label">Titre du lieu historique *</label>
+        <input type="text" class="figma-input" [(ngModel)]="formData.nom" placeholder="Ex: La Grande Mosquée de Djenné" required />
+      </div>
+
+      <div class="figma-form-group">
+        <label class="figma-label">Époque / Année de fondation</label>
+        <input type="text" class="figma-input" [(ngModel)]="formData.epoque" placeholder="Ex: XIIIe siècle" />
+      </div>
+
+      <div class="figma-form-group">
+        <label class="figma-label">Description détaillée</label>
+        <textarea rows="4" class="figma-textarea" [(ngModel)]="formData.description" placeholder="La Grande Mosquée de Djenné est le plus grand édifice en terre crue (banco) du monde..."></textarea>
+      </div>
+    </div>
+
+    <!-- Card 2: Ville / Région associées -->
+    <div class="figma-card">
+      <h3 class="figma-section-title">Ville / Région associées</h3>
+      <p style="color: #64748B; font-size: 13px; margin-top: -16px; margin-bottom: 20px;">
+        Renseignez les coordonnées géographiques précises pour guider les explorateurs.
+      </p>
+
+      <div class="figma-form-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+        <div class="figma-form-group">
+          <label class="figma-label">Ville</label>
+          <input
+            type="text"
+            list="villesList"
+            class="figma-input"
+            [(ngModel)]="formData.ville"
+            (ngModelChange)="onVilleChange($event)"
+            placeholder="Ex: Djenné"
+          />
+          <datalist id="villesList">
+            @for (v of availableVilles; track v.nom) {
+              <option [value]="v.nom">{{ v.nom }} ({{ v.region }})</option>
+            }
+          </datalist>
+        </div>
+
+        <div class="figma-form-group">
+          <label class="figma-label">Région</label>
+          <select class="figma-select" [(ngModel)]="formData.region">
+            <option value="Tombouctou">Tombouctou</option>
+            <option value="Mopti">Mopti</option>
+            <option value="Ségou">Ségou</option>
+            <option value="Gao">Gao</option>
+            <option value="Koulikoro">Koulikoro</option>
+            <option value="Kayes">Kayes</option>
+            <option value="Bamako">Bamako</option>
+            <option value="Sikasso">Sikasso</option>
+            <option value="Kidal">Kidal</option>
+          </select>
+        </div>
+
+        <div class="figma-form-group">
+          <label class="figma-label">Coordonnées GPS</label>
+          <input type="text" class="figma-input" [(ngModel)]="formData.coordonneesGps" placeholder="13.9056° N, 4.5556° W" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 3: Médias -->
+    <div class="figma-card">
+      <h3 class="figma-section-title">Médias</h3>
+      <p style="color: #64748B; font-size: 13px; margin-top: -16px; margin-bottom: 20px;">
+        Ajoutez de magnifiques visuels de haute qualité.
+      </p>
+
+      <div
+        class="dropzone"
+        [class.dragover]="isDragOver"
+        (click)="fileInput.click()"
+        (dragover)="onDragOver($event)"
+        (dragleave)="onDragLeave($event)"
+        (drop)="onDrop($event)"
+      >
+        <input
+          #fileInput
+          type="file"
+          multiple
+          accept="image/png, image/jpeg, image/jpg, image/webp"
+          (change)="onFileSelected($event)"
+          style="display: none;"
+        />
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#0E8F76" stroke-width="1.5">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="17 8 12 3 7 8"></polyline>
+          <line x1="12" y1="3" x2="12" y2="15"></line>
+        </svg>
+        <p style="font-size: 14px; font-weight: 500; color: #334155; margin-top: 8px;">
+          Glissez-déposez vos fichiers ici, ou <span style="color: #0E8F76; text-decoration: underline; cursor: pointer;">parcourez</span>
+        </p>
+      </div>
+
+      <!-- Uploaded files -->
+      @if (formData.images && formData.images.length > 0) {
+        <div style="margin-top: 20px;">
+          <h4 style="font-size: 12px; font-weight: 700; color: #94A3B8; text-transform: uppercase; margin-bottom: 12px;">FICHIERS TÉLÉCHARGÉS</h4>
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;">
+            @for (file of formData.images; track file.nom; let i = $index) {
+              <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <img *ngIf="file.url" [src]="file.url" [alt]="file.nom" style="width: 36px; height: 36px; border-radius: 6px; object-fit: cover;" />
+                  <span *ngIf="!file.url" style="font-size: 20px;">🖼️</span>
+                  <div>
+                    <p style="font-size: 13px; font-weight: 600; color: #1E293B; margin: 0;">{{ file.nom }}</p>
+                    <span style="font-size: 11px; color: #94A3B8;">{{ file.taille || '2.4 MB' }}</span>
+                  </div>
+                </div>
+                <button type="button" class="figma-icon-btn delete" (click)="removeImage(i)" title="Supprimer la photo">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  </svg>
+                </button>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Actions -->
+    <div class="figma-form-actions">
+      <button type="button" class="figma-btn-cancel" (click)="cancelEdit()" [disabled]="isSaving">Annuler</button>
+      <button type="button" class="figma-btn-primary" (click)="saveLieu()" [disabled]="isSaving">
+        {{ isSaving ? 'Enregistrement...' : (editingLieu ? 'Modifier le lieu' : 'Ajouter le lieu') }}
+      </button>
+    </div>
+  }
 </div>

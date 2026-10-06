@@ -1,18 +1,8 @@
 <div class="page-container">
-  <!-- Header -->
-  <div class="page-header">
-    <div>
-      <h1 class="page-title">Banque de Questions</h1>
-      <p class="page-subtitle">Questions à choix multiples, réponses exactes et temps de réponse alloué</p>
-    </div>
-    <div class="header-buttons">
-      <a routerLink="/quiz" class="btn-secondary">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M19 12H5M12 19l-7-7 7-7"/>
-        </svg>
-        Retour aux Quiz
-      </a>
-      <button class="btn-primary" (click)="openAddModal()">
+  <!-- VUE 1 : LISTE DES QUESTIONS (Figma) -->
+  @if (!isEditing) {
+    <div class="figma-list-topbar">
+      <button type="button" class="figma-btn-header-add" (click)="startAdd()">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <line x1="12" y1="5" x2="12" y2="19"></line>
           <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -20,129 +10,101 @@
         Ajouter une question
       </button>
     </div>
-  </div>
 
-  <!-- Filters -->
-  <div class="filter-bar">
-    <div class="search-box">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="11" cy="11" r="8"></circle>
-        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-      </svg>
-      <input
-        type="text"
-        placeholder="Rechercher par énoncé, réponse ou thème..."
-        [(ngModel)]="searchTerm"
-        (input)="filterQuestions()"
-      />
-    </div>
+    <div class="figma-card">
+      <h2 class="figma-card-title-center">Liste des questions</h2>
 
-    <div class="filter-group">
-      <label>Thème :</label>
-      <select [(ngModel)]="selectedTheme" (change)="filterQuestions()">
-        <option value="TOUS">Tous les thèmes</option>
-        <option value="Histoire du Mali">Histoire du Mali</option>
-        <option value="Monuments & Sites">Monuments & Sites</option>
-        <option value="Traditions & Cultures">Traditions & Cultures</option>
-        <option value="Gastronomie">Gastronomie</option>
-      </select>
-    </div>
-  </div>
-
-  <!-- Questions Table -->
-  <div class="table-card">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Énoncé de la question</th>
-          <th>Thème</th>
-          <th>Bonne réponse</th>
-          <th>Durée chrono</th>
-          <th class="actions-col">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let q of filteredQuestions">
-          <td>
-            <div class="question-cell">
-              <strong>{{ q.question }}</strong>
-              <p class="question-explain" *ngIf="q.explication">💡 {{ q.explication }}</p>
-            </div>
-          </td>
-          <td>
-            <span class="theme-badge">{{ q.theme }}</span>
-          </td>
-          <td>
-            <span class="correct-answer">✓ {{ q.reponse }}</span>
-          </td>
-          <td>
-            <span class="timer-badge">⏱️ {{ q.duree }}</span>
-          </td>
-          <td class="actions-col">
-            <button class="action-btn edit" title="Modifier" (click)="openEditModal(q)">✏️</button>
-            <button class="action-btn delete" title="Supprimer" (click)="deleteQuestion(q)">🗑️</button>
-          </td>
-        </tr>
-
-        <tr *ngIf="filteredQuestions.length === 0">
-          <td colspan="5" class="empty-state">Aucune question trouvée.</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
-  <!-- Modal "Ajouter une question" (Figma) -->
-  <div class="modal-overlay" *ngIf="showModal">
-    <div class="modal-container">
-      <div class="modal-header">
-        <h2>{{ editingQuestion ? 'Modifier la question' : 'Ajouter une question' }}</h2>
-        <button class="close-btn" (click)="closeModal()">&times;</button>
+      <div class="table-responsive">
+        <table class="figma-table">
+          <thead>
+            <tr>
+              <th>Nom</th>
+              <th>Question</th>
+              <th>Réponse</th>
+              <th>Durée</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @if (filteredQuestions.length === 0) {
+              <tr>
+                <td colspan="5" style="text-align: center; padding: 24px; color: #64748B;">Aucune question trouvée.</td>
+              </tr>
+            } @else {
+              @for (q of filteredQuestions; track q.id ?? q.question) {
+                <tr>
+                  <td>
+                    <span class="figma-pill-badge" style="background: #E0F2FE; color: #0369A1;">
+                      {{ q.theme || 'Culture générale' }}
+                    </span>
+                  </td>
+                  <td style="max-width: 380px;"><strong>{{ q.question }}</strong></td>
+                  <td>{{ q.reponse }}</td>
+                  <td>{{ q.duree || '30s' }}</td>
+                  <td>
+                    <div class="figma-action-cell">
+                      <button type="button" class="figma-icon-btn edit" (click)="startEdit(q)" title="Modifier">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                        </svg>
+                      </button>
+                      <button type="button" class="figma-icon-btn delete" (click)="deleteQuestion(q)" title="Supprimer">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <polyline points="3 6 5 6 21 6"></polyline>
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
       </div>
+    </div>
+  }
 
-      <div class="modal-body">
-        <div class="form-row">
-          <div class="form-group">
-            <label>Thème *</label>
-            <select [(ngModel)]="formData.theme">
-              <option value="Histoire du Mali">Histoire du Mali</option>
-              <option value="Monuments & Sites">Monuments & Sites</option>
-              <option value="Traditions & Cultures">Traditions & Cultures</option>
-              <option value="Gastronomie">Gastronomie</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Durée allouée *</label>
-            <select [(ngModel)]="formData.duree">
-              <option value="15s">15 secondes</option>
-              <option value="30s">30 secondes</option>
-              <option value="45s">45 secondes</option>
-              <option value="60s">60 secondes</option>
-            </select>
-          </div>
+  <!-- VUE 2 : PAGE INDÉPENDANTE D'AJOUT / MODIFICATION (Figma) -->
+  @if (isEditing) {
+    <div class="figma-add-header">
+      <h2 class="figma-add-title">{{ editingQuestion ? 'Modifier la question' : 'Ajouter une nouvelle question' }}</h2>
+      <p class="figma-add-subtitle">
+        Renseignez les informations ci-dessous pour créer une nouvelle question de quiz sur la plateforme MaliExplorer.
+      </p>
+    </div>
+
+    <div class="figma-card">
+      <h3 class="figma-section-title">Informations générales</h3>
+
+      <div class="figma-form-grid">
+        <div class="figma-form-group">
+          <label class="figma-label">Nom</label>
+          <input type="text" class="figma-input" [(ngModel)]="formData.theme" placeholder="Ex: Culture générale" />
         </div>
 
-        <div class="form-group">
-          <label>Énoncé de la question *</label>
-          <textarea rows="3" [(ngModel)]="formData.question" placeholder="ex: En quelle année a eu lieu la bataille de Kirina ?" required></textarea>
-        </div>
-
-        <div class="form-group">
-          <label>Bonne réponse (Exacte) *</label>
-          <input type="text" [(ngModel)]="formData.reponse" placeholder="ex: 1235" required />
-        </div>
-
-        <div class="form-group">
-          <label>Explication pédagogique (affichée après réponse)</label>
-          <textarea rows="2" [(ngModel)]="formData.explication" placeholder="ex: La bataille de Kirina opposa Soundiata Keïta à Soumaoro Kanté..."></textarea>
+        <div class="figma-form-group">
+          <label class="figma-label">Durée</label>
+          <input type="text" class="figma-input" [(ngModel)]="formData.duree" placeholder="Ex: 30s" />
         </div>
       </div>
 
-      <div class="modal-footer">
-        <button class="btn-secondary" (click)="closeModal()">Annuler</button>
-        <button class="btn-primary" (click)="saveQuestion()">
-          {{ editingQuestion ? 'Mettre à jour' : 'Enregistrer la question' }}
-        </button>
+      <div class="figma-form-group">
+        <label class="figma-label">Question</label>
+        <input type="text" class="figma-input" [(ngModel)]="formData.question" placeholder="Ex: Quelle est la capitale du Mali ?" required />
+      </div>
+
+      <div class="figma-form-group">
+        <label class="figma-label">Réponse</label>
+        <input type="text" class="figma-input" [(ngModel)]="formData.reponse" placeholder="Ex: Bamako" required />
       </div>
     </div>
-  </div>
+
+    <div class="figma-form-actions">
+      <button type="button" class="figma-btn-cancel" (click)="cancelEdit()">Annuler</button>
+      <button type="button" class="figma-btn-primary" (click)="saveQuestion()">
+        {{ editingQuestion ? 'Modifier la question' : 'Ajouter la question' }}
+      </button>
+    </div>
+  }
 </div>

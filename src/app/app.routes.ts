@@ -62,16 +62,34 @@ export const routes: Routes = [
     title: 'Gestion des Ethnies - MaliExplorer Admin'
   },
   {
+    path: 'ethnies/ajouter',
+    component: EthniesComponent,
+    canActivate: [authGuard],
+    title: 'Ajouter une Ethnie - MaliExplorer Admin'
+  },
+  {
     path: 'presidents',
     component: PresidentsComponent,
     canActivate: [authGuard],
     title: 'Gestion des Chefs d\'État - MaliExplorer Admin'
   },
   {
+    path: 'presidents/ajouter',
+    component: PresidentsComponent,
+    canActivate: [authGuard],
+    title: 'Ajouter un Chef d\'État - MaliExplorer Admin'
+  },
+  {
     path: 'utilisateurs',
     component: UtilisateursComponent,
     canActivate: [authGuard],
     title: 'Gestion des Utilisateurs - MaliExplorer Admin'
+  },
+  {
+    path: 'utilisateurs/ajouter',
+    component: UtilisateursComponent,
+    canActivate: [authGuard],
+    title: 'Ajouter un Utilisateur - MaliExplorer Admin'
   },
   {
     path: 'evenements',
@@ -104,10 +122,22 @@ export const routes: Routes = [
     title: 'Gestion des Plats - MaliExplorer Admin'
   },
   {
+    path: 'plats/ajouter',
+    component: PlatsComponent,
+    canActivate: [authGuard],
+    title: 'Ajouter un Plat - MaliExplorer Admin'
+  },
+  {
     path: 'ingredients',
     component: IngredientsComponent,
     canActivate: [authGuard],
     title: 'Gestion des Ingrédients - MaliExplorer Admin'
+  },
+  {
+    path: 'ingredients/ajouter',
+    component: IngredientsComponent,
+    canActivate: [authGuard],
+    title: 'Ajouter un Ingrédient - MaliExplorer Admin'
   },
   {
     path: 'quiz',
@@ -116,10 +146,22 @@ export const routes: Routes = [
     title: 'Gestion des Quiz - MaliExplorer Admin'
   },
   {
+    path: 'quiz/ajouter',
+    component: QuizComponent,
+    canActivate: [authGuard],
+    title: 'Ajouter un Quiz - MaliExplorer Admin'
+  },
+  {
     path: 'questions',
     component: QuestionsComponent,
     canActivate: [authGuard],
     title: 'Gestion des Questions - MaliExplorer Admin'
+  },
+  {
+    path: 'questions/ajouter',
+    component: QuestionsComponent,
+    canActivate: [authGuard],
+    title: 'Ajouter une Question - MaliExplorer Admin'
   },
   {
     path: 'regions',
@@ -128,10 +170,22 @@ export const routes: Routes = [
     title: 'Gestion des Régions - MaliExplorer Admin'
   },
   {
+    path: 'regions/ajouter',
+    component: RegionsComponent,
+    canActivate: [authGuard],
+    title: 'Ajouter une Région - MaliExplorer Admin'
+  },
+  {
     path: 'villes',
     component: VillesComponent,
     canActivate: [authGuard],
     title: 'Gestion des Villes - MaliExplorer Admin'
+  },
+  {
+    path: 'villes/ajouter',
+    component: VillesComponent,
+    canActivate: [authGuard],
+    title: 'Ajouter une Ville - MaliExplorer Admin'
   },
   {
     path: '**',

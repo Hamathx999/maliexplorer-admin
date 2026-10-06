@@ -1,86 +1,136 @@
-<div class="regions-page-container">
+<div class="page-container">
   @if (successMessage) {
-    <div class="toast toast-success"><span>{{ successMessage }}</span></div>
+    <div class="toast toast-success">
+      <span>{{ successMessage }}</span>
+    </div>
   }
   @if (errorMessage) {
-    <div class="toast toast-error"><span>{{ errorMessage }}</span></div>
+    <div class="toast toast-error">
+      <span>{{ errorMessage }}</span>
+    </div>
   }
 
-  <section class="form-section">
-    <div class="section-header">
-      <h2 class="section-title">{{ editingPresidentId ? 'Modifier le chef d’État' : 'Ajouter un nouveau chef d’État' }}</h2>
-      <p class="section-description">Gérez la chronologie historique des présidents et dirigeants de la République du Mali.</p>
-    </div>
-
-    <div class="card form-card">
-      <h3 class="card-section-title">Informations générales</h3>
-
-      <div class="form-grid">
-        <div class="form-group">
-          <label class="form-label" for="nomPres">Nom et Titre complet *</label>
-          <input id="nomPres" type="text" class="form-input" placeholder="Ex: Modibo Keïta" [(ngModel)]="nom" />
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="periodePres">Période de mandat *</label>
-          <input id="periodePres" type="text" class="form-input" placeholder="Ex: 1960 - 1968" [(ngModel)]="periode" />
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="titrePres">Titre honorifique / Rôle</label>
-          <input id="titrePres" type="text" class="form-input" placeholder="Ex: Père de l'Indépendance" [(ngModel)]="titre" />
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label" for="bioPres">Biographie et réalisations majeures</label>
-        <textarea id="bioPres" class="form-input" rows="3" placeholder="Parcours politique, actions historiques..." [(ngModel)]="biographie"></textarea>
-      </div>
-    </div>
-
-    <div class="form-actions">
-      <button type="button" class="btn btn-cancel" (click)="resetForm()">Annuler</button>
-      <button type="button" class="btn btn-primary" (click)="onSubmit()">
-        {{ editingPresidentId ? 'Modifier le chef d’État' : 'Ajouter le chef d’État' }}
+  <!-- VUE 1 : LISTE DES PRÉSIDENTS (Figma) -->
+  @if (!isEditing) {
+    <div class="figma-list-topbar">
+      <button type="button" class="figma-btn-header-add" (click)="startAdd()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        Ajouter un président
       </button>
     </div>
-  </section>
 
-  <section class="card table-card">
-    <div class="table-responsive">
-      <table class="regions-table">
-        <thead>
-          <tr>
-            <th>Nom</th>
-            <th>Période</th>
-            <th>Titre honorifique</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          @if (isLoading) {
-            <tr><td colspan="4" class="state-cell">Chargement des présidents...</td></tr>
-          } @else if (presidents.length === 0) {
-            <tr><td colspan="4" class="state-cell">Aucun chef d'État trouvé.</td></tr>
-          } @else {
-            @for (pres of presidents; track pres.id ?? pres.nom) {
-              <tr>
-                <td class="region-name-cell">{{ pres.nom }}</td>
-                <td>{{ pres.periode }}</td>
-                <td>{{ pres.titre || '—' }}</td>
-                <td class="region-actions-cell">
-                  <button type="button" class="action-btn edit-btn" (click)="onEdit(pres)" title="Modifier">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
-                  </button>
-                  <button type="button" class="action-btn delete-btn" (click)="onDelete(pres)" title="Supprimer">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                  </button>
-                </td>
-              </tr>
+    <div class="figma-card">
+      <h2 class="figma-card-title-center">Liste des presidents</h2>
+
+      <div class="table-responsive">
+        <table class="figma-table">
+          <thead>
+            <tr>
+              <th>Nom</th>
+              <th>Prénom</th>
+              <th>période</th>
+              <th>Description</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @if (isLoading) {
+              <tr><td colspan="5" style="text-align: center; padding: 24px; color: #64748B;">Chargement des chefs d'État...</td></tr>
+            } @else if (presidents.length === 0) {
+              <tr><td colspan="5" style="text-align: center; padding: 24px; color: #64748B;">Aucun chef d'État trouvé.</td></tr>
+            } @else {
+              @for (pres of presidents; track pres.id ?? pres.nom) {
+                <tr>
+                  <td>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                      <div style="width: 36px; height: 36px; border-radius: 50%; background: #E2E8F0; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #16332D;">
+                        <img *ngIf="pres.photoUrl || pres.imageUrl" [src]="pres.photoUrl || pres.imageUrl" [alt]="pres.nom" style="width: 100%; height: 100%; object-fit: cover;" />
+                        <span *ngIf="!pres.photoUrl && !pres.imageUrl">{{ pres.nom.charAt(0) }}</span>
+                      </div>
+                      <strong>{{ pres.nom }}</strong>
+                    </div>
+                  </td>
+                  <td>{{ pres.prenom || '—' }}</td>
+                  <td>
+                    <span class="figma-pill-badge" style="background: #E0F2FE; color: #0369A1;">
+                      {{ pres.periodeMandat || pres.periode || '—' }}
+                    </span>
+                  </td>
+                  <td style="color: #64748B; max-width: 320px;">
+                    {{ pres.biographie || pres.titre || 'Description...' }}
+                  </td>
+                  <td>
+                    <div class="figma-action-cell">
+                      <button type="button" class="figma-icon-btn edit" (click)="onEdit(pres)" title="Modifier">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                        </svg>
+                      </button>
+                      <button type="button" class="figma-icon-btn delete" (click)="onDelete(pres)" title="Supprimer">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <polyline points="3 6 5 6 21 6"></polyline>
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
             }
-          }
-        </tbody>
-      </table>
+          </tbody>
+        </table>
+      </div>
     </div>
-  </section>
+  }
+
+  <!-- VUE 2 : PAGE INDÉPENDANTE D'AJOUT / MODIFICATION (Figma) -->
+  @if (isEditing) {
+    <div class="figma-add-header">
+      <h2 class="figma-add-title">{{ editingPresidentId ? 'Modifier le président' : 'Ajouter un nouveau président' }}</h2>
+      <p class="figma-add-subtitle">
+        Renseignez les informations ci-dessous pour ajouter un chef d'État ou dirigeant historique sur la plateforme MaliExplorer. Veillez à utiliser des images de haute qualité et des descriptions riches.
+      </p>
+    </div>
+
+    <div class="figma-card">
+      <h3 class="figma-section-title">Informations générales</h3>
+
+      <div class="figma-form-grid">
+        <div class="figma-form-group">
+          <label class="figma-label" for="prenomPres">Prénom</label>
+          <input id="prenomPres" type="text" class="figma-input" placeholder="Ex: Modibo" [(ngModel)]="prenom" />
+        </div>
+
+        <div class="figma-form-group">
+          <label class="figma-label" for="nomPres">Nom</label>
+          <input id="nomPres" type="text" class="figma-input" placeholder="Ex: Keïta" [(ngModel)]="nom" />
+        </div>
+
+        <div class="figma-form-group">
+          <label class="figma-label" for="periodePres">Période de mandat</label>
+          <input id="periodePres" type="text" class="figma-input" placeholder="Ex: 1960 - 1968" [(ngModel)]="periode" />
+        </div>
+
+        <div class="figma-form-group">
+          <label class="figma-label" for="titrePres">Titre honorifique / Rôle</label>
+          <input id="titrePres" type="text" class="figma-input" placeholder="Ex: Père de l'Indépendance" [(ngModel)]="titre" />
+        </div>
+      </div>
+
+      <div class="figma-form-group">
+        <label class="figma-label" for="bioPres">Biographie et réalisations majeures</label>
+        <textarea id="bioPres" class="figma-textarea" rows="3" placeholder="Parcours politique, actions historiques..." [(ngModel)]="biographie"></textarea>
+      </div>
+    </div>
+
+    <div class="figma-form-actions">
+      <button type="button" class="figma-btn-cancel" (click)="resetForm()">Annuler</button>
+      <button type="button" class="figma-btn-primary" (click)="onSubmit()">
+        {{ editingPresidentId ? 'Modifier le président' : 'Ajouter le président' }}
+      </button>
+    </div>
+  }
 </div>

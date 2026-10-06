@@ -1,7 +1,8 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router, NavigationEnd } from '@angular/router';
+import { filter } from 'rxjs';
 import { IngredientService } from '../../services/ingredient.service';
 import { Ingredient } from '../../models/ingredient.model';
 
@@ -14,13 +15,14 @@ import { Ingredient } from '../../models/ingredient.model';
 })
 export class IngredientsComponent implements OnInit {
   private readonly ingredientService = inject(IngredientService);
+  private readonly router = inject(Router);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   ingredients: Ingredient[] = [];
   filteredIngredients: Ingredient[] = [];
   searchTerm: string = '';
-  selectedCategorie: string = 'TOUTES';
 
-  showModal: boolean = false;
+  isEditing: boolean = false;
   editingIngredient: Ingredient | null = null;
   formData: Partial<Ingredient> = {
     nom: '',
@@ -30,6 +32,24 @@ export class IngredientsComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadIngredients();
+    this.checkRoute(this.router.url);
+
+    this.router.events
+      .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
+      .subscribe((event: NavigationEnd) => {
+        this.checkRoute(event.urlAfterRedirects);
+        this.cdr.detectChanges();
+      });
+  }
+
+  private checkRoute(url: string): void {
+    if (url.includes('/ingredients/ajouter')) {
+      if (!this.isEditing) {
+        this.isEditing = true;
+      }
+    } else if (!this.editingIngredient && this.isEditing) {
+      this.isEditing = false;
+    }
   }
 
   loadIngredients(): void {
@@ -37,6 +57,7 @@ export class IngredientsComponent implements OnInit {
       next: (data) => {
         this.ingredients = data;
         this.filterIngredients();
+        this.cdr.markForCheck();
       },
       error: (err) => console.error('Erreur chargement ingrédients', err)
     });
@@ -44,42 +65,40 @@ export class IngredientsComponent implements OnInit {
 
   filterIngredients(): void {
     this.filteredIngredients = this.ingredients.filter((item) => {
-      const matchSearch =
+      return (
         !this.searchTerm ||
         item.nom.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-        (item.description && item.description.toLowerCase().includes(this.searchTerm.toLowerCase()));
-
-      const matchCat =
-        this.selectedCategorie === 'TOUTES' ||
-        item.categorie?.toLowerCase() === this.selectedCategorie.toLowerCase();
-
-      return matchSearch && matchCat;
+        (item.description && item.description.toLowerCase().includes(this.searchTerm.toLowerCase()))
+      );
     });
   }
 
-  openAddModal(): void {
+  startAdd(): void {
     this.editingIngredient = null;
     this.formData = {
       nom: '',
       categorie: 'Épices & Condiments',
       description: ''
     };
-    this.showModal = true;
+    this.isEditing = true;
+    this.router.navigate(['/ingredients/ajouter']);
   }
 
-  openEditModal(item: Ingredient): void {
+  startEdit(item: Ingredient): void {
     this.editingIngredient = item;
     this.formData = { ...item };
-    this.showModal = true;
+    this.isEditing = true;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  closeModal(): void {
-    this.showModal = false;
+  cancelEdit(): void {
+    this.isEditing = false;
     this.editingIngredient = null;
+    this.router.navigate(['/ingredients']);
   }
 
   saveIngredient(): void {
-    if (!this.formData.nom) {
+    if (!this.formData.nom || !this.formData.nom.trim()) {
       alert('Veuillez renseigner le nom de l’ingrédient.');
       return;
     }
@@ -87,10 +106,14 @@ export class IngredientsComponent implements OnInit {
     if (this.editingIngredient && this.editingIngredient.id) {
       this.ingredientService.updateIngredient(this.editingIngredient.id, this.formData as Ingredient).subscribe({
         next: (updated) => {
-          const idx = this.ingredients.findIndex((i) => i.id === updated.id);
-          if (idx !== -1) this.ingredients[idx] = updated;
+          const idx = this.ingredients.findIndex((i) => String(i.id) === String(updated.id));
+          if (idx !== -1) {
+            this.ingredients[idx] = updated;
+          } else {
+            this.loadIngredients();
+          }
           this.filterIngredients();
-          this.closeModal();
+          this.cancelEdit();
         }
       });
     } else {
@@ -98,7 +121,7 @@ export class IngredientsComponent implements OnInit {
         next: (created) => {
           this.ingredients.unshift(created);
           this.filterIngredients();
-          this.closeModal();
+          this.cancelEdit();
         }
       });
     }
@@ -106,10 +129,10 @@ export class IngredientsComponent implements OnInit {
 
   deleteIngredient(item: Ingredient): void {
     if (!item.id) return;
-    if (confirm(`Confirmez-vous la suppression de l'ingrédient "${item.nom}" ?`)) {
+    if (confirm(`Confirmez-vous la suppression de "${item.nom}" ?`)) {
       this.ingredientService.deleteIngredient(item.id).subscribe({
         next: () => {
-          this.ingredients = this.ingredients.filter((i) => i.id !== item.id);
+          this.ingredients = this.ingredients.filter((i) => String(i.id) !== String(item.id));
           this.filterIngredients();
         }
       });

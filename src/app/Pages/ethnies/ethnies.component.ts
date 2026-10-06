@@ -1,6 +1,8 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router, NavigationEnd } from '@angular/router';
+import { filter } from 'rxjs';
 import { EthnieService } from '../../services/ethnie.service';
 import { Ethnie } from '../../models/ethnie.model';
 
@@ -13,6 +15,8 @@ import { Ethnie } from '../../models/ethnie.model';
 })
 export class EthniesComponent implements OnInit {
   private readonly ethnieService = inject(EthnieService);
+  private readonly router = inject(Router);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   ethnies: Ethnie[] = [];
   nom: string = '';
@@ -20,12 +24,41 @@ export class EthniesComponent implements OnInit {
   region: string = '';
   description: string = '';
   editingEthnieId: number | string | null = null;
+  isEditing: boolean = false;
   isLoading: boolean = false;
   successMessage: string = '';
   errorMessage: string = '';
 
   ngOnInit(): void {
     this.loadEthnies();
+    this.checkRoute(this.router.url);
+
+    this.router.events
+      .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
+      .subscribe((event: NavigationEnd) => {
+        this.checkRoute(event.urlAfterRedirects);
+        this.cdr.detectChanges();
+      });
+  }
+
+  private checkRoute(url: string): void {
+    if (url.includes('/ethnies/ajouter')) {
+      if (!this.isEditing) {
+        this.isEditing = true;
+      }
+    } else if (!this.editingEthnieId && this.isEditing) {
+      this.isEditing = false;
+    }
+  }
+
+  startAdd(): void {
+    this.editingEthnieId = null;
+    this.nom = '';
+    this.langues = '';
+    this.region = '';
+    this.description = '';
+    this.isEditing = true;
+    this.router.navigate(['/ethnies/ajouter']);
   }
 
   loadEthnies(): void {
@@ -34,8 +67,12 @@ export class EthniesComponent implements OnInit {
       next: (data) => {
         this.ethnies = data;
         this.isLoading = false;
+        this.cdr.markForCheck();
       },
-      error: () => (this.isLoading = false)
+      error: () => {
+        this.isLoading = false;
+        this.cdr.markForCheck();
+      }
     });
   }
 
@@ -79,6 +116,7 @@ export class EthniesComponent implements OnInit {
     this.langues = ethnie.langues;
     this.region = ethnie.region || '';
     this.description = ethnie.description || '';
+    this.isEditing = true;
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -101,6 +139,8 @@ export class EthniesComponent implements OnInit {
     this.region = '';
     this.description = '';
     this.editingEthnieId = null;
+    this.isEditing = false;
+    this.router.navigate(['/ethnies']);
   }
 
   private showNotification(msg: string, isError: boolean = false): void {
@@ -109,7 +149,8 @@ export class EthniesComponent implements OnInit {
       setTimeout(() => (this.errorMessage = ''), 4000);
     } else {
       this.successMessage = msg;
-      setTimeout(() => (this.successMessage = ''), 4000);
+      setTimeout(() => (this.successMessage = ''), 3500);
     }
+    this.cdr.markForCheck();
   }
 }

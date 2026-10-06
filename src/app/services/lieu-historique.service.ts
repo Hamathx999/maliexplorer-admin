@@ -18,16 +18,19 @@ export class LieuHistoriqueService {
   /**
    * Convertit un DTO de réponse Spring Boot vers le modèle UI LieuHistorique
    */
-  mapResponseToLieu(dto: LieuHistoriqueResponseDTO): LieuHistorique {
+  mapResponseToLieu(dto: any): LieuHistorique {
+    const cityName = (typeof dto.ville === 'string' ? dto.ville : dto.ville?.nom) || dto.nomVille || '';
+    const regionName = dto.region || (dto.ville && typeof dto.ville === 'object' ? dto.ville.region : '') || '';
+
     return {
-      id: dto.idLieu,
-      idLieu: dto.idLieu,
-      nom: dto.nomLieuHisto,
-      nomLieuHisto: dto.nomLieuHisto,
+      id: dto.idLieu ?? dto.id,
+      idLieu: dto.idLieu ?? dto.id,
+      nom: dto.nomLieuHisto || dto.nom || '',
+      nomLieuHisto: dto.nomLieuHisto || dto.nom || '',
       epoque: dto.epoque || '',
-      ville: dto.ville?.nom || '',
-      villeId: dto.ville?.id,
-      region: 'Mali',
+      ville: cityName,
+      villeId: dto.ville?.id || dto.villeId,
+      region: regionName,
       coordonneesGps: dto.cordonnees || (dto.latitude && dto.longitude ? `${dto.latitude}, ${dto.longitude}` : ''),
       cordonnees: dto.cordonnees,
       latitude: dto.latitude,
@@ -41,7 +44,7 @@ export class LieuHistoriqueService {
   /**
    * Convertit le modèle UI LieuHistorique vers le DTO de requête Spring Boot
    */
-  mapLieuToRequestDTO(lieu: LieuHistorique): LieuHistoriqueRequestDTO {
+  mapLieuToRequestDTO(lieu: LieuHistorique): any {
     let lat = lieu.latitude;
     let lng = lieu.longitude;
     const gps = (lieu.cordonnees || lieu.coordonneesGps || '').trim();
@@ -55,14 +58,17 @@ export class LieuHistoriqueService {
       if (!isNaN(parsedLng)) lng = parsedLng;
     }
 
-    const payload: LieuHistoriqueRequestDTO = {
+    const payload: any = {
       nomLieuHisto: (lieu.nomLieuHisto || lieu.nom || '').trim(),
       description: lieu.description || '',
       epoque: lieu.epoque || '',
       cordonnees: gps,
       latitude: lat,
       longitude: lng,
-      panorama360Url: lieu.panorama360Url || ''
+      panorama360Url: lieu.panorama360Url || '',
+      nomVille: (lieu.ville || '').trim(),
+      ville: (lieu.ville || '').trim(),
+      region: (lieu.region || '').trim()
     };
 
     // On ne transmet villeId que s'il est numérique et valide

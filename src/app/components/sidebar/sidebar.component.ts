@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 
 export interface NavItem {
@@ -12,12 +12,21 @@ export interface NavItem {
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive],
+  imports: [CommonModule, RouterLink],
   templateUrl: './sidebar.component.html',
   styleUrl: './sidebar.component.css'
 })
 export class SidebarComponent {
   private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
+
+  isItemActive(item: NavItem): boolean {
+    const currentUrl = this.router.url;
+    if (item.route === '/evenements' && (currentUrl.includes('/evenements') || currentUrl.includes('/validation-evenement'))) {
+      return true;
+    }
+    return currentUrl === item.route || currentUrl.startsWith(item.route + '/');
+  }
 
   navItems: NavItem[] = [
     { label: 'Tableau de bord', route: '/dashboard', icon: 'dashboard' },

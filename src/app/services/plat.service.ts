@@ -11,6 +11,8 @@ export class PlatService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = `${environment.apiUrl}/plats`;
 
+  private readonly STORAGE_KEY = 'maliexplorer_plats_custom';
+
   private fallbackPlats: Plat[] = [
     {
       id: 1,
@@ -25,7 +27,7 @@ export class PlatService {
       id: 2,
       nom: 'Fakoye',
       ingredientPrincipal: 'Feuilles de Corète séchées (Fakoye)',
-      description: 'Sauce noire originaire du nord du Mali à base de feuilles de corète potagère séchées.',
+      description: 'Sauce noire emblématique de Tombouctou et Gao à base de corète potagère séchée.',
       region: 'Tombouctou, Gao',
       tempsPreparation: '90 min',
       difficulte: 'Moyenne'
@@ -34,7 +36,7 @@ export class PlatService {
       id: 3,
       nom: 'Widjila',
       ingredientPrincipal: 'Farine de blé & levure',
-      description: 'Boulettes de pain cuites à la vapeur, idéales pour accompagner les sauces riches.',
+      description: 'Pains traditionnels cuits à la vapeur sur les rives du fleuve Niger.',
       region: 'Mopti, Tombouctou',
       tempsPreparation: '45 min',
       difficulte: 'Facile'
@@ -43,7 +45,7 @@ export class PlatService {
       id: 4,
       nom: 'Djouka',
       ingredientPrincipal: 'Fonio & poudre d\'arachides',
-      description: "Plat traditionnel composé de fonio et de poudre d'arachides grillées.",
+      description: "Mets raffiné à base de fonio précuit et de poudre d'arachides grillées au goût fumé.",
       region: 'Sikasso, Ségou',
       tempsPreparation: '40 min',
       difficulte: 'Facile'
@@ -51,8 +53,8 @@ export class PlatService {
     {
       id: 5,
       nom: 'Mafé',
-      ingredientPrincipal: 'Viande de bœuf & pâte d\'arachide',
-      description: "Un ragoût onctueux à la pâte d'arachide mijoté avec des légumes et de la viande.",
+      ingredientPrincipal: 'Viande de bœuf & légumes frais',
+      description: "Ragoût onctueux mijoté avec viande de bœuf tendre, carottes, manioc et chou.",
       region: 'Toutes régions',
       tempsPreparation: '70 min',
       difficulte: 'Moyenne'
@@ -61,52 +63,116 @@ export class PlatService {
       id: 6,
       nom: 'Saga Saga',
       ingredientPrincipal: 'Feuilles de patate douce',
-      description: 'Sauce malienne parfumée aux feuilles de patate douce cuites lentement.',
+      description: 'Sauce verte aux jeunes pousses de patate douce, relevée au poisson fumé.',
       region: 'Koulikoro, Bamako',
       tempsPreparation: '50 min',
       difficulte: 'Facile'
     }
   ];
 
+  private getLocalPlats(): Plat[] {
+    try {
+      const stored = localStorage.getItem(this.STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.warn('Erreur lecture localStorage plats', e);
+    }
+    return [...this.fallbackPlats];
+  }
+
+  private saveLocalPlats(plats: Plat[]): void {
+    try {
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(plats));
+    } catch (e) {
+      console.warn('Erreur écriture localStorage plats', e);
+    }
+  }
+
+  private mapPlat(dto: any): Plat {
+    return {
+      id: dto.id ?? dto.idPlat,
+      nom: dto.nom ?? dto.nomPlat ?? 'Plat traditionnel',
+      description: dto.description || '',
+      ingredientPrincipal: dto.ingredientPrincipal || (Array.isArray(dto.ingredients) ? dto.ingredients.join(', ') : dto.ingredients) || '',
+      region: dto.region || (dto.regions && dto.regions.length ? dto.regions.map((r: any) => r.nom || r.nomRegion).join(', ') : 'Mali'),
+      tempsPreparation: typeof dto.tempsPreparation === 'number' ? `${dto.tempsPreparation} min` : (dto.tempsPreparation || '45 min'),
+      difficulte: dto.difficulte || 'Facile',
+      imageUrl: dto.imageUrl || '',
+      ingredients: Array.isArray(dto.ingredients) ? dto.ingredients : (dto.ingredients ? [dto.ingredients] : [])
+    };
+  }
+
   getPlats(): Observable<Plat[]> {
-    return this.http.get<Plat[]>(this.apiUrl).pipe(
+    return this.http.get<any[]>(this.apiUrl).pipe(
       catchError((error) => {
-        console.warn('API Spring Boot non disponible pour les plats, utilisation du cache local :', error);
-        return of(this.fallbackPlats);
+        console.warn('API Spring Boot non disponible pour les plats, utilisation du stockage local :', error);
+        return of(this.getLocalPlats());
       })
     );
   }
 
   getPlatById(id: number | string): Observable<Plat> {
-    return this.http.get<Plat>(`${this.apiUrl}/${id}`).pipe(
+    return this.http.get<any>(`${this.apiUrl}/${id}`).pipe(
       catchError(() => {
-        const found = this.fallbackPlats.find((p) => p.id === id);
-        return of(found ?? { id, nom: 'Plat' });
+        const local = this.getLocalPlats();
+        const found = local.find((p) => String(p.id) === String(id));
+        return of(found ? this.mapPlat(found) : { id, nom: 'Plat' });
       })
     );
   }
 
   createPlat(plat: Plat): Observable<Plat> {
-    return this.http.post<Plat>(this.apiUrl, plat).pipe(
+    const tempsNum = parseInt(String(plat.tempsPreparation).replace(/\D/g, ''), 10) || 45;
+    const payload = {
+      nom: plat.nom,
+      description: plat.description,
+      ingredientPrincipal: plat.ingredientPrincipal,
+      ingredients: plat.ingredientPrincipal,
+      tempsPreparation: tempsNum,
+      difficulte: plat.difficulte || 'Facile',
+      region: plat.region || 'Mali',
+      nbrePersonnes: 4
+    };
+
+    return this.http.post<any>(this.apiUrl, payload).pipe(
       catchError((error) => {
         console.warn('API Spring Boot non joignable, enregistrement local du plat :', error);
         const newPlat: Plat = {
           ...plat,
           id: Date.now()
         };
-        this.fallbackPlats.unshift(newPlat);
+        const current = this.getLocalPlats();
+        current.unshift(newPlat);
+        this.saveLocalPlats(current);
         return of(newPlat);
       })
     );
   }
 
   updatePlat(id: number | string, plat: Plat): Observable<Plat> {
-    return this.http.put<Plat>(`${this.apiUrl}/${id}`, plat).pipe(
+    const tempsNum = parseInt(String(plat.tempsPreparation).replace(/\D/g, ''), 10) || 45;
+    const payload = {
+      nom: plat.nom,
+      description: plat.description,
+      ingredientPrincipal: plat.ingredientPrincipal,
+      ingredients: plat.ingredientPrincipal,
+      tempsPreparation: tempsNum,
+      difficulte: plat.difficulte || 'Facile',
+      region: plat.region || 'Mali',
+      nbrePersonnes: 4
+    };
+
+    return this.http.put<any>(`${this.apiUrl}/${id}`, payload).pipe(
       catchError((error) => {
         console.warn('API Spring Boot non joignable, mise à jour locale du plat :', error);
-        const index = this.fallbackPlats.findIndex((p) => p.id === id);
+        const current = this.getLocalPlats();
+        const index = current.findIndex((p) => String(p.id) === String(id));
         if (index !== -1) {
-          this.fallbackPlats[index] = { ...this.fallbackPlats[index], ...plat, id };
+          current[index] = { ...current[index], ...plat, id };
+          this.saveLocalPlats(current);
         }
         return of({ ...plat, id });
       })
@@ -117,7 +183,8 @@ export class PlatService {
     return this.http.delete<void>(`${this.apiUrl}/${id}`).pipe(
       catchError((error) => {
         console.warn('API Spring Boot non joignable, suppression locale du plat :', error);
-        this.fallbackPlats = this.fallbackPlats.filter((p) => p.id !== id);
+        const current = this.getLocalPlats().filter((p) => String(p.id) !== String(id));
+        this.saveLocalPlats(current);
         return of(void 0);
       })
     );

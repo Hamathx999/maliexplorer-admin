@@ -1,122 +1,111 @@
-<div class="page-container">
-  <div class="page-header">
-    <div>
-      <div class="breadcrumb">
-        <a routerLink="/evenements">← Retour aux événements</a>
-      </div>
-      <h1 class="page-title">Modération des Événements Proposés</h1>
-      <p class="page-subtitle">Validez ou refusez les soumissions d'événements créées par les organisateurs et utilisateurs</p>
-    </div>
-    <div class="pending-count">
-      <span class="count-badge">{{ pendingEvenements.length }}</span> en attente
-    </div>
+<div class="validation-page">
+  <!-- Toast Notification -->
+  <div *ngIf="actionMessage" class="toast-notification" [class.success]="actionSuccess" [class.danger]="!actionSuccess">
+    {{ actionMessage }}
   </div>
 
-  <div class="split-layout" *ngIf="pendingEvenements.length > 0; else noPending">
-    <!-- List Column -->
-    <div class="list-column">
-      <div
-        class="pending-card"
-        *ngFor="let evt of pendingEvenements"
-        [class.active]="selectedEvenement?.id === evt.id"
-        (click)="selectEvenement(evt)"
-      >
-        <div class="pending-card-top">
-          <span class="cat-pill">{{ evt.categorie || 'Événement' }}</span>
-          <span class="date-pill">📅 {{ evt.dateDebut }}</span>
-        </div>
-        <h4 class="pending-title">{{ evt.titre }}</h4>
-        <p class="pending-loc">📍 {{ evt.lieu }}, {{ evt.ville }}</p>
-        <p class="pending-org">👤 {{ evt.nomOrganisateur || 'Organisateur' }}</p>
-      </div>
+  <!-- Header Section -->
+  <div class="submission-header">
+    <div class="submission-title-row">
+      <h2 class="submission-title">Examen de la soumission</h2>
+      <span class="badge-status" [ngClass]="getStatutClass()">
+        Statut : {{ getStatutLabel() }}
+      </span>
     </div>
+    <p class="submission-subtitle">
+      Veuillez vérifier scrupuleusement la cohérence de l'événement ci-dessous avant d'autoriser sa publication sur MaliExplorer.
+    </p>
+  </div>
 
-    <!-- Details & Decision Column -->
-    <div class="details-column" *ngIf="selectedEvenement">
-      <div class="details-card">
-        <div class="details-head">
-          <div>
-            <span class="tag-status">EN ATTENTE D'APPROBATION</span>
-            <h2 class="details-title">{{ selectedEvenement.titre }}</h2>
-          </div>
-          <div class="decision-buttons">
-            <button class="btn-reject" (click)="openRejectModal(selectedEvenement)">
-              ✕ Refuser
-            </button>
-            <button class="btn-approve" (click)="approve(selectedEvenement)">
-              ✓ Approuver et Publier
-            </button>
-          </div>
+  <!-- Card: Attributs de l'Événement -->
+  @if (selectedEvenement) {
+    <div class="attributes-card">
+      <h3 class="card-section-title">Attributs de l'Événement</h3>
+
+      <!-- Field 1: nomEvenement (String) -->
+      <div class="form-group-full">
+        <label class="field-label">nomEvenement (String)</label>
+        <input
+          type="text"
+          class="field-input"
+          [value]="selectedEvenement.titre"
+          readonly
+        />
+      </div>
+
+      <!-- Row 2: dateEvenement (Date) & lieu (String) -->
+      <div class="form-row-two-cols">
+        <div class="form-group">
+          <label class="field-label">dateEvenement (Date)</label>
+          <input
+            type="text"
+            class="field-input"
+            [value]="formatDateDisplay(selectedEvenement)"
+            readonly
+          />
         </div>
 
-        <div class="details-body">
-          <div class="info-grid">
-            <div class="info-card">
-              <label>Période & Horaires</label>
-              <p>Du <strong>{{ selectedEvenement.dateDebut }}</strong> au <strong>{{ selectedEvenement.dateFin || selectedEvenement.dateDebut }}</strong></p>
-              <p class="sub-info" *ngIf="selectedEvenement.heureDebut">De {{ selectedEvenement.heureDebut }} à {{ selectedEvenement.heureFin || 'fin' }}</p>
-            </div>
-
-            <div class="info-card">
-              <label>Emplacement</label>
-              <p><strong>{{ selectedEvenement.lieu }}</strong></p>
-              <p class="sub-info">{{ selectedEvenement.ville }} (Région: {{ selectedEvenement.region || 'Mali' }})</p>
-            </div>
-
-            <div class="info-card">
-              <label>Organisateur</label>
-              <p><strong>{{ selectedEvenement.nomOrganisateur || 'Non spécifié' }}</strong></p>
-              <p class="sub-info" *ngIf="selectedEvenement.emailOrganisateur">✉ {{ selectedEvenement.emailOrganisateur }}</p>
-              <p class="sub-info" *ngIf="selectedEvenement.telephoneOrganisateur">📞 {{ selectedEvenement.telephoneOrganisateur }}</p>
-            </div>
-
-            <div class="info-card">
-              <label>Tarif d'entrée</label>
-              <p><strong>{{ selectedEvenement.prix || 'Gratuit' }}</strong></p>
-            </div>
-          </div>
-
-          <div class="desc-section">
-            <label>Description soumise :</label>
-            <div class="desc-content">
-              {{ selectedEvenement.description || 'Aucune description fournie.' }}
-            </div>
-          </div>
+        <div class="form-group">
+          <label class="field-label">lieu (String)</label>
+          <input
+            type="text"
+            class="field-input"
+            [value]="formatLieuDisplay(selectedEvenement)"
+            readonly
+          />
         </div>
       </div>
     </div>
-  </div>
 
-  <ng-template #noPending>
-    <div class="empty-state-full">
-      <div class="empty-icon">🎉</div>
-      <h3>Toutes les soumissions sont à jour !</h3>
-      <p>Il n'y a actuellement aucun événement en attente de modération.</p>
-      <a routerLink="/evenements" class="btn-primary" style="display:inline-block; margin-top: 1rem;">
-        Voir tous les événements
-      </a>
-    </div>
-  </ng-template>
+    <!-- Actions Footer -->
+    <div class="actions-footer">
+      <button type="button" class="btn-return" (click)="returnToList()">
+        Retourner à la liste
+      </button>
 
-  <!-- Reject Reason Modal -->
-  <div class="modal-overlay" *ngIf="showRejectModal">
-    <div class="modal-container">
-      <div class="modal-header">
-        <h2>Refuser la publication de l'événement</h2>
-        <button class="close-btn" (click)="closeRejectModal()">&times;</button>
+      <button type="button" class="btn-reject" (click)="openRejectModal()">
+        Rejeter l'événement
+      </button>
+
+      <button type="button" class="btn-approve" (click)="approveEvent()">
+        Valider l'événement
+      </button>
+    </div>
+  } @else {
+    @if (!loading) {
+      <div class="empty-state-card">
+        <p>Aucun événement sélectionné pour la modération.</p>
+        <button type="button" class="btn-return" (click)="returnToList()">
+          Retourner à la liste des événements
+        </button>
       </div>
-      <div class="modal-body">
-        <p>Précisez la raison pour laquelle cet événement ne peut pas être publié :</p>
-        <textarea
-          rows="4"
-          [(ngModel)]="rejectionReason"
-          placeholder="ex: Informations incomplètes sur le lieu, date passée, contenu non conforme..."
-        ></textarea>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" (click)="closeRejectModal()">Annuler</button>
-        <button class="btn-reject-confirm" (click)="confirmRejection()">Confirmer le refus</button>
+    }
+  }
+
+  <!-- Modal Refus -->
+  @if (showRejectModal) {
+    <div class="modal-overlay" (click)="closeRejectModal()">
+      <div class="modal-card" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3 class="modal-title">Rejeter l'événement</h3>
+          <button type="button" class="modal-close-btn" (click)="closeRejectModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-desc">Précisez le motif du rejet de la soumission :</p>
+          <textarea
+            class="modal-textarea"
+            rows="4"
+            [(ngModel)]="rejectionReason"
+            placeholder="Ex : Date passée, informations de localisation incomplètes, non-conformité aux critères..."
+          ></textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-modal-cancel" (click)="closeRejectModal()">Annuler</button>
+          <button type="button" class="btn-modal-confirm-reject" (click)="confirmRejection()">
+            Confirmer le rejet
+          </button>
+        </div>
       </div>
     </div>
-  </div>
+  }
 </div>

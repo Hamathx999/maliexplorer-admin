@@ -1,6 +1,8 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router, NavigationEnd } from '@angular/router';
+import { filter } from 'rxjs';
 import { VilleService } from '../../services/ville.service';
 import { RegionService } from '../../services/region.service';
 import { Ville } from '../../models/ville.model';
@@ -16,13 +18,17 @@ import { Region } from '../../models/region.model';
 export class VillesComponent implements OnInit {
   private readonly villeService = inject(VilleService);
   private readonly regionService = inject(RegionService);
+  private readonly router = inject(Router);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   villes: Ville[] = [];
   regions: Region[] = [];
   nom: string = '';
   selectedRegion: string = '';
   population: string = '';
+  description: string = '';
   editingVilleId: number | string | null = null;
+  isEditing: boolean = false;
   isLoading: boolean = false;
   successMessage: string = '';
   errorMessage: string = '';
@@ -30,6 +36,36 @@ export class VillesComponent implements OnInit {
   ngOnInit(): void {
     this.loadVilles();
     this.loadRegions();
+    this.checkRoute(this.router.url);
+
+    this.router.events
+      .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
+      .subscribe((event: NavigationEnd) => {
+        this.checkRoute(event.urlAfterRedirects);
+        this.cdr.detectChanges();
+      });
+  }
+
+  private checkRoute(url: string): void {
+    if (url.includes('/villes/ajouter')) {
+      if (!this.isEditing) {
+        this.isEditing = true;
+      }
+    } else if (!this.editingVilleId && this.isEditing) {
+      this.isEditing = false;
+    }
+  }
+
+  startAdd(): void {
+    this.editingVilleId = null;
+    this.nom = '';
+    this.population = '';
+    this.description = '';
+    if (this.regions.length > 0 && !this.selectedRegion) {
+      this.selectedRegion = this.regions[0].nom;
+    }
+    this.isEditing = true;
+    this.router.navigate(['/villes/ajouter']);
   }
 
   loadVilles(): void {
@@ -38,8 +74,12 @@ export class VillesComponent implements OnInit {
       next: (data) => {
         this.villes = data;
         this.isLoading = false;
+        this.cdr.markForCheck();
       },
-      error: () => (this.isLoading = false)
+      error: () => {
+        this.isLoading = false;
+        this.cdr.markForCheck();
+      }
     });
   }
 
@@ -49,6 +89,7 @@ export class VillesComponent implements OnInit {
       if (this.regions.length > 0 && !this.selectedRegion) {
         this.selectedRegion = this.regions[0].nom;
       }
+      this.cdr.markForCheck();
     });
   }
 
@@ -61,7 +102,8 @@ export class VillesComponent implements OnInit {
     const payload: Ville = {
       nom: this.nom.trim(),
       region: this.selectedRegion || 'Mopti',
-      population: this.population.trim()
+      population: this.population.trim(),
+      description: this.description.trim()
     };
 
     if (this.editingVilleId !== null) {
@@ -90,6 +132,8 @@ export class VillesComponent implements OnInit {
     this.nom = ville.nom;
     this.selectedRegion = ville.region;
     this.population = String(ville.population || '');
+    this.description = ville.description || '';
+    this.isEditing = true;
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -107,9 +151,12 @@ export class VillesComponent implements OnInit {
   }
 
   resetForm(): void {
+    this.editingVilleId = null;
     this.nom = '';
     this.population = '';
-    this.editingVilleId = null;
+    this.description = '';
+    this.isEditing = false;
+    this.router.navigate(['/villes']);
   }
 
   private showNotification(msg: string, isError: boolean = false): void {
@@ -118,7 +165,8 @@ export class VillesComponent implements OnInit {
       setTimeout(() => (this.errorMessage = ''), 4000);
     } else {
       this.successMessage = msg;
-      setTimeout(() => (this.successMessage = ''), 4000);
+      setTimeout(() => (this.successMessage = ''), 3500);
     }
+    this.cdr.markForCheck();
   }
 }

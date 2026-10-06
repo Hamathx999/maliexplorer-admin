@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of, catchError } from 'rxjs';
+import { Observable, of, catchError, map } from 'rxjs';
 import { Question } from '../models/question.model';
 import { environment } from '../../environments/environment';
 
@@ -72,6 +72,18 @@ export class QuestionService {
 
   getQuestions(): Observable<Question[]> {
     return this.http.get<Question[]>(this.apiUrl).pipe(
+      map((data: Question[]) =>
+        data.map((q) => ({
+          ...q,
+          id: q.idQuestion ?? q.id,
+          idQuestion: q.idQuestion ?? q.id,
+          question: q.nomQuestion || q.question || '',
+          nomQuestion: q.nomQuestion || q.question || '',
+          reponse: q.reponse || '',
+          theme: q.theme || 'Culture générale',
+          duree: typeof q.duree === 'number' ? `${q.duree}s` : (q.duree || '30s')
+        }))
+      ),
       catchError((error) => {
         console.warn('API Spring Boot non disponible pour les questions, utilisation du cache local :', error);
         return of(this.fallbackQuestions);
@@ -81,6 +93,16 @@ export class QuestionService {
 
   getQuestionById(id: number | string): Observable<Question> {
     return this.http.get<Question>(`${this.apiUrl}/${id}`).pipe(
+      map((q: Question) => ({
+        ...q,
+        id: q.idQuestion ?? q.id,
+        idQuestion: q.idQuestion ?? q.id,
+        question: q.nomQuestion || q.question || '',
+        nomQuestion: q.nomQuestion || q.question || '',
+        reponse: q.reponse || '',
+        theme: q.theme || 'Culture générale',
+        duree: typeof q.duree === 'number' ? `${q.duree}s` : (q.duree || '30s')
+      })),
       catchError(() => {
         const found = this.fallbackQuestions.find((q) => q.id === id);
         return of(found ?? { id, theme: 'Culture générale', question: '', reponse: '', duree: '30s' });
@@ -89,13 +111,37 @@ export class QuestionService {
   }
 
   createQuestion(question: Question): Observable<Question> {
-    return this.http.post<Question>(this.apiUrl, question).pipe(
+    const rawDuree = String(question.duree || 30);
+    const numericDuree = parseInt(rawDuree.replace(/\D/g, ''), 10) || 30;
+
+    const payload = {
+      nomQuestion: question.question || question.nomQuestion,
+      question: question.question || question.nomQuestion,
+      reponse: question.reponse,
+      theme: question.theme || 'Culture générale',
+      duree: numericDuree,
+      points: question.points || 10,
+      quizId: question.quizId ? Number(question.quizId) : null,
+      propositions: question.options && question.options.length > 0 ? question.options : [question.reponse]
+    };
+
+    return this.http.post<Question>(this.apiUrl, payload).pipe(
+      map((created: Question) => ({
+        ...created,
+        id: created.idQuestion ?? created.id,
+        idQuestion: created.idQuestion ?? created.id,
+        question: created.nomQuestion || created.question || '',
+        nomQuestion: created.nomQuestion || created.question || '',
+        reponse: created.reponse || question.reponse,
+        theme: created.theme || question.theme || 'Culture générale',
+        duree: typeof created.duree === 'number' ? `${created.duree}s` : (created.duree || `${numericDuree}s`)
+      })),
       catchError((error) => {
         console.warn('API Spring Boot non joignable, enregistrement local de la question :', error);
         const newQ: Question = {
           ...question,
           id: Date.now(),
-          duree: question.duree.includes('s') ? question.duree : `${question.duree}s`
+          duree: `${numericDuree}s`
         };
         this.fallbackQuestions.unshift(newQ);
         return of(newQ);
@@ -104,7 +150,31 @@ export class QuestionService {
   }
 
   updateQuestion(id: number | string, question: Question): Observable<Question> {
-    return this.http.put<Question>(`${this.apiUrl}/${id}`, question).pipe(
+    const rawDuree = String(question.duree || 30);
+    const numericDuree = parseInt(rawDuree.replace(/\D/g, ''), 10) || 30;
+
+    const payload = {
+      nomQuestion: question.question || question.nomQuestion,
+      question: question.question || question.nomQuestion,
+      reponse: question.reponse,
+      theme: question.theme || 'Culture générale',
+      duree: numericDuree,
+      points: question.points || 10,
+      quizId: question.quizId ? Number(question.quizId) : null,
+      propositions: question.options && question.options.length > 0 ? question.options : [question.reponse]
+    };
+
+    return this.http.put<Question>(`${this.apiUrl}/${id}`, payload).pipe(
+      map((updated: Question) => ({
+        ...updated,
+        id: updated.idQuestion ?? updated.id,
+        idQuestion: updated.idQuestion ?? updated.id,
+        question: updated.nomQuestion || updated.question || '',
+        nomQuestion: updated.nomQuestion || updated.question || '',
+        reponse: updated.reponse || question.reponse,
+        theme: updated.theme || question.theme || 'Culture générale',
+        duree: typeof updated.duree === 'number' ? `${updated.duree}s` : (updated.duree || `${numericDuree}s`)
+      })),
       catchError((error) => {
         console.warn('API Spring Boot non joignable, mise à jour locale de la question :', error);
         const index = this.fallbackQuestions.findIndex((q) => q.id === id);

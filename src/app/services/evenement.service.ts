@@ -104,11 +104,34 @@ export class EvenementService {
     }
   ];
 
+  private getStoredEvents(): Evenement[] {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const stored = localStorage.getItem('maliexplorer_evenements');
+      if (stored) {
+        try {
+          return JSON.parse(stored);
+        } catch (e) {
+          console.error('Erreur lecture cache événements', e);
+        }
+      }
+    }
+    return [...this.fallbackEvenements];
+  }
+
+  private saveStoredEvents(events: Evenement[]): void {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        localStorage.setItem('maliexplorer_evenements', JSON.stringify(events));
+      } catch (e) {
+        console.error('Erreur sauvegarde cache événements', e);
+      }
+    }
+  }
+
   getEvenements(): Observable<Evenement[]> {
     return this.http.get<Evenement[]>(this.apiUrl).pipe(
       catchError((error) => {
-        console.warn('API Spring Boot non disponible pour les événements, utilisation du cache local :', error);
-        return of(this.fallbackEvenements);
+        return of(this.getStoredEvents());
       })
     );
   }
@@ -116,7 +139,8 @@ export class EvenementService {
   getPendingEvenements(): Observable<Evenement[]> {
     return this.http.get<Evenement[]>(`${this.apiUrl}/en-attente`).pipe(
       catchError(() => {
-        return of(this.fallbackEvenements.filter((e) => e.statut === 'EN_ATTENTE'));
+        const events = this.getStoredEvents();
+        return of(events.filter((e) => e.statut === 'EN_ATTENTE'));
       })
     );
   }
@@ -124,7 +148,8 @@ export class EvenementService {
   getEvenementById(id: number | string): Observable<Evenement> {
     return this.http.get<Evenement>(`${this.apiUrl}/${id}`).pipe(
       catchError(() => {
-        const found = this.fallbackEvenements.find((e) => e.id === id);
+        const events = this.getStoredEvents();
+        const found = events.find((e) => String(e.id) === String(id));
         return of(found ?? { id, titre: 'Événement', description: '', dateDebut: '', lieu: '', statut: 'EN_ATTENTE' as const });
       })
     );
@@ -132,14 +157,15 @@ export class EvenementService {
 
   createEvenement(evenement: Evenement): Observable<Evenement> {
     return this.http.post<Evenement>(this.apiUrl, evenement).pipe(
-      catchError((error) => {
-        console.warn('API Spring Boot non joignable, enregistrement local événement :', error);
+      catchError(() => {
+        const events = this.getStoredEvents();
         const newEvt: Evenement = {
           ...evenement,
           id: Date.now(),
           statut: evenement.statut || 'EN_ATTENTE'
         };
-        this.fallbackEvenements.unshift(newEvt);
+        events.unshift(newEvt);
+        this.saveStoredEvents(events);
         return of(newEvt);
       })
     );
@@ -147,11 +173,12 @@ export class EvenementService {
 
   updateEvenement(id: number | string, evenement: Evenement): Observable<Evenement> {
     return this.http.put<Evenement>(`${this.apiUrl}/${id}`, evenement).pipe(
-      catchError((error) => {
-        console.warn('API Spring Boot non joignable, mise à jour locale événement :', error);
-        const index = this.fallbackEvenements.findIndex((e) => e.id === id);
+      catchError(() => {
+        const events = this.getStoredEvents();
+        const index = events.findIndex((e) => String(e.id) === String(id));
         if (index !== -1) {
-          this.fallbackEvenements[index] = { ...this.fallbackEvenements[index], ...evenement, id };
+          events[index] = { ...events[index], ...evenement, id };
+          this.saveStoredEvents(events);
         }
         return of({ ...evenement, id });
       })
@@ -159,33 +186,42 @@ export class EvenementService {
   }
 
   approveEvenement(id: number | string): Observable<Evenement> {
+    const events = this.getStoredEvents();
+    const evt = events.find((e) => String(e.id) === String(id));
+    if (evt) {
+      evt.statut = 'APPROUVE';
+      this.saveStoredEvents(events);
+    }
+
     return this.http.patch<Evenement>(`${this.apiUrl}/${id}/approuver`, {}).pipe(
       catchError(() => {
-        const evt = this.fallbackEvenements.find((e) => e.id === id);
-        if (evt) evt.statut = 'APPROUVE';
-        return of(evt!);
+        return of(evt || { id, titre: 'Événement', description: '', dateDebut: '', lieu: '', statut: 'APPROUVE' as const });
       })
     );
   }
 
   rejectEvenement(id: number | string, motif?: string): Observable<Evenement> {
+    const events = this.getStoredEvents();
+    const evt = events.find((e) => String(e.id) === String(id));
+    if (evt) {
+      evt.statut = 'REFUSE';
+      evt.motifRejet = motif;
+      this.saveStoredEvents(events);
+    }
+
     return this.http.patch<Evenement>(`${this.apiUrl}/${id}/rejeter`, { motif }).pipe(
       catchError(() => {
-        const evt = this.fallbackEvenements.find((e) => e.id === id);
-        if (evt) {
-          evt.statut = 'REFUSE';
-          evt.motifRejet = motif;
-        }
-        return of(evt!);
+        return of(evt || { id, titre: 'Événement', description: '', dateDebut: '', lieu: '', statut: 'REFUSE' as const, motifRejet: motif });
       })
     );
   }
 
   deleteEvenement(id: number | string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`).pipe(
-      catchError((error) => {
-        console.warn('API Spring Boot non joignable, suppression locale événement :', error);
-        this.fallbackEvenements = this.fallbackEvenements.filter((e) => e.id !== id);
+      catchError(() => {
+        let events = this.getStoredEvents();
+        events = events.filter((e) => String(e.id) !== String(id));
+        this.saveStoredEvents(events);
         return of(void 0);
       })
     );
