@@ -11,6 +11,8 @@ export class RegionService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = `${environment.apiUrl}/regions`;
 
+  private readonly STORAGE_KEY = 'maliexplorer_regions_custom';
+
   private fallbackRegions: Region[] = [
     { id: 1, nom: 'Kayes', chefLieu: 'Kayes', population: '1 996 812', superficie: '119 743 km²', description: 'Première région administrative du Mali, frontière avec le Sénégal et la Mauritanie, connue pour ses gisements d’or et ses chutes d’eau.' },
     { id: 2, nom: 'Koulikoro', chefLieu: 'Koulikoro', population: '2 418 305', superficie: '95 848 km²', description: 'Région ceinturant le district de Bamako, haut lieu d’histoire mandingue.' },
@@ -34,11 +36,32 @@ export class RegionService {
     { id: 20, nom: 'District de Bamako', chefLieu: 'Bamako', population: '2 800 000', superficie: '252 km²', description: 'Centre politique, économique, universitaire et culturel du Mali.' }
   ];
 
+  private getLocalRegions(): Region[] {
+    try {
+      const stored = localStorage.getItem(this.STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.warn('Erreur lecture localStorage regions', e);
+    }
+    return [...this.fallbackRegions];
+  }
+
+  private saveLocalRegions(regions: Region[]): void {
+    try {
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(regions));
+    } catch (e) {
+      console.warn('Erreur écriture localStorage regions', e);
+    }
+  }
+
   getRegions(): Observable<Region[]> {
     return this.http.get<Region[]>(this.apiUrl).pipe(
       catchError((error) => {
-        console.warn('API Spring Boot non disponible pour les régions, utilisation du cache local :', error);
-        return of(this.fallbackRegions);
+        console.warn('API Spring Boot non disponible pour les régions, utilisation du stockage local :', error);
+        return of(this.getLocalRegions());
       })
     );
   }
@@ -46,7 +69,8 @@ export class RegionService {
   getRegionById(id: number | string): Observable<Region> {
     return this.http.get<Region>(`${this.apiUrl}/${id}`).pipe(
       catchError(() => {
-        const found = this.fallbackRegions.find((r) => r.id === id);
+        const local = this.getLocalRegions();
+        const found = local.find((r) => String(r.id) === String(id));
         return of(found ?? { id, nom: 'Région' });
       })
     );
@@ -60,7 +84,9 @@ export class RegionService {
           ...region,
           id: Date.now()
         };
-        this.fallbackRegions.unshift(newRegion);
+        const current = this.getLocalRegions();
+        current.unshift(newRegion);
+        this.saveLocalRegions(current);
         return of(newRegion);
       })
     );
@@ -70,9 +96,11 @@ export class RegionService {
     return this.http.put<Region>(`${this.apiUrl}/${id}`, region).pipe(
       catchError((error) => {
         console.warn('API Spring Boot non joignable, mise à jour locale région :', error);
-        const index = this.fallbackRegions.findIndex((r) => r.id === id);
+        const current = this.getLocalRegions();
+        const index = current.findIndex((r) => String(r.id) === String(id));
         if (index !== -1) {
-          this.fallbackRegions[index] = { ...this.fallbackRegions[index], ...region, id };
+          current[index] = { ...current[index], ...region, id };
+          this.saveLocalRegions(current);
         }
         return of({ ...region, id });
       })
@@ -83,7 +111,8 @@ export class RegionService {
     return this.http.delete<void>(`${this.apiUrl}/${id}`).pipe(
       catchError((error) => {
         console.warn('API Spring Boot non joignable, suppression locale région :', error);
-        this.fallbackRegions = this.fallbackRegions.filter((r) => r.id !== id);
+        const current = this.getLocalRegions().filter((r) => String(r.id) !== String(id));
+        this.saveLocalRegions(current);
         return of(void 0);
       })
     );

@@ -11,6 +11,8 @@ export class QuestionService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = `${environment.apiUrl}/questions`;
 
+  private readonly STORAGE_KEY = 'maliexplorer_questions_custom';
+
   private fallbackQuestions: Question[] = [
     {
       id: 1,
@@ -70,6 +72,27 @@ export class QuestionService {
     }
   ];
 
+  private getLocalQuestions(): Question[] {
+    try {
+      const stored = localStorage.getItem(this.STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.warn('Erreur lecture localStorage questions', e);
+    }
+    return [...this.fallbackQuestions];
+  }
+
+  private saveLocalQuestions(questions: Question[]): void {
+    try {
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(questions));
+    } catch (e) {
+      console.warn('Erreur écriture localStorage questions', e);
+    }
+  }
+
   getQuestions(): Observable<Question[]> {
     return this.http.get<Question[]>(this.apiUrl).pipe(
       map((data: Question[]) =>
@@ -85,8 +108,8 @@ export class QuestionService {
         }))
       ),
       catchError((error) => {
-        console.warn('API Spring Boot non disponible pour les questions, utilisation du cache local :', error);
-        return of(this.fallbackQuestions);
+        console.warn('API Spring Boot non disponible pour les questions, utilisation du stockage local :', error);
+        return of(this.getLocalQuestions());
       })
     );
   }
@@ -104,7 +127,8 @@ export class QuestionService {
         duree: typeof q.duree === 'number' ? `${q.duree}s` : (q.duree || '30s')
       })),
       catchError(() => {
-        const found = this.fallbackQuestions.find((q) => q.id === id);
+        const local = this.getLocalQuestions();
+        const found = local.find((q) => String(q.id) === String(id));
         return of(found ?? { id, theme: 'Culture générale', question: '', reponse: '', duree: '30s' });
       })
     );
@@ -143,7 +167,9 @@ export class QuestionService {
           id: Date.now(),
           duree: `${numericDuree}s`
         };
-        this.fallbackQuestions.unshift(newQ);
+        const current = this.getLocalQuestions();
+        current.unshift(newQ);
+        this.saveLocalQuestions(current);
         return of(newQ);
       })
     );
@@ -177,9 +203,11 @@ export class QuestionService {
       })),
       catchError((error) => {
         console.warn('API Spring Boot non joignable, mise à jour locale de la question :', error);
-        const index = this.fallbackQuestions.findIndex((q) => q.id === id);
+        const current = this.getLocalQuestions();
+        const index = current.findIndex((q) => String(q.id) === String(id));
         if (index !== -1) {
-          this.fallbackQuestions[index] = { ...this.fallbackQuestions[index], ...question, id };
+          current[index] = { ...current[index], ...question, id };
+          this.saveLocalQuestions(current);
         }
         return of({ ...question, id });
       })
@@ -190,7 +218,8 @@ export class QuestionService {
     return this.http.delete<void>(`${this.apiUrl}/${id}`).pipe(
       catchError((error) => {
         console.warn('API Spring Boot non joignable, suppression locale de la question :', error);
-        this.fallbackQuestions = this.fallbackQuestions.filter((q) => q.id !== id);
+        const current = this.getLocalQuestions().filter((q) => String(q.id) !== String(id));
+        this.saveLocalQuestions(current);
         return of(void 0);
       })
     );

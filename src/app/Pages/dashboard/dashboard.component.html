@@ -73,6 +73,15 @@
       </div>
 
       <div class="chart-wrapper">
+        <!-- Interactive Tooltip Overlay -->
+        @if (activeChartPoint) {
+          <div class="chart-tooltip-badge">
+            <span>{{ activeChartPoint.date }}</span> •
+            <strong style="color: #4ADE80;">{{ activeChartPoint.visitors }}</strong> •
+            <span style="color: #FDE047;">{{ activeChartPoint.pageViews }}</span>
+          </div>
+        }
+
         <!-- SVG Interactive Spline Curve Chart -->
         <svg class="activity-chart" viewBox="0 0 600 240" preserveAspectRatio="none">
           <defs>
@@ -111,16 +120,44 @@
             stroke-width="3.5"
             stroke-linecap="round"
           />
+
+          <!-- Interactive Hover Points on Curves -->
+          @for (pt of chartPoints; track pt.date) {
+            <circle
+              class="chart-interactive-point"
+              [attr.cx]="pt.x"
+              [attr.cy]="pt.yTeal"
+              r="4.5"
+              fill="#FFFFFF"
+              stroke="#0E8F76"
+              stroke-width="2.5"
+              (mouseenter)="setChartPoint(pt)"
+              (mouseleave)="setChartPoint(null)"
+            />
+            <circle
+              class="chart-interactive-point"
+              [attr.cx]="pt.x"
+              [attr.cy]="pt.yYellow"
+              r="4"
+              fill="#FFFFFF"
+              stroke="#F2B544"
+              stroke-width="2.5"
+              (mouseenter)="setChartPoint(pt)"
+              (mouseleave)="setChartPoint(null)"
+            />
+          }
         </svg>
 
         <!-- Chart Dates X-Axis -->
         <div class="chart-x-axis">
-          <span>1 Avr</span>
-          <span>5 Avr</span>
-          <span>10 Avr</span>
-          <span>15 Avr</span>
-          <span>20 Avr</span>
-          <span>24 Avr</span>
+          @for (pt of chartPoints; track pt.date) {
+            <span
+              style="cursor: pointer; transition: color 0.15s ease;"
+              [style.color]="activeChartPoint?.date === pt.date ? '#0E8F76' : '#94A3B8'"
+              (mouseenter)="setChartPoint(pt)"
+              (mouseleave)="setChartPoint(null)"
+            >{{ pt.date }}</span>
+          }
         </div>
       </div>
     </div>
@@ -129,26 +166,38 @@
     <div class="card contents-card">
       <div class="card-header">
         <h2 class="card-title">Contenus récents à valider</h2>
-        <a href="javascript:void(0)" class="view-all-link">Voir tout</a>
+        <a href="javascript:void(0)" class="view-all-link" (click)="navigateToAllContents()">Voir tout</a>
       </div>
 
       <div class="contents-list">
-        @for (item of recentContents; track item.title) {
-          <div class="content-item">
-            <img [src]="item.imageUrl" [alt]="item.title" class="content-thumb" />
-            <div class="content-info">
-              <h4 class="content-title">{{ item.title }}</h4>
-              <span class="content-meta">
-                <span class="meta-tag">{{ item.category }}</span> • {{ item.timeAgo }}
-              </span>
-            </div>
-            <div class="content-status-group">
-              <span class="status-badge badge-pending">{{ item.status }}</span>
-              <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="9 18 15 12 9 6"></polyline>
-              </svg>
-            </div>
+        @if (recentContents.length === 0) {
+          <div class="empty-state-card-content">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.8">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+            <p>Aucun événement en attente ou récent en base de données.</p>
           </div>
+        } @else {
+          @for (item of recentContents; track item.id ?? item.title) {
+            <div class="content-item" (click)="navigateToContent(item)" title="Examiner et modérer cet événement">
+              <img [src]="item.imageUrl" [alt]="item.title" class="content-thumb" />
+              <div class="content-info">
+                <h4 class="content-title">{{ item.title }}</h4>
+                <span class="content-meta">
+                  <span class="meta-tag">{{ item.category }}</span> • {{ item.timeAgo }}
+                </span>
+              </div>
+              <div class="content-status-group">
+                <span class="status-badge badge-pending">{{ item.status }}</span>
+                <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </div>
+            </div>
+          }
         }
       </div>
     </div>
@@ -162,7 +211,7 @@
 
     <div class="quick-actions-grid">
       @for (action of quickActions; track action.label) {
-        <button class="quick-action-btn">
+        <button type="button" class="quick-action-btn" (click)="handleQuickAction(action.route)">
           <div class="action-icon-circle" [style.background-color]="action.iconBg">
             @switch (action.icon) {
               @case ('map-pin') {
@@ -179,6 +228,16 @@
                   <line x1="3" y1="10" x2="21" y2="10"></line>
                 </svg>
               }
+              @case ('landmark') {
+                <svg viewBox="0 0 24 24" fill="none" [attr.stroke]="action.iconColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="3" y1="22" x2="21" y2="22"></line>
+                  <line x1="6" y1="18" x2="6" y2="11"></line>
+                  <line x1="10" y1="18" x2="10" y2="11"></line>
+                  <line x1="14" y1="18" x2="14" y2="11"></line>
+                  <line x1="18" y1="18" x2="18" y2="11"></line>
+                  <polygon points="12 2 20 7 4 7"></polygon>
+                </svg>
+              }
               @case ('book-open') {
                 <svg viewBox="0 0 24 24" fill="none" [attr.stroke]="action.iconColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
@@ -187,7 +246,6 @@
               }
             }
           </div>
-          <a [routerLink] = "action.route">
           <span class="action-label">{{ action.label }}</span>
           <div class="action-plus">
             <svg viewBox="0 0 24 24" fill="none" stroke="#0E8F76" stroke-width="2">
@@ -196,7 +254,6 @@
               <line x1="8" y1="12" x2="16" y2="12"></line>
             </svg>
           </div>
-          </a>
         </button>
       }
     </div>
@@ -208,7 +265,7 @@
     <div class="card users-card">
       <div class="card-header">
         <h2 class="card-title">Derniers utilisateurs</h2>
-        <a href="javascript:void(0)" class="view-all-link">Voir tout</a>
+        <a href="javascript:void(0)" class="view-all-link" (click)="navigateToAllUsers()">Voir tout</a>
       </div>
 
       <div class="table-responsive">
@@ -222,22 +279,40 @@
             </tr>
           </thead>
           <tbody>
-            @for (user of recentUsers; track user.email) {
+            @if (recentUsers.length === 0) {
               <tr>
-                <td>
-                  <div class="user-cell">
-                    <img [src]="user.avatarUrl" [alt]="user.name" class="table-avatar" />
-                    <span class="user-name-cell">{{ user.name }}</span>
-                  </div>
+                <td colspan="4" style="text-align: center; padding: 28px 16px; color: #94A3B8; font-size: 13px;">
+                  Aucun utilisateur trouvé en base de données.
                 </td>
-                <td class="email-cell">{{ user.email }}</td>
-                <td>
-                  <span class="role-pill" [class.role-guide]="user.role === 'Guide certifié'" [class.role-artisan]="user.role === 'Artisan'">
-                    {{ user.role }}
-                  </span>
-                </td>
-                <td class="date-cell">{{ user.registrationDate }}</td>
               </tr>
+            } @else {
+              @for (user of recentUsers; track user.id ?? user.email) {
+                <tr style="cursor: pointer;" (click)="navigateToAllUsers()" title="Voir la fiche utilisateur">
+                  <td>
+                    <div class="user-cell">
+                      <div [style.background]="user.avatarBg || '#E8F5E9'"
+                           [style.color]="user.avatarColor || '#1B5E20'"
+                           class="table-avatar-initials">
+                        <img *ngIf="user.avatarUrl" [src]="user.avatarUrl" [alt]="user.name" class="table-avatar" />
+                        <span *ngIf="!user.avatarUrl">{{ user.avatarInitials }}</span>
+                      </div>
+                      <span class="user-name-cell">{{ user.name }}</span>
+                    </div>
+                  </td>
+                  <td class="email-cell">{{ user.email }}</td>
+                  <td>
+                    <span class="role-pill"
+                          [class.role-guide]="user.role.toLowerCase().includes('guide')"
+                          [class.role-artisan]="user.role.toLowerCase().includes('artisan')"
+                          [class.role-admin]="user.role.toLowerCase().includes('admin')"
+                          [class.role-explorateur]="user.role.toLowerCase().includes('explorateur')"
+                          [class.role-partenaire]="user.role.toLowerCase().includes('partenaire')">
+                      {{ user.role }}
+                    </span>
+                  </td>
+                  <td class="date-cell">{{ user.registrationDate }}</td>
+                </tr>
+              }
             }
           </tbody>
         </table>
@@ -248,52 +323,64 @@
     <div class="card partnerships-card">
       <div class="card-header">
         <h2 class="card-title">Demandes de partenariat</h2>
-        <a href="javascript:void(0)" class="view-all-link">Voir tout</a>
+        <a href="javascript:void(0)" class="view-all-link" (click)="navigateToPartners()">Voir tout</a>
       </div>
 
       <div class="partnerships-list">
-        @for (req of partnershipRequests; track req.title) {
-          <div class="partnership-item">
-            <div class="partnership-icon-wrapper" [style.background-color]="req.iconBg">
-              @switch (req.iconType) {
-                @case ('leaf') {
-                  <svg viewBox="0 0 24 24" fill="none" [attr.stroke]="req.iconColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path>
-                    <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"></path>
-                  </svg>
-                }
-                @case ('building') {
-                  <svg viewBox="0 0 24 24" fill="none" [attr.stroke]="req.iconColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
-                    <line x1="9" y1="22" x2="9" y2="22.01"></line>
-                    <line x1="15" y1="22" x2="15" y2="22.01"></line>
-                    <line x1="9" y1="6" x2="9" y2="6.01"></line>
-                    <line x1="15" y1="6" x2="15" y2="6.01"></line>
-                    <line x1="9" y1="10" x2="9" y2="10.01"></line>
-                    <line x1="15" y1="10" x2="15" y2="10.01"></line>
-                  </svg>
-                }
-                @case ('compass') {
-                  <svg viewBox="0 0 24 24" fill="none" [attr.stroke]="req.iconColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
-                  </svg>
-                }
-              }
-            </div>
-
-            <div class="partnership-info">
-              <h4 class="partnership-title">{{ req.title }}</h4>
-              <span class="partnership-subtitle">{{ req.subtitle }} • {{ req.timeAgo }}</span>
-            </div>
-
-            <div class="partnership-status-group">
-              <span class="status-badge badge-pending">{{ req.status }}</span>
-              <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="9 18 15 12 9 6"></polyline>
-              </svg>
-            </div>
+        @if (partnershipRequests.length === 0) {
+          <div class="empty-state-card-content">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.8">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="8.5" cy="7" r="4"></circle>
+              <line x1="20" y1="8" x2="20" y2="14"></line>
+              <line x1="23" y1="11" x2="17" y2="11"></line>
+            </svg>
+            <p>Aucune demande de partenariat enregistrée pour le moment.</p>
           </div>
+        } @else {
+          @for (req of partnershipRequests; track req.id ?? req.title) {
+            <div class="partnership-item" (click)="navigateToPartners()" title="Examiner la demande de partenariat">
+              <div class="partnership-icon-wrapper" [style.background-color]="req.iconBg">
+                @switch (req.iconType) {
+                  @case ('leaf') {
+                    <svg viewBox="0 0 24 24" fill="none" [attr.stroke]="req.iconColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path>
+                      <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"></path>
+                    </svg>
+                  }
+                  @case ('building') {
+                    <svg viewBox="0 0 24 24" fill="none" [attr.stroke]="req.iconColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
+                      <line x1="9" y1="22" x2="9" y2="22.01"></line>
+                      <line x1="15" y1="22" x2="15" y2="22.01"></line>
+                      <line x1="9" y1="6" x2="9" y2="6.01"></line>
+                      <line x1="15" y1="6" x2="15" y2="6.01"></line>
+                      <line x1="9" y1="10" x2="9" y2="10.01"></line>
+                      <line x1="15" y1="10" x2="15" y2="10.01"></line>
+                    </svg>
+                  }
+                  @case ('compass') {
+                    <svg viewBox="0 0 24 24" fill="none" [attr.stroke]="req.iconColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
+                    </svg>
+                  }
+                }
+              </div>
+
+              <div class="partnership-info">
+                <h4 class="partnership-title">{{ req.title }}</h4>
+                <span class="partnership-subtitle">{{ req.subtitle }} • {{ req.timeAgo }}</span>
+              </div>
+
+              <div class="partnership-status-group">
+                <span class="status-badge badge-pending">{{ req.status }}</span>
+                <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </div>
+            </div>
+          }
         }
       </div>
     </div>

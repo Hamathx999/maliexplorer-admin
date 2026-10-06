@@ -359,9 +359,22 @@
   gap: 10px;
 }
 
-.table-avatar {
+.table-avatar-initials {
   width: 32px;
   height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.table-avatar {
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
   object-fit: cover;
 }
@@ -396,9 +409,56 @@
   color: #B45309;
 }
 
+.role-admin {
+  background-color: #D1FAE5;
+  color: #065F46;
+}
+
+.role-explorateur {
+  background-color: #E0E7FF;
+  color: #3730A3;
+}
+
+.role-partenaire {
+  background-color: #F3E8FF;
+  color: #6B21A8;
+}
+
 .date-cell {
   color: #94A3B8;
   font-size: 12px;
+}
+
+.chart-tooltip-badge {
+  position: absolute;
+  top: 14px;
+  right: 180px;
+  background: rgba(16, 43, 33, 0.92);
+  color: #FFFFFF;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  pointer-events: none;
+  animation: fadeIn 0.15s ease-in-out;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.chart-interactive-point {
+  cursor: pointer;
+  transition: r 0.2s ease;
+}
+
+.chart-interactive-point:hover {
+  r: 6;
 }
 
 /* Partnerships list */
@@ -453,6 +513,25 @@
   font-size: 11.5px;
   color: #94A3B8;
   font-weight: 500;
+}
+
+/* Empty state in cards */
+.empty-state-card-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 32px 16px;
+  gap: 10px;
+  color: #94A3B8;
+}
+
+.empty-state-card-content p {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: #94A3B8;
 }
 
 /* Responsive adjustments */

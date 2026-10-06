@@ -11,6 +11,8 @@ export class VilleService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = `${environment.apiUrl}/villes`;
 
+  private readonly STORAGE_KEY = 'maliexplorer_villes_custom';
+
   private fallbackVilles: Ville[] = [
     { id: 1, nom: 'Bamako', region: 'Bamako (District)', population: '2 800 000 hab', description: 'Capitale politique, économique et carrefour culturel du Mali sur le fleuve Niger.' },
     { id: 2, nom: 'Djenné', region: 'Mopti', population: '35 000 hab', description: 'Cité millénaire réputée pour sa Grande Mosquée en terre crue inscrite au patrimoine mondial.' },
@@ -24,11 +26,32 @@ export class VilleService {
     { id: 10, nom: 'Kidal', region: 'Kidal', population: '25 000 hab', description: 'Cité de l’Adrar des Ifoghas et berceau de la culture touarègue.' }
   ];
 
+  private getLocalVilles(): Ville[] {
+    try {
+      const stored = localStorage.getItem(this.STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.warn('Erreur lecture localStorage villes', e);
+    }
+    return [...this.fallbackVilles];
+  }
+
+  private saveLocalVilles(villes: Ville[]): void {
+    try {
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(villes));
+    } catch (e) {
+      console.warn('Erreur écriture localStorage villes', e);
+    }
+  }
+
   getVilles(): Observable<Ville[]> {
     return this.http.get<Ville[]>(this.apiUrl).pipe(
       catchError((error) => {
-        console.warn('API Spring Boot non disponible pour les villes, utilisation du cache local :', error);
-        return of(this.fallbackVilles);
+        console.warn('API Spring Boot non disponible pour les villes, utilisation du stockage local :', error);
+        return of(this.getLocalVilles());
       })
     );
   }
@@ -36,7 +59,7 @@ export class VilleService {
   getVillesByRegion(regionName: string): Observable<Ville[]> {
     return this.http.get<Ville[]>(`${this.apiUrl}?region=${encodeURIComponent(regionName)}`).pipe(
       catchError(() => {
-        return of(this.fallbackVilles.filter((v) => v.region.toLowerCase().includes(regionName.toLowerCase())));
+        return of(this.getLocalVilles().filter((v) => v.region.toLowerCase().includes(regionName.toLowerCase())));
       })
     );
   }
@@ -44,7 +67,8 @@ export class VilleService {
   getVilleById(id: number | string): Observable<Ville> {
     return this.http.get<Ville>(`${this.apiUrl}/${id}`).pipe(
       catchError(() => {
-        const found = this.fallbackVilles.find((v) => v.id === id);
+        const local = this.getLocalVilles();
+        const found = local.find((v) => String(v.id) === String(id));
         return of(found ?? { id, nom: 'Ville', region: 'Mali' });
       })
     );
@@ -58,7 +82,9 @@ export class VilleService {
           ...ville,
           id: Date.now()
         };
-        this.fallbackVilles.unshift(newVille);
+        const current = this.getLocalVilles();
+        current.unshift(newVille);
+        this.saveLocalVilles(current);
         return of(newVille);
       })
     );
@@ -68,9 +94,11 @@ export class VilleService {
     return this.http.put<Ville>(`${this.apiUrl}/${id}`, ville).pipe(
       catchError((error) => {
         console.warn('API Spring Boot non joignable, mise à jour locale de la ville :', error);
-        const index = this.fallbackVilles.findIndex((v) => v.id === id);
+        const current = this.getLocalVilles();
+        const index = current.findIndex((v) => String(v.id) === String(id));
         if (index !== -1) {
-          this.fallbackVilles[index] = { ...this.fallbackVilles[index], ...ville, id };
+          current[index] = { ...current[index], ...ville, id };
+          this.saveLocalVilles(current);
         }
         return of({ ...ville, id });
       })
@@ -81,7 +109,8 @@ export class VilleService {
     return this.http.delete<void>(`${this.apiUrl}/${id}`).pipe(
       catchError((error) => {
         console.warn('API Spring Boot non joignable, suppression locale de la ville :', error);
-        this.fallbackVilles = this.fallbackVilles.filter((v) => v.id !== id);
+        const current = this.getLocalVilles().filter((v) => String(v.id) !== String(id));
+        this.saveLocalVilles(current);
         return of(void 0);
       })
     );

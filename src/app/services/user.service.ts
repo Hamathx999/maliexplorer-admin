@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of, catchError } from 'rxjs';
+import { Observable, of, catchError, map } from 'rxjs';
 import { User } from '../models/user.model';
 import { environment } from '../../environments/environment';
 
@@ -120,12 +120,19 @@ export class UserService {
       role: this.mapRoleFromBackend(dto.role),
       statut: dto.statut || 'ACTIF',
       points: typeof dto.points === 'number' ? dto.points : 0,
+      photoUrl: dto.photoUrl,
       dateInscription: dateStr || 'Récemment inscrit'
     };
   }
 
   getUsers(): Observable<User[]> {
     return this.http.get<any[]>(this.apiUrl).pipe(
+      map((dtos) => {
+        if (Array.isArray(dtos)) {
+          return dtos.map((dto) => this.mapUser(dto));
+        }
+        return [];
+      }),
       catchError((error) => {
         console.warn('API Spring Boot non disponible pour les utilisateurs, utilisation du stockage local :', error);
         return of(this.getLocalUsers());

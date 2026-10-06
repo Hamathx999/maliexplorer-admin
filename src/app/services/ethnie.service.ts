@@ -11,6 +11,8 @@ export class EthnieService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = `${environment.apiUrl}/ethnies`;
 
+  private readonly STORAGE_KEY = 'maliexplorer_ethnies_custom';
+
   private fallbackEthnies: Ethnie[] = [
     {
       id: 1,
@@ -86,11 +88,32 @@ export class EthnieService {
     }
   ];
 
+  private getLocalEthnies(): Ethnie[] {
+    try {
+      const stored = localStorage.getItem(this.STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.warn('Erreur lecture localStorage ethnies', e);
+    }
+    return [...this.fallbackEthnies];
+  }
+
+  private saveLocalEthnies(ethnies: Ethnie[]): void {
+    try {
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(ethnies));
+    } catch (e) {
+      console.warn('Erreur écriture localStorage ethnies', e);
+    }
+  }
+
   getEthnies(): Observable<Ethnie[]> {
     return this.http.get<Ethnie[]>(this.apiUrl).pipe(
       catchError((error) => {
-        console.warn('API Spring Boot non disponible pour les ethnies, utilisation du cache local :', error);
-        return of(this.fallbackEthnies);
+        console.warn('API Spring Boot non disponible pour les ethnies, utilisation du stockage local :', error);
+        return of(this.getLocalEthnies());
       })
     );
   }
@@ -98,7 +121,8 @@ export class EthnieService {
   getEthnieById(id: number | string): Observable<Ethnie> {
     return this.http.get<Ethnie>(`${this.apiUrl}/${id}`).pipe(
       catchError(() => {
-        const found = this.fallbackEthnies.find((e) => e.id === id);
+        const local = this.getLocalEthnies();
+        const found = local.find((e) => String(e.id) === String(id));
         return of(found ?? { id, nom: 'Ethnie inconnue', langues: 'Français' });
       })
     );
@@ -112,7 +136,9 @@ export class EthnieService {
           ...ethnie,
           id: Date.now()
         };
-        this.fallbackEthnies.unshift(newEthnie);
+        const current = this.getLocalEthnies();
+        current.unshift(newEthnie);
+        this.saveLocalEthnies(current);
         return of(newEthnie);
       })
     );
@@ -122,9 +148,11 @@ export class EthnieService {
     return this.http.put<Ethnie>(`${this.apiUrl}/${id}`, ethnie).pipe(
       catchError((error) => {
         console.warn('API Spring Boot non joignable, mise à jour locale de l’ethnie :', error);
-        const index = this.fallbackEthnies.findIndex((e) => e.id === id);
+        const current = this.getLocalEthnies();
+        const index = current.findIndex((e) => String(e.id) === String(id));
         if (index !== -1) {
-          this.fallbackEthnies[index] = { ...this.fallbackEthnies[index], ...ethnie, id };
+          current[index] = { ...current[index], ...ethnie, id };
+          this.saveLocalEthnies(current);
         }
         return of({ ...ethnie, id });
       })
@@ -135,7 +163,8 @@ export class EthnieService {
     return this.http.delete<void>(`${this.apiUrl}/${id}`).pipe(
       catchError((error) => {
         console.warn('API Spring Boot non joignable, suppression locale de l’ethnie :', error);
-        this.fallbackEthnies = this.fallbackEthnies.filter((e) => e.id !== id);
+        const current = this.getLocalEthnies().filter((e) => String(e.id) !== String(id));
+        this.saveLocalEthnies(current);
         return of(void 0);
       })
     );
