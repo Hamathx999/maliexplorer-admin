@@ -40,7 +40,7 @@ export class PresidentsComponent implements OnInit {
         this.cdr.detectChanges();
       });
   }
-
+//
   private checkRoute(url: string): void {
     if (url.includes('/presidents/ajouter')) {
       if (!this.isEditing) {
