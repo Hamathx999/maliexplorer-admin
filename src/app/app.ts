@@ -1,5 +1,6 @@
-import { Component, signal } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { Component, signal, inject } from '@angular/core';
+import { RouterOutlet, Router, NavigationEnd } from '@angular/router';
+import { filter } from 'rxjs';
 import { SidebarComponent } from './components/sidebar/sidebar.component';
 import { HeaderComponent } from './components/header/header.component';
 
@@ -11,5 +12,20 @@ import { HeaderComponent } from './components/header/header.component';
   styleUrl: './app.css'
 })
 export class App {
+  private readonly router = inject(Router);
   protected readonly title = signal('MaliExplorer Admin');
+  readonly isLoginPage = signal<boolean>(false);
+
+  constructor() {
+    this.checkIfLogin(this.router.url);
+    this.router.events
+      .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
+      .subscribe((event: NavigationEnd) => {
+        this.checkIfLogin(event.urlAfterRedirects);
+      });
+  }
+
+  private checkIfLogin(url: string): void {
+    this.isLoginPage.set(url.includes('/login'));
+  }
 }

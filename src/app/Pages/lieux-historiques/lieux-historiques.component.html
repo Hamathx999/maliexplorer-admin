@@ -2,10 +2,10 @@
   <!-- Top Header -->
   <div class="page-header">
     <div>
-      <h1 class="page-title">{{ isEditing ? (editingLieu ? 'Modifier le Lieu Historique' : 'Ajouter un Lieu Historique') : 'Gestion des Lieux Historiques' }}</h1>
+      <h1 class="page-title">{{ pageTitle }}</h1>
       <p class="page-subtitle">Monuments, mosquées séculaires, falaises et trésors du patrimoine malien</p>
     </div>
-    <div *ngIf="!isEditing">
+    @if (!isEditing) {<div>
       <button class="btn-primary" (click)="startAdd()">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -13,7 +13,16 @@
         </svg>
         Ajouter un lieu historique
       </button>
-    </div>
+    </div>}
+    <!-- <div *ngIf="!isEditing">
+      <button class="btn-primary" (click)="startAdd()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        Ajouter un lieu historique
+      </button>
+    </div> -->
   </div>
 
   <!-- VIEW 1: LIST OF LIEUX -->
@@ -67,8 +76,8 @@
               <div class="lieu-cell">
                 <span class="lieu-icon">🏛️</span>
                 <div>
-                  <strong>{{ lieu.nom }}</strong>
-                  <span class="lieu-gps" *ngIf="lieu.coordonneesGps">📍 {{ lieu.coordonneesGps }}</span>
+                  <strong>{{ lieu.nom || lieu.nomLieuHisto }}</strong>
+                  <span class="lieu-gps" *ngIf="lieu.coordonneesGps || lieu.cordonnees">📍 {{ lieu.coordonneesGps || lieu.cordonnees }}</span>
                 </div>
               </div>
             </td>
@@ -130,7 +139,17 @@
           </div>
           <div class="form-group">
             <label>Ville *</label>
-            <input type="text" [(ngModel)]="formData.ville" placeholder="ex: Tombouctou" required />
+            <input
+              type="text"
+              list="villesList"
+              [(ngModel)]="formData.ville"
+              (ngModelChange)="onVilleChange($event)"
+              placeholder="ex: Tombouctou"
+              required
+            />
+            <datalist id="villesList">
+              <option *ngFor="let v of availableVilles" [value]="v.nom">{{ v.nom }} ({{ v.region }})</option>
+            </datalist>
           </div>
         </div>
       </div>
@@ -142,9 +161,15 @@
           Localisation & Histoire
         </h3>
 
-        <div class="form-group">
-          <label>Coordonnées GPS</label>
-          <input type="text" [(ngModel)]="formData.coordonneesGps" placeholder="ex: 16.7719° N, 3.0088° W" />
+        <div class="form-row">
+          <div class="form-group">
+            <label>Coordonnées GPS</label>
+            <input type="text" [(ngModel)]="formData.coordonneesGps" placeholder="ex: 16.7719° N, 3.0088° W" />
+          </div>
+          <div class="form-group">
+            <label>URL Panorama 360° (Visite virtuelle)</label>
+            <input type="text" [(ngModel)]="formData.panorama360Url" placeholder="https://..." />
+          </div>
         </div>
 
         <div class="form-group checkbox-group">
@@ -169,7 +194,22 @@
         </h3>
 
         <!-- Dropzone -->
-        <div class="dropzone">
+        <div
+          class="dropzone"
+          [class.dragover]="isDragOver"
+          (click)="fileInput.click()"
+          (dragover)="onDragOver($event)"
+          (dragleave)="onDragLeave($event)"
+          (drop)="onDrop($event)"
+        >
+          <input
+            #fileInput
+            type="file"
+            multiple
+            accept="image/png, image/jpeg, image/jpg, image/webp"
+            (change)="onFileSelected($event)"
+            style="display: none;"
+          />
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
             <polyline points="17 8 12 3 7 8"></polyline>
@@ -183,13 +223,14 @@
         <div class="uploaded-files-list" *ngIf="formData.images && formData.images.length > 0">
           <div class="file-item" *ngFor="let file of formData.images; let i = index">
             <div class="file-info">
-              <span class="file-icon">🖼️</span>
+              <img *ngIf="file.url" [src]="file.url" [alt]="file.nom" class="file-thumb" />
+              <span *ngIf="!file.url" class="file-icon">🖼️</span>
               <div>
                 <p class="file-name">{{ file.nom }}</p>
                 <span class="file-size">{{ file.taille }}</span>
               </div>
             </div>
-            <button class="file-delete" (click)="removeImage(i)">✕</button>
+            <button type="button" class="file-delete" (click)="removeImage(i)" title="Supprimer la photo">✕</button>
           </div>
         </div>
       </div>
@@ -197,9 +238,9 @@
 
     <!-- Action Bar -->
     <div class="form-actions">
-      <button class="btn-secondary" (click)="cancelEdit()">Annuler</button>
-      <button class="btn-primary" (click)="saveLieu()">
-        {{ editingLieu ? 'Mettre à jour le monument' : 'Enregistrer le lieu historique' }}
+      <button class="btn-secondary" (click)="cancelEdit()" [disabled]="isSaving">Annuler</button>
+      <button class="btn-primary" (click)="saveLieu()" [disabled]="isSaving">
+        {{ isSaving ? 'Enregistrement...' : (editingLieu ? 'Mettre à jour le monument' : 'Enregistrer le lieu historique') }}
       </button>
     </div>
   </div>

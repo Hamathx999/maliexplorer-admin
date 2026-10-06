@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { EvenementService } from '../../services/evenement.service';
 import { Evenement } from '../../models/evenement.model';
-
+import { Router } from '@angular/router';
 @Component({
   selector: 'app-evenements',
   standalone: true,
@@ -14,6 +14,7 @@ import { Evenement } from '../../models/evenement.model';
 })
 export class EvenementsComponent implements OnInit {
   private readonly evenementService = inject(EvenementService);
+  constructor(private router: Router) {}
 
   evenements: Evenement[] = [];
   filteredEvenements: Evenement[] = [];
@@ -71,7 +72,7 @@ export class EvenementsComponent implements OnInit {
     });
   }
 
-  openAddModal(): void {
+  openAddModal(navigate: Boolean = false): void {
     this.editingEvenement = null;
     this.formData = {
       titre: '',
@@ -91,6 +92,10 @@ export class EvenementsComponent implements OnInit {
       prix: 'Gratuit'
     };
     this.showModal = true;
+    if (navigate && !this.router.url.includes('/ajouter')) {
+      this.router.navigate(['/evenement/ajouter']);
+    }
+    // this.showModal = true;
   }
 
   openEditModal(evt: Evenement): void {

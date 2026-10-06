@@ -1,6 +1,7 @@
-import { Component, signal } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive } from '@angular/router';
+import { AuthService } from '../../services/auth.service';
 
 export interface NavItem {
   label: string;
@@ -16,6 +17,8 @@ export interface NavItem {
   styleUrl: './sidebar.component.css'
 })
 export class SidebarComponent {
+  private readonly authService = inject(AuthService);
+
   navItems: NavItem[] = [
     { label: 'Tableau de bord', route: '/dashboard', icon: 'dashboard' },
     { label: 'Événements', route: '/evenements', icon: 'calendar' },
@@ -30,4 +33,10 @@ export class SidebarComponent {
     { label: 'Les presidents', route: '/presidents', icon: 'award' },
     { label: 'Utilisateurs', route: '/utilisateurs', icon: 'user' },
   ];
+
+  logout(): void {
+    if (confirm('Voulez-vous vous déconnecter de l’administration MaliExplorer ?')) {
+      this.authService.logout();
+    }
+  }
 }

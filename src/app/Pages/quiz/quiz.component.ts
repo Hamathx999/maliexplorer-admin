@@ -30,18 +30,18 @@ export class QuizComponent implements OnInit {
   };
 
   ngOnInit(): void {
-    // this.loadQuiz();
+    this.loadQuiz();
   }
 
-  // loadQuiz(): void {
-  //   this.quizService.getQuiz().subscribe({
-  //     next: (data) => {
-  //       this.quizList = data;
-  //       this.filterQuiz();
-  //     },
-  //     error: (err) => console.error('Erreur chargement quiz', err)
-  //   });
-  // }
+  loadQuiz(): void {
+    this.quizService.getQuiz().subscribe({
+      next: (data: Quiz[]) => {
+        this.quizList = data;
+        this.filterQuiz();
+      },
+      error: (err: unknown) => console.error('Erreur chargement quiz', err)
+    });
+  }
 
   filterQuiz(): void {
     this.filteredQuiz = this.quizList.filter((q) => {

@@ -121,14 +121,14 @@ export class EvenementService {
     );
   }
 
-//   getEvenementById(id: number | string): Observable<Evenement> {
-//     return this.http.get<Evenement>(`${this.apiUrl}/${id}`).pipe(
-//       catchError(() => {
-//         const found = this.fallbackEvenements.find((e) => e.id === id);
-//         return of(found ?? { id, titre: 'Événement', description: '', dateDebut: '', lieu: '', statut: 'EN_ATTENTE' });
-//       })
-//     );
-//   }
+  getEvenementById(id: number | string): Observable<Evenement> {
+    return this.http.get<Evenement>(`${this.apiUrl}/${id}`).pipe(
+      catchError(() => {
+        const found = this.fallbackEvenements.find((e) => e.id === id);
+        return of(found ?? { id, titre: 'Événement', description: '', dateDebut: '', lieu: '', statut: 'EN_ATTENTE' as const });
+      })
+    );
+  }
 
   createEvenement(evenement: Evenement): Observable<Evenement> {
     return this.http.post<Evenement>(this.apiUrl, evenement).pipe(

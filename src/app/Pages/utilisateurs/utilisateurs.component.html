@@ -49,8 +49,6 @@
           <th>Utilisateur</th>
           <th>Email</th>
           <th>Rôle</th>
-          <th>Points</th>
-          <th>Statut</th>
           <th>Date d'inscription</th>
           <th class="actions-col">Actions</th>
         </tr>
@@ -60,11 +58,12 @@
           <td>
             <div class="user-cell">
               <div class="user-avatar">
+                {{ user.prenom?.charAt(0) || user.nom?.charAt(0) || 'U' }}
                 {{ user.prenom?.charAt(0) || user.nom.charAt(0) || 'U' }}
               </div>
               <div class="user-info">
                 <span class="user-name">{{ user.prenom }} {{ user.nom }}</span>
-                <span class="user-id">ID: #{{ user.id }}</span>
+                <!-- <span class="user-id">ID: #{{ user.id }}</span> -->
               </div>
             </div>
           </td>
@@ -74,10 +73,10 @@
               {{ user.role || 'Explorateur' }}
             </span>
           </td>
-          <td>
+          <!-- <td>
             <span class="points-badge">🏆 {{ user.points || 0 }} pts</span>
-          </td>
-          <td>
+          </td> -->
+          <!-- <td>
             <span
               class="status-tag"
               [class.status-active]="user.statut === 'ACTIF'"
@@ -86,19 +85,19 @@
             >
               {{ user.statut || 'ACTIF' }}
             </span>
-          </td>
+          </td> -->
           <td>{{ user.dateInscription || 'Récemment' }}</td>
           <td class="actions-col">
             <button class="action-btn edit" title="Modifier" (click)="openEditModal(user)">
               ✏️
             </button>
-            <button
+            <!-- <button
               class="action-btn block"
               [title]="user.statut === 'ACTIF' ? 'Bloquer' : 'Débloquer'"
               (click)="toggleBlock(user)"
             >
               {{ user.statut === 'ACTIF' ? '🔒' : '🔓' }}
-            </button>
+            </button> -->
             <button class="action-btn delete" title="Supprimer" (click)="deleteUser(user)">
               🗑️
             </button>

@@ -29,9 +29,6 @@
   height: 38px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  border-radius: 10px;
-  background: rgba(14, 143, 118, 0.15);
 }
 
 .brand-svg {
@@ -111,4 +108,36 @@
 
 .nav-link.active .nav-icon svg {
   stroke: #FFFFFF;
+}
+
+.sidebar-footer {
+  padding: 16px 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.logout-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 10px;
+  background-color: rgba(239, 68, 68, 0.08);
+  color: #F87171;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.logout-btn:hover {
+  background-color: #DC2626;
+  border-color: #DC2626;
+  color: #FFFFFF;
+}
+
+.logout-icon {
+  width: 18px;
+  height: 18px;
 }

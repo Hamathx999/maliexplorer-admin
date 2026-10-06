@@ -1,10 +1,13 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router, RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { LieuHistoriqueService } from '../../services/lieu-historique.service';
+import { LieuHistorique } from '../../models/lieu-historique.model';
 
 export interface KpiCard {
   label: string;
   value: string;
-  trend: string;
   icon: string;
   iconBg: string;
   iconColor: string;
@@ -39,17 +42,24 @@ export interface PartnershipRequest {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink, FormsModule],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css'
 })
-export class DashboardComponent {
+export class DashboardComponent implements OnInit {
+  private readonly lieuService = inject(LieuHistoriqueService);
+  private readonly router = inject(Router);
+
+  ngOnInit(): void {
+    this.loadLieuxCount();
+  }
+
   // 1. KPI Cards
   kpiCards: KpiCard[] = [
     {
       label: 'Utilisateurs',
       value: '12 483',
-      trend: '+ 12% ce mois',
+      // trend: '+ 12% ce mois',
       icon: 'user',
       iconBg: '#E6F7F3',
       iconColor: '#0E8F76'
@@ -57,7 +67,7 @@ export class DashboardComponent {
     {
       label: 'Partenaires',
       value: '247',
-      trend: '+ 8% ce mois',
+      // trend: '+ 8% ce mois',
       icon: 'handshake',
       iconBg: '#FEF3C7',
       iconColor: '#D97706'
@@ -65,7 +75,7 @@ export class DashboardComponent {
     {
       label: 'Lieux historiques',
       value: '86',
-      trend: '+ 15% ce mois',
+      // trend: '+ 15% ce mois',
       icon: 'map',
       iconBg: '#E0F2FE',
       iconColor: '#0284C7'
@@ -73,7 +83,7 @@ export class DashboardComponent {
     {
       label: 'Événements',
       value: '32',
-      trend: '+ 5% ce mois',
+      // trend: '+ 5% ce mois',
       icon: 'calendar',
       iconBg: '#FFE4E6',
       iconColor: '#E11D48'
@@ -107,9 +117,9 @@ export class DashboardComponent {
 
   // 3. Gestion rapide
   quickActions = [
-    { label: 'Ajouter un lieu', icon: 'map-pin', iconColor: '#0E8F76', iconBg: '#E6F7F3' },
-    { label: 'Gestion des evenement', icon: 'calendar', iconColor: '#0E8F76', iconBg: '#E6F7F3' },
-    { label: 'Gestion des articles', icon: 'book-open', iconColor: '#0E8F76', iconBg: '#E6F7F3' }
+    { label: 'Ajouter un lieu', icon: 'map-pin', iconColor: '#0E8F76', iconBg: '#E6F7F3', route: '/lieux-historiques/ajouter' },
+    { label: 'Gestion des événements', icon: 'calendar', iconColor: '#0E8F76', iconBg: '#E6F7F3', route: '/evenements' },
+    { label: 'Tous les lieux historiques', icon: 'landmark', iconColor: '#0E8F76', iconBg: '#E6F7F3', route: '/lieux-historiques' }
   ];
 
   // 4. Derniers utilisateurs
@@ -174,4 +184,22 @@ export class DashboardComponent {
       iconBg: '#FEF3C7'
     }
   ];
+
+  loadLieuxCount(): void {
+    this.lieuService.getLieux().subscribe({
+      next: (lieux: LieuHistorique[]) => {
+        const kpi = this.kpiCards.find((c) => c.label === 'Lieux historiques');
+        if (kpi) {
+          kpi.value = lieux.length.toString();
+        }
+      },
+      error: (err: unknown) => console.error('Erreur chargement lieux pour KPI', err)
+    });
+  }
+
+  handleQuickAction(action: { route: string }): void {
+    if (action.route) {
+      this.router.navigate([action.route]);
+    }
+  }
 }

@@ -288,6 +288,12 @@
   background: #f0fdf4;
 }
 
+.dropzone.dragover {
+  border-color: #16a34a;
+  background-color: #dcfce7;
+  transform: scale(1.01);
+}
+
 .dropzone-text {
   margin: 0.75rem 0 0.25rem 0;
   font-weight: 600;
@@ -326,6 +332,14 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
+}
+
+.file-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  object-fit: cover;
+  border: 1px solid #cbd5e1;
 }
 
 .file-name {

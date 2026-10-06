@@ -1,15 +1,19 @@
-<div class="admin-layout">
-  <!-- Sidebar -->
-  <app-sidebar></app-sidebar>
+@if (isLoginPage()) {
+  <router-outlet></router-outlet>
+} @else {
+  <div class="admin-layout">
+    <!-- Sidebar -->
+    <app-sidebar></app-sidebar>
 
-  <!-- Main Content Area -->
-  <div class="main-wrapper">
-    <!-- Top Header -->
-    <app-header></app-header>
+    <!-- Main Content Area -->
+    <div class="main-wrapper">
+      <!-- Top Header -->
+      <app-header></app-header>
 
-    <!-- Page Content -->
-    <main class="content-body">
-      <router-outlet></router-outlet>
-    </main>
+      <!-- Page Content -->
+      <main class="content-body">
+        <router-outlet></router-outlet>
+      </main>
+    </div>
   </div>
-</div>
+}

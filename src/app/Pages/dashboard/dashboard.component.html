@@ -6,13 +6,13 @@
         <div class="kpi-info">
           <span class="kpi-label">{{ card.label }}</span>
           <h3 class="kpi-value">{{ card.value }}</h3>
-          <span class="kpi-trend">
+          <!-- <span class="kpi-trend">
             <svg class="trend-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <line x1="7" y1="17" x2="17" y2="7"></line>
               <polyline points="7 7 17 7 17 17"></polyline>
             </svg>
             {{ card.trend }}
-          </span>
+          </span> -->
         </div>
 
         <div class="kpi-icon-wrapper" [style.background-color]="card.iconBg">
@@ -187,6 +187,7 @@
               }
             }
           </div>
+          <a [routerLink] = "action.route">
           <span class="action-label">{{ action.label }}</span>
           <div class="action-plus">
             <svg viewBox="0 0 24 24" fill="none" stroke="#0E8F76" stroke-width="2">
@@ -195,6 +196,7 @@
               <line x1="8" y1="12" x2="16" y2="12"></line>
             </svg>
           </div>
+          </a>
         </button>
       }
     </div>

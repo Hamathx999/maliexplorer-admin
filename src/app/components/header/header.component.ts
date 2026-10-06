@@ -1,7 +1,8 @@
-import { Component, Input, inject, OnInit } from '@angular/core';
+import { Component, Input, inject, OnInit, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-header',
@@ -12,11 +13,30 @@ import { filter } from 'rxjs';
 })
 export class HeaderComponent implements OnInit {
   private readonly router = inject(Router);
+  readonly authService = inject(AuthService);
 
   @Input() title: string = 'Tableau de bord';
   @Input() subtitle: string = "Bienvenue dans l'administration de MaliExplorer !";
-  @Input() userName: string = 'Bonjour, admin';
-  @Input() userRole: string = 'Super administrateur';
+
+  // Informations utilisateur réactives issues du token / session
+  readonly currentUserName = computed(() => {
+    const user = this.authService.currentUser();
+    if (!user) return 'Bonjour, Admin';
+    if (user.prenom || user.nom) {
+      return `${user.prenom || ''} ${user.nom || ''}`.trim();
+    }
+    return user.email || 'Admin';
+  });
+
+  readonly currentUserRole = computed(() => {
+    const user = this.authService.currentUser();
+    return user?.role ? `${user.role}` : 'Super administrateur';
+  });
+
+  readonly currentUserPhoto = computed(() => {
+    const user = this.authService.currentUser();
+    return user?.photoUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop';
+  });
 
   ngOnInit(): void {
     this.updateTitleByUrl(this.router.url);
@@ -26,6 +46,12 @@ export class HeaderComponent implements OnInit {
       .subscribe((event: NavigationEnd) => {
         this.updateTitleByUrl(event.urlAfterRedirects);
       });
+  }
+
+  logout(): void {
+    if (confirm('Voulez-vous vous déconnecter de l’administration MaliExplorer ?')) {
+      this.authService.logout();
+    }
   }
 
   private updateTitleByUrl(url: string): void {
@@ -38,6 +64,9 @@ export class HeaderComponent implements OnInit {
     } else if (url.includes('/ingredients')) {
       this.title = 'Gestion des ingrédients';
       this.subtitle = 'Gérez les ingrédients de base de la cuisine authentique malienne !';
+    } else if (url.includes('/lieux-historiques/ajouter')) {
+      this.title = 'Ajouter un lieu historique';
+      this.subtitle = 'Enregistrer un nouveau monument ou site du patrimoine malien.';
     } else if (url.includes('/lieux-historiques')) {
       this.title = 'Gestion des lieux historiques';
       this.subtitle = 'Ajouter de nouvelles merveilles et cultures maliennes à la plateforme.';
@@ -60,7 +89,7 @@ export class HeaderComponent implements OnInit {
       this.title = 'Gestion des ethnies';
       this.subtitle = "Bienvenue dans l'administration de MaliExplorer !";
     } else if (url.includes('/presidents')) {
-      this.title = 'Gestion des presidents';
+      this.title = 'Gestion des chefs d\'État';
       this.subtitle = "Bienvenue dans l'administration de MaliExplorer !";
     } else if (url.includes('/utilisateurs')) {
       this.title = 'Gestion des utilisateurs';
