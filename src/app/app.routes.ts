@@ -16,16 +16,20 @@ import { LoginComponent } from './Pages/login/login.component';
 import { authGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
+
+  {
+    path: '',
+    redirectTo: 'login',
+    pathMatch: 'full'
+  },
+
   {
     path: 'login',
     component: LoginComponent,
     title: 'Connexion - MaliExplorer Admin'
   },
-  {
-    path: '',
-    redirectTo: 'dashboard',
-    pathMatch: 'full'
-  },
+  
+
   {
     path: 'dashboard',
     component: DashboardComponent,
@@ -163,6 +167,7 @@ export const routes: Routes = [
     canActivate: [authGuard],
     title: 'Ajouter une Question - MaliExplorer Admin'
   },
+  
   {
     path: 'regions',
     component: RegionsComponent,

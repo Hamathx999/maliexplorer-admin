@@ -1,40 +1,53 @@
-import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
+import { HttpErrorResponse, HttpInterceptorFn, HttpRequest } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { catchError, throwError } from 'rxjs';
-import { AuthService } from '../services/auth.service';
+import { catchError, switchMap, throwError } from 'rxjs';
+import { AuthService, SKIP_AUTH } from '../services/auth.service';
+import { environment } from '../../environments/environment';
+
+const withBearer = (req: HttpRequest<unknown>, token: string) =>
+  req.clone({ setHeaders: { Authorization: `Bearer ${token}` } });
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  const authService = inject(AuthService);
-  const router = inject(Router);
-
-  // 1. Récupération du token JWT stocké dans le localStorage via AuthService
-  const token = authService.getToken();
-
-  let authReq = req;
-
-  // 2. Injection automatique du token Bearer dans l'en-tête Authorization
-  if (token) {
-    authReq = req.clone({
-      setHeaders: {
-        Authorization: `Bearer ${token}`
-      }
-    });
+  // On n'ajoute le token QUE pour notre backend Spring Boot.
+  // L'ajouter sur les appels Firebase (identitytoolkit / securetoken) provoque un 400/401.
+  const isApiCall = req.url.startsWith(environment.apiUrl);
+  if (!isApiCall || req.context.get(SKIP_AUTH)) {
+    return next(req);
   }
 
-  return next(authReq).pipe(
-    catchError((error: HttpErrorResponse) => {
-      if (error.status === 401) {
-        console.warn('Spring Boot [401 Non autorisé] : Token JWT manquant, expiré ou invalide.');
-        // Si la session a expiré lors d'un appel à l'API, rediriger vers login
-        if (typeof window !== 'undefined' && !req.url.includes('/api/auth/login')) {
-          authService.logout(false);
-          router.navigate(['/login'], { queryParams: { returnUrl: router.url } });
+  const auth = inject(AuthService);
+  const router = inject(Router);
+
+  const expireSession = (error: unknown) => {
+    auth.logout(false);
+    router.navigate(['/login'], { queryParams: { returnUrl: router.url } });
+    return throwError(() => error);
+  };
+
+  const send = (token: string | null) =>
+    next(token ? withBearer(req, token) : req).pipe(
+      catchError((error: HttpErrorResponse) => {
+        if (error.status !== 401) return throwError(() => error);
+
+        // 401 : on tente une seule fois de rafraîchir le token Firebase
+        if (auth.hasRefreshToken()) {
+          return auth.refreshIdToken().pipe(
+            switchMap((fresh) => next(withBearer(req, fresh))),
+            catchError(expireSession)
+          );
         }
-      } else if (error.status === 403) {
-        console.warn('Spring Boot [403 Accès refusé] : Privilèges ROLE_ADMIN requis.');
-      }
-      return throwError(() => error);
-    })
-  );
+        return expireSession(error);
+      })
+    );
+
+  // Token Firebase sur le point d'expirer → refresh préventif
+  if (auth.getToken() && auth.isTokenExpiringSoon() && auth.hasRefreshToken()) {
+    return auth.refreshIdToken().pipe(
+      switchMap((fresh) => send(fresh)),
+      catchError(expireSession)
+    );
+  }
+
+  return send(auth.getToken());
 };

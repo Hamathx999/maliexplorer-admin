@@ -14,15 +14,15 @@ export class IngredientService {
   private readonly STORAGE_KEY = 'maliexplorer_ingredients_custom';
 
   private fallbackIngredients: Ingredient[] = [
-    { id: 1, nom: "Pâte d'arachide (Tiga)", categorie: 'Condiments & Pâtes', description: 'Base du Tiga Dèguè Na, issue d’arachides grillées et broyées traditionnellement.' },
-    { id: 2, nom: "Feuilles de Corète séchées (Fakoye)", categorie: 'Herbes & Feuilles', description: 'Feuilles séchées indispensables au Fakoye de Tombouctou et Gao.' },
-    { id: 3, nom: "Soumbala (Néré fermenté)", categorie: 'Épices & Aromates', description: 'Condiment ancestral malien préparé à base de graines de néré cuites et fermentées.' },
-    { id: 4, nom: "Fonio blanc (Finyo)", categorie: 'Céréales', description: 'Céréale sahélienne millénaire, légère, sans gluten et riche en minéraux.' },
-    { id: 5, nom: "Feuilles de Baobab (Zira)", categorie: 'Herbes & Feuilles', description: 'Poudre de jeunes feuilles de baobab séchées pour lier les sauces traditionnelles.' },
-    { id: 6, nom: "Poisson capitaine fumé", categorie: 'Poissons', description: 'Poisson noble du fleuve Niger fumé au bois aromatique.' },
-    { id: 7, nom: "Feuilles de patate douce", categorie: 'Légumes & Feuilles', description: 'Ingrédient végétal principal de la fameuse sauce Saga Saga.' },
-    { id: 8, nom: "Gombo séché (Moulé)", categorie: 'Légumes', description: 'Gombo déshydraté et pilé servant d’épaississant naturel.' },
-    { id: 9, nom: "Tamarin sauvage (Tomi)", categorie: 'Fruits & Condiments', description: 'Pulpe acidulée utilisée pour parfumer sauces aigres-douces et boissons.' }
+    // { id: 1, nom: "Pâte d'arachide (Tiga)", categorie: 'Condiments & Pâtes', description: 'Base du Tiga Dèguè Na, issue d’arachides grillées et broyées traditionnellement.' },
+    // { id: 2, nom: "Feuilles de Corète séchées (Fakoye)", categorie: 'Herbes & Feuilles', description: 'Feuilles séchées indispensables au Fakoye de Tombouctou et Gao.' },
+    // { id: 3, nom: "Soumbala (Néré fermenté)", categorie: 'Épices & Aromates', description: 'Condiment ancestral malien préparé à base de graines de néré cuites et fermentées.' },
+    // { id: 4, nom: "Fonio blanc (Finyo)", categorie: 'Céréales', description: 'Céréale sahélienne millénaire, légère, sans gluten et riche en minéraux.' },
+    // { id: 5, nom: "Feuilles de Baobab (Zira)", categorie: 'Herbes & Feuilles', description: 'Poudre de jeunes feuilles de baobab séchées pour lier les sauces traditionnelles.' },
+    // { id: 6, nom: "Poisson capitaine fumé", categorie: 'Poissons', description: 'Poisson noble du fleuve Niger fumé au bois aromatique.' },
+    // { id: 7, nom: "Feuilles de patate douce", categorie: 'Légumes & Feuilles', description: 'Ingrédient végétal principal de la fameuse sauce Saga Saga.' },
+    // { id: 8, nom: "Gombo séché (Moulé)", categorie: 'Légumes', description: 'Gombo déshydraté et pilé servant d’épaississant naturel.' },
+    // { id: 9, nom: "Tamarin sauvage (Tomi)", categorie: 'Fruits & Condiments', description: 'Pulpe acidulée utilisée pour parfumer sauces aigres-douces et boissons.' }
   ];
 
   private getLocalIngredients(): Ingredient[] {
@@ -99,7 +99,9 @@ export class IngredientService {
   deleteIngredient(id: number | string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`).pipe(
       catchError((error) => {
-        console.warn('API Spring Boot non joignable, suppression locale ingrédient :', error);
+        if (error?.status !== 404) {
+          console.warn('Erreur lors de la suppression distante de l\'ingrédient :', error);
+        }
         const current = this.getLocalIngredients().filter((i) => String(i.id) !== String(id));
         this.saveLocalIngredients(current);
         return of(void 0);

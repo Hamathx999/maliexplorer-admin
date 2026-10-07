@@ -6,75 +6,20 @@
         <img src="/assets/MaliExplorer.png" alt="MaliExplorer" class="logo-img" />
       </div>
       <h1 class="brand-title">MaliExplorer</h1>
-      <span class="badge-portal">Portail Administration</span>
       <p class="brand-subtitle">Connectez-vous pour gérer les merveilles, monuments et données du Mali</p>
     </div>
 
-    <!-- Feedback messages -->
-    <div class="alert alert-error" *ngIf="errorMessage">
-      <span>⚠️</span>
+    <div *ngIf="errorMessage" class="alert alert-error">
       <p>{{ errorMessage }}</p>
     </div>
-
-    <div class="alert alert-success" *ngIf="successMessage">
-      <span>✅</span>
+    <div *ngIf="successMessage" class="alert alert-success">
       <p>{{ successMessage }}</p>
     </div>
 
-    <!-- Mode Selector Tabs -->
-    <div class="tabs-container">
-      <button
-        type="button"
-        class="tab-btn"
-        [class.active]="loginMode === 'token'"
-        (click)="loginMode = 'token'"
-      >
-        🔑 Token JWT / Bearer
-      </button>
-      <button
-        type="button"
-        class="tab-btn"
-        [class.active]="loginMode === 'credentials'"
-        (click)="loginMode = 'credentials'"
-      >
-        ✉️ Email & Mot de passe
-      </button>
-    </div>
-
-    <!-- TAB 1: Connexion par Token JWT / Firebase ID Token -->
-    <div class="form-body" *ngIf="loginMode === 'token'">
-      <div class="field-group">
-        <div class="label-row">
-          <label for="jwtInput">Token JWT / Bearer Token *</label>
-          <span class="hint-tag">Stocké dans localStorage</span>
-        </div>
-        <textarea
-          id="jwtInput"
-          rows="4"
-          [(ngModel)]="tokenInput"
-          placeholder="Collez ici votre token JWT (ex: eyJhbGciOiJSUzI1NiIs...)"
-          class="form-control code-font"
-        ></textarea>
-        <span class="helper-text">
-          Ce token sera conservé dans <code>localStorage.getItem('token')</code> et automatiquement injecté dans chaque requête HTTP via le header <code>Authorization: Bearer &lt;token&gt;</code>.
-        </span>
-      </div>
-
-      <button
-        type="button"
-        class="btn-submit"
-        (click)="loginWithToken()"
-        [disabled]="isLoading"
-      >
-        <span *ngIf="!isLoading">Valider & Enregistrer dans localStorage</span>
-        <span *ngIf="isLoading" class="spinner-row">Connexion en cours...</span>
-      </button>
-    </div>
-
     <!-- TAB 2: Connexion par Email & Mot de passe -->
-    <div class="form-body" *ngIf="loginMode === 'credentials'">
+    <div class="form-body">
       <div class="field-group">
-        <label for="emailInput">Adresse e-mail administrateur *</label>
+        <label for="emailInput">Adresse e-mail administrateur</label>
         <input
           id="emailInput"
           type="email"
@@ -85,7 +30,7 @@
       </div>
 
       <div class="field-group">
-        <label for="pwdInput">Mot de passe *</label>
+        <label for="pwdInput">Mot de passe </label>
         <input
           id="pwdInput"
           type="password"
@@ -105,27 +50,6 @@
         <span *ngIf="!isLoading">Se connecter</span>
         <span *ngIf="isLoading" class="spinner-row">Connexion en cours...</span>
       </button>
-    </div>
-
-    <!-- Quick Demo Admin Login -->
-    <div class="demo-box">
-      <div class="divider">
-        <span>OU ACCÈS RAPIDE</span>
-      </div>
-      <button
-        type="button"
-        class="btn-demo"
-        (click)="quickAdminLogin()"
-        [disabled]="isLoading"
-      >
-        ⚡ Connexion Démo Administrateur (1 clic)
-      </button>
-      <p class="demo-caption">Injecte immédiatement un token JWT avec les privilèges <strong>ROLE_ADMIN</strong></p>
-    </div>
-
-    <!-- Footer info -->
-    <div class="card-footer">
-      <p>Protection Spring Boot & Firebase Security activée</p>
     </div>
   </div>
 </div>

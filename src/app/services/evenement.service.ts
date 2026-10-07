@@ -4,226 +4,55 @@ import { Observable, of, catchError } from 'rxjs';
 import { Evenement } from '../models/evenement.model';
 import { environment } from '../../environments/environment';
 
-@Injectable({
-  providedIn: 'root'
-})
+/**
+ * Événements — données 100 % issues de Spring Boot (/api/evenements).
+ * Les lectures renvoient une liste vide en cas d'erreur réseau,
+ * les actions (création, validation, rejet...) remontent l'erreur au composant.
+ */
+@Injectable({ providedIn: 'root' })
 export class EvenementService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = `${environment.apiUrl}/evenements`;
 
-  private fallbackEvenements: Evenement[] = [
-    {
-      id: 1,
-      titre: 'Festival sur le Niger 2026',
-      nomOrganisateur: 'Fondation Festival sur le Niger',
-      emailOrganisateur: 'contact@festivsurniger.org',
-      telephoneOrganisateur: '+223 21 32 02 12',
-      dateDebut: '04/02/2026',
-      dateFin: '08/02/2026',
-      heureDebut: '10:00',
-      heureFin: '23:30',
-      lieu: 'Quai des Arts, Ségou',
-      ville: 'Ségou',
-      region: 'Ségou',
-      categorie: 'Festival Culturel',
-      statut: 'APPROUVE',
-      description: 'Le plus grand rassemblement de musique, d’art contemporain, de danse et de conférences sur les rives du fleuve Niger.',
-      prix: 'Gratuit / Pass Concerts 5 000 FCFA'
-    },
-    {
-      id: 2,
-      titre: 'La Nuit du Balafon de Sikasso',
-      nomOrganisateur: 'Association Culturelle du Kénédougou',
-      emailOrganisateur: 'kenedougou.art@gmail.com',
-      telephoneOrganisateur: '+223 76 45 89 12',
-      dateDebut: '15/03/2026',
-      dateFin: '17/03/2026',
-      heureDebut: '18:00',
-      heureFin: '02:00',
-      lieu: 'Stade Babemba Traoré, Sikasso',
-      ville: 'Sikasso',
-      region: 'Sikasso',
-      categorie: 'Musique Traditionnelle',
-      statut: 'APPROUVE',
-      description: 'Célébration des maîtres du balafon sénoufo et mandingue avec des orchestres de toute la sous-région ouest-africaine.',
-      prix: '2 000 FCFA'
-    },
-    {
-      id: 3,
-      titre: 'Festival International des Masques de Dogon (FIMA)',
-      nomOrganisateur: 'Collectif des Guides de Bandiagara',
-      emailOrganisateur: 'guides.bandiagara@yahoo.fr',
-      telephoneOrganisateur: '+223 66 78 90 23',
-      dateDebut: '22/04/2026',
-      dateFin: '25/04/2026',
-      heureDebut: '09:00',
-      heureFin: '20:00',
-      lieu: 'Sangha, Falaises de Bandiagara',
-      ville: 'Bandiagara',
-      region: 'Mopti',
-      categorie: 'Traditions & Masques',
-      statut: 'EN_ATTENTE',
-      description: 'Démonstrations des danses de masques sur échasses, rituels ancestraux et immersion dans la cosmogonie dogon.',
-      prix: '10 000 FCFA (Pass touristique)'
-    },
-    {
-      id: 4,
-      titre: 'Sanké Mô - Fête Rituelle de Pêche Sacrée',
-      nomOrganisateur: 'Comité Coutumier de San',
-      emailOrganisateur: 'mairie.san@afribone.net.ml',
-      telephoneOrganisateur: '+223 70 12 34 56',
-      dateDebut: '06/06/2026',
-      dateFin: '06/06/2026',
-      heureDebut: '07:00',
-      heureFin: '18:00',
-      lieu: 'Mare de Sanké, San',
-      ville: 'San',
-      region: 'Ségou / San',
-      categorie: 'Patrimoine Immatériel UNESCO',
-      statut: 'APPROUVE',
-      description: 'Célébration séculaire de la pêche collective dans la mare sacrée de Sanké, classée au patrimoine immatériel de l’UNESCO.',
-      prix: 'Gratuit'
-    },
-    {
-      id: 5,
-      titre: 'Exposition Biennale de la Photographie Africaine',
-      nomOrganisateur: 'Musée National du Mali',
-      emailOrganisateur: 'rencontres.bamako@maliart.org',
-      telephoneOrganisateur: '+223 20 22 34 83',
-      dateDebut: '10/11/2026',
-      dateFin: '10/12/2026',
-      heureDebut: '09:00',
-      heureFin: '18:00',
-      lieu: 'Musée National, Bamako',
-      ville: 'Bamako',
-      region: 'Bamako',
-      categorie: 'Arts Visuels',
-      statut: 'EN_ATTENTE',
-      description: 'Les célèbres Rencontres de Bamako, plateforme panafricaine de la photographie contemporaine et des nouveaux médias.',
-      prix: '1 000 FCFA'
-    }
-  ];
-
-  private getStoredEvents(): Evenement[] {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const stored = localStorage.getItem('maliexplorer_evenements');
-      if (stored) {
-        try {
-          return JSON.parse(stored);
-        } catch (e) {
-          console.error('Erreur lecture cache événements', e);
-        }
-      }
-    }
-    return [...this.fallbackEvenements];
-  }
-
-  private saveStoredEvents(events: Evenement[]): void {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      try {
-        localStorage.setItem('maliexplorer_evenements', JSON.stringify(events));
-      } catch (e) {
-        console.error('Erreur sauvegarde cache événements', e);
-      }
-    }
-  }
-
   getEvenements(): Observable<Evenement[]> {
     return this.http.get<Evenement[]>(this.apiUrl).pipe(
-      catchError((error) => {
-        return of(this.getStoredEvents());
+      catchError((err) => {
+        console.error('Chargement des événements impossible :', err);
+        return of([]);
       })
     );
   }
 
   getPendingEvenements(): Observable<Evenement[]> {
     return this.http.get<Evenement[]>(`${this.apiUrl}/en-attente`).pipe(
-      catchError(() => {
-        const events = this.getStoredEvents();
-        return of(events.filter((e) => e.statut === 'EN_ATTENTE'));
+      catchError((err) => {
+        console.error('Chargement des événements en attente impossible :', err);
+        return of([]);
       })
     );
   }
 
   getEvenementById(id: number | string): Observable<Evenement> {
-    return this.http.get<Evenement>(`${this.apiUrl}/${id}`).pipe(
-      catchError(() => {
-        const events = this.getStoredEvents();
-        const found = events.find((e) => String(e.id) === String(id));
-        return of(found ?? { id, titre: 'Événement', description: '', dateDebut: '', lieu: '', statut: 'EN_ATTENTE' as const });
-      })
-    );
+    return this.http.get<Evenement>(`${this.apiUrl}/${id}`);
   }
 
   createEvenement(evenement: Evenement): Observable<Evenement> {
-    return this.http.post<Evenement>(this.apiUrl, evenement).pipe(
-      catchError(() => {
-        const events = this.getStoredEvents();
-        const newEvt: Evenement = {
-          ...evenement,
-          id: Date.now(),
-          statut: evenement.statut || 'EN_ATTENTE'
-        };
-        events.unshift(newEvt);
-        this.saveStoredEvents(events);
-        return of(newEvt);
-      })
-    );
+    return this.http.post<Evenement>(this.apiUrl, evenement);
   }
 
   updateEvenement(id: number | string, evenement: Evenement): Observable<Evenement> {
-    return this.http.put<Evenement>(`${this.apiUrl}/${id}`, evenement).pipe(
-      catchError(() => {
-        const events = this.getStoredEvents();
-        const index = events.findIndex((e) => String(e.id) === String(id));
-        if (index !== -1) {
-          events[index] = { ...events[index], ...evenement, id };
-          this.saveStoredEvents(events);
-        }
-        return of({ ...evenement, id });
-      })
-    );
+    return this.http.put<Evenement>(`${this.apiUrl}/${id}`, evenement);
   }
 
   approveEvenement(id: number | string): Observable<Evenement> {
-    const events = this.getStoredEvents();
-    const evt = events.find((e) => String(e.id) === String(id));
-    if (evt) {
-      evt.statut = 'APPROUVE';
-      this.saveStoredEvents(events);
-    }
-
-    return this.http.patch<Evenement>(`${this.apiUrl}/${id}/approuver`, {}).pipe(
-      catchError(() => {
-        return of(evt || { id, titre: 'Événement', description: '', dateDebut: '', lieu: '', statut: 'APPROUVE' as const });
-      })
-    );
+    return this.http.patch<Evenement>(`${this.apiUrl}/${id}/approuver`, {});
   }
 
   rejectEvenement(id: number | string, motif?: string): Observable<Evenement> {
-    const events = this.getStoredEvents();
-    const evt = events.find((e) => String(e.id) === String(id));
-    if (evt) {
-      evt.statut = 'REFUSE';
-      evt.motifRejet = motif;
-      this.saveStoredEvents(events);
-    }
-
-    return this.http.patch<Evenement>(`${this.apiUrl}/${id}/rejeter`, { motif }).pipe(
-      catchError(() => {
-        return of(evt || { id, titre: 'Événement', description: '', dateDebut: '', lieu: '', statut: 'REFUSE' as const, motifRejet: motif });
-      })
-    );
+    return this.http.patch<Evenement>(`${this.apiUrl}/${id}/rejeter`, { motif });
   }
 
   deleteEvenement(id: number | string): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/${id}`).pipe(
-      catchError(() => {
-        let events = this.getStoredEvents();
-        events = events.filter((e) => String(e.id) !== String(id));
-        this.saveStoredEvents(events);
-        return of(void 0);
-      })
-    );
+    return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
 }
