@@ -100,9 +100,9 @@ export class PresidentsComponent implements OnInit {
   }
 
   onSubmit(): void {
-    const nom = this.nom.trim();
-    const prenom = this.prenom.trim();
-    const periode = this.periode.trim();
+    const nom = (this.nom || '').trim();
+    const prenom = (this.prenom || '').trim();
+    const periode = (this.periode || '').trim();
 
     if (!nom || !periode) {
       this.showNotification('Veuillez renseigner le nom et la période du chef d’État.', true);
@@ -114,8 +114,8 @@ export class PresidentsComponent implements OnInit {
       prenom: prenom,
       periode: periode,
       periodeMandat: periode,
-      titre: this.titre.trim(),
-      biographie: this.biographie.trim()
+      titre: (this.titre || '').trim(),
+      biographie: (this.biographie || '').trim()
     };
 
     if (this.editingPresidentId !== null) {

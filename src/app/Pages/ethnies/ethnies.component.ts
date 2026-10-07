@@ -77,16 +77,17 @@ export class EthniesComponent implements OnInit {
   }
 
   onSubmit(): void {
-    if (!this.nom.trim()) {
+    const nomStr = (this.nom || '').trim();
+    if (!nomStr) {
       this.showNotification("Veuillez saisir le nom de l'ethnie.", true);
       return;
     }
 
     const payload: Ethnie = {
-      nom: this.nom.trim(),
-      langues: this.langues.trim(),
-      region: this.region.trim(),
-      description: this.description.trim()
+      nom: nomStr,
+      langues: (this.langues || '').trim(),
+      region: (this.region || '').trim(),
+      description: (this.description || '').trim()
     };
 
     if (this.editingEthnieId !== null) {
@@ -112,9 +113,9 @@ export class EthniesComponent implements OnInit {
 
   onEdit(ethnie: Ethnie): void {
     this.editingEthnieId = ethnie.id ?? null;
-    this.nom = ethnie.nom;
-    this.langues = ethnie.langues;
-    this.region = ethnie.region || '';
+    this.nom = ethnie.nom || '';
+    this.langues = ethnie.langues || '';
+    this.region = ethnie.region || ethnie.ville || '';
     this.description = ethnie.description || '';
     this.isEditing = true;
     window.scrollTo({ top: 0, behavior: 'smooth' });

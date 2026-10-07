@@ -55,7 +55,14 @@ export class IngredientsComponent implements OnInit {
   loadIngredients(): void {
     this.ingredientService.getIngredients().subscribe({
       next: (data) => {
-        this.ingredients = data;
+        this.ingredients = (data || []).map((item) => {
+          const resolvedId = item.id ?? item.idIngredient;
+          return {
+            ...item,
+            id: resolvedId,
+            nom: item.nom || item.nomPlat || ''
+          };
+        });
         this.filterIngredients();
         this.cdr.markForCheck();
       },
@@ -85,8 +92,9 @@ export class IngredientsComponent implements OnInit {
   }
 
   startEdit(item: Ingredient): void {
-    this.editingIngredient = item;
-    this.formData = { ...item };
+    const resolvedId = item.id ?? item.idIngredient;
+    this.editingIngredient = { ...item, id: resolvedId };
+    this.formData = { ...item, id: resolvedId };
     this.isEditing = true;
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -98,41 +106,65 @@ export class IngredientsComponent implements OnInit {
   }
 
   saveIngredient(): void {
-    if (!this.formData.nom || !this.formData.nom.trim()) {
+    const cleanNom = (this.formData.nom || '').trim();
+    if (!cleanNom) {
       alert('Veuillez renseigner le nom de l’ingrédient.');
       return;
     }
 
-    if (this.editingIngredient && this.editingIngredient.id) {
-      this.ingredientService.updateIngredient(this.editingIngredient.id, this.formData as Ingredient).subscribe({
+    const editId = this.editingIngredient?.id ?? this.editingIngredient?.idIngredient ?? this.formData.id ?? this.formData.idIngredient;
+
+    const payload: Ingredient = {
+      ...this.formData,
+      nom: cleanNom,
+      nomPlat: cleanNom
+    };
+
+    if (editId) {
+      this.ingredientService.updateIngredient(editId, payload).subscribe({
         next: (updated) => {
-          const idx = this.ingredients.findIndex((i) => String(i.id) === String(updated.id));
+          const updatedId = updated.id ?? updated.idIngredient ?? editId;
+          const normalizedUpdated: Ingredient = {
+            ...updated,
+            id: updatedId,
+            nom: updated.nom || updated.nomPlat || cleanNom
+          };
+          const idx = this.ingredients.findIndex((i) => String(i.id ?? i.idIngredient) === String(updatedId));
           if (idx !== -1) {
-            this.ingredients[idx] = updated;
+            this.ingredients[idx] = normalizedUpdated;
           } else {
             this.loadIngredients();
           }
           this.filterIngredients();
           this.cancelEdit();
-        }
+        },
+        error: (err) => console.error('Erreur modification ingrédient :', err)
       });
     } else {
-      this.ingredientService.createIngredient(this.formData as Ingredient).subscribe({
+      this.ingredientService.createIngredient(payload).subscribe({
         next: (created) => {
-          this.ingredients.unshift(created);
+          const createdId = created.id ?? created.idIngredient;
+          const normalizedCreated: Ingredient = {
+            ...created,
+            id: createdId,
+            nom: created.nom || created.nomPlat || cleanNom
+          };
+          this.ingredients.unshift(normalizedCreated);
           this.filterIngredients();
           this.cancelEdit();
-        }
+        },
+        error: (err) => console.error('Erreur création ingrédient :', err)
       });
     }
   }
 
   deleteIngredient(item: Ingredient): void {
-    if (!item.id) return;
+    const idToDelete = item.id ?? item.idIngredient;
+    if (!idToDelete) return;
     if (confirm(`Confirmez-vous la suppression de "${item.nom}" ?`)) {
-      this.ingredientService.deleteIngredient(item.id).subscribe({
+      this.ingredientService.deleteIngredient(idToDelete).subscribe({
         next: () => {
-          this.ingredients = this.ingredients.filter((i) => String(i.id) !== String(item.id));
+          this.ingredients = this.ingredients.filter((i) => String(i.id ?? i.idIngredient) !== String(idToDelete));
           this.filterIngredients();
         }
       });

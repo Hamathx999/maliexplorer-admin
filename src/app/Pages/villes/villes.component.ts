@@ -94,16 +94,17 @@ export class VillesComponent implements OnInit {
   }
 
   onSubmit(): void {
-    if (!this.nom.trim()) {
+    const nomStr = (this.nom || '').trim();
+    if (!nomStr) {
       this.showNotification('Veuillez saisir le nom de la ville.', true);
       return;
     }
 
     const payload: Ville = {
-      nom: this.nom.trim(),
+      nom: nomStr,
       region: this.selectedRegion || 'Mopti',
-      population: this.population.trim(),
-      description: this.description.trim()
+      population: (this.population || '').trim(),
+      description: (this.description || '').trim()
     };
 
     if (this.editingVilleId !== null) {

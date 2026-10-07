@@ -3,18 +3,18 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #0a1f1b 0%, #16332D 50%, #0E8F76 100%);
   padding: 24px;
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
 }
 
 .login-card {
-  width: 100%;
-  max-width: 500px;
+  width: 70%;
+  max-width: 500vh;
+  height: 550px;
   background: #FFFFFF;
   border-radius: 20px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25), 0 1px 3px rgba(0, 0, 0, 0.1);
-  padding: 36px 32px;
+  /* box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25), 0 1px 3px rgba(0, 0, 0, 0.1); */
+  padding: 65px 32px;
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -36,7 +36,7 @@
   align-items: center;
   justify-content: center;
   margin-bottom: 12px;
-  box-shadow: 0 4px 12px rgba(14, 143, 118, 0.15);
+  /* box-shadow: 0 4px 12px rgba(14, 143, 118, 0.15); */
 }
 
 .logo-img {
@@ -53,7 +53,7 @@
   letter-spacing: -0.5px;
 }
 
-.badge-portal {
+/* .badge-portal {
   display: inline-block;
   margin-top: 6px;
   background-color: #ECFDF5;
@@ -65,7 +65,7 @@
   padding: 3px 10px;
   border-radius: 20px;
   border: 1px solid rgba(14, 143, 118, 0.2);
-}
+} */
 
 .brand-subtitle {
   margin: 8px 0 0;
@@ -153,6 +153,10 @@ label {
   color: #334155;
 }
 
+input{
+  width: 100px;
+  height: 50px;
+}
 .hint-tag {
   font-size: 11px;
   color: #0E8F76;
@@ -199,6 +203,8 @@ label {
 
 /* Submit button */
 .btn-submit {
+  width: 64vw;
+  height: 50px;
   border: none;
   background: #0E8F76;
   color: #FFFFFF;
