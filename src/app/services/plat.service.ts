@@ -92,16 +92,51 @@ export class PlatService {
   }
 
   private mapPlat(dto: any): Plat {
+    const ingredientNames: string[] = [];
+    const ingredientIds: number[] = [];
+
+    if (Array.isArray(dto.ingredientModelList)) {
+      dto.ingredientModelList.forEach((ing: any) => {
+        const id = ing.idIngredient ?? ing.id;
+        if (id) ingredientIds.push(Number(id));
+        const name = ing.nom || ing.nomPlat;
+        if (name && !ingredientNames.includes(name)) ingredientNames.push(name);
+      });
+    }
+
+    if (Array.isArray(dto.ingredients)) {
+      dto.ingredients.forEach((ing: any) => {
+        if (typeof ing === 'string') {
+          if (!ingredientNames.includes(ing)) ingredientNames.push(ing);
+        } else if (ing) {
+          const name = ing.nom || ing.nomPlat;
+          if (name && !ingredientNames.includes(name)) ingredientNames.push(name);
+          const id = ing.idIngredient ?? ing.id;
+          if (id) ingredientIds.push(Number(id));
+        }
+      });
+    }
+
+    if (Array.isArray(dto.ingredientIds)) {
+      dto.ingredientIds.forEach((id: any) => {
+        const num = Number(id);
+        if (!ingredientIds.includes(num)) ingredientIds.push(num);
+      });
+    }
+
+    const principal = dto.ingredientPrincipal || ingredientNames.join(', ') || '';
+
     return {
       id: dto.id ?? dto.idPlat,
       nom: dto.nom ?? dto.nomPlat ?? 'Plat traditionnel',
       description: dto.description || '',
-      ingredientPrincipal: dto.ingredientPrincipal || (Array.isArray(dto.ingredients) ? dto.ingredients.join(', ') : dto.ingredients) || '',
+      ingredientPrincipal: principal,
       region: dto.region || (dto.regions && dto.regions.length ? dto.regions.map((r: any) => r.nom || r.nomRegion).join(', ') : 'Mali'),
       tempsPreparation: typeof dto.tempsPreparation === 'number' ? `${dto.tempsPreparation} min` : (dto.tempsPreparation || '45 min'),
       difficulte: dto.difficulte || 'Facile',
       imageUrl: dto.imageUrl || '',
-      ingredients: Array.isArray(dto.ingredients) ? dto.ingredients : (dto.ingredients ? [dto.ingredients] : [])
+      ingredients: ingredientNames.length ? ingredientNames : (principal ? principal.split(',').map((s: string) => s.trim()) : []),
+      ingredientIds: ingredientIds
     };
   }
 
@@ -131,6 +166,7 @@ export class PlatService {
       description: plat.description,
       ingredientPrincipal: plat.ingredientPrincipal,
       ingredients: plat.ingredientPrincipal,
+      ingredientIds: plat.ingredientIds || [],
       tempsPreparation: tempsNum,
       difficulte: plat.difficulte || 'Facile',
       region: plat.region || 'Mali',
@@ -159,6 +195,7 @@ export class PlatService {
       description: plat.description,
       ingredientPrincipal: plat.ingredientPrincipal,
       ingredients: plat.ingredientPrincipal,
+      ingredientIds: plat.ingredientIds || [],
       tempsPreparation: tempsNum,
       difficulte: plat.difficulte || 'Facile',
       region: plat.region || 'Mali',

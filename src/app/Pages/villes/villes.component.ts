@@ -100,10 +100,15 @@ export class VillesComponent implements OnInit {
       return;
     }
 
-    const payload: Ville = {
+    const foundReg = this.regions.find((r) => r.nom === this.selectedRegion);
+    const pop = (this.population || '').trim();
+    const payload: any = {
       nom: nomStr,
       region: this.selectedRegion || 'Mopti',
-      population: (this.population || '').trim(),
+      population: pop,
+      nbreHbt: pop,
+      idRegion: foundReg?.id,
+      regionId: foundReg?.id,
       description: (this.description || '').trim()
     };
 

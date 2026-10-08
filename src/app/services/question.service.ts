@@ -104,6 +104,7 @@ export class QuestionService {
           nomQuestion: q.nomQuestion || q.question || '',
           reponse: q.reponse || '',
           theme: q.theme || 'Culture générale',
+          quizId: q.quizId ?? (q as any).quiz?.idQuiz ?? (q as any).quiz?.id ?? null,
           duree: typeof q.duree === 'number' ? `${q.duree}s` : (q.duree || '30s')
         }))
       ),
@@ -124,6 +125,7 @@ export class QuestionService {
         nomQuestion: q.nomQuestion || q.question || '',
         reponse: q.reponse || '',
         theme: q.theme || 'Culture générale',
+        quizId: q.quizId ?? (q as any).quiz?.idQuiz ?? (q as any).quiz?.id ?? null,
         duree: typeof q.duree === 'number' ? `${q.duree}s` : (q.duree || '30s')
       })),
       catchError(() => {
