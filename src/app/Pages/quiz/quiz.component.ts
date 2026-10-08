@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs';
 import { QuizService } from '../../services/quiz.service';
+import { UploadService } from '../../services/upload.service';
 import { Quiz } from '../../models/quiz.model';
 
 @Component({
@@ -15,12 +16,19 @@ import { Quiz } from '../../models/quiz.model';
 })
 export class QuizComponent implements OnInit {
   private readonly quizService = inject(QuizService);
+  private readonly uploadService = inject(UploadService);
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
 
   quizList: Quiz[] = [];
   filteredQuiz: Quiz[] = [];
   searchTerm: string = '';
+
+  imageUrl: string = '';
+  isUploadingImage: boolean = false;
+  isDragging: boolean = false;
+  selectedFileName: string = '';
+  selectedFileSize: string = '';
 
   isEditing: boolean = false;
   editingQuiz: Quiz | null = null;
@@ -29,7 +37,10 @@ export class QuizComponent implements OnInit {
     points: 50,
     description: '',
     categorie: 'Histoire & Empires',
-    nombreQuestions: 5
+    nombreQuestions: 5,
+    imageUrl: '',
+    imageQuiz: '',
+    logoUrl: ''
   };
 
   ngOnInit(): void {
@@ -75,14 +86,86 @@ export class QuizComponent implements OnInit {
     });
   }
 
+  onFilePicked(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input?.files && input.files[0]) {
+      this.uploadFile(input.files[0]);
+    }
+  }
+
+  onDragOver(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragging = true;
+  }
+
+  onDragLeave(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragging = false;
+  }
+
+  onDrop(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragging = false;
+    if (event.dataTransfer?.files && event.dataTransfer.files[0]) {
+      this.uploadFile(event.dataTransfer.files[0]);
+    }
+  }
+
+  private uploadFile(file: File): void {
+    if (!file.type.startsWith('image/')) {
+      alert('Veuillez sélectionner un fichier image valide (JPG, PNG, WEBP).');
+      return;
+    }
+
+    this.selectedFileName = file.name;
+    const sizeInKb = (file.size / 1024).toFixed(1);
+    this.selectedFileSize = `${sizeInKb} Ko`;
+    this.isUploadingImage = true;
+
+    this.uploadService.uploadImage(file, 'quiz', 'QUIZ', this.editingQuiz?.id ?? undefined).subscribe({
+      next: (url) => {
+        this.imageUrl = url;
+        this.formData.imageUrl = url;
+        this.formData.imageQuiz = url;
+        this.formData.logoUrl = url;
+        this.isUploadingImage = false;
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        console.error('Erreur téléversement image quiz:', err);
+        this.isUploadingImage = false;
+        alert(err.message || 'Erreur lors du téléversement du logo.');
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  removeImage(): void {
+    this.imageUrl = '';
+    this.formData.imageUrl = '';
+    this.formData.imageQuiz = '';
+    this.formData.logoUrl = '';
+    this.selectedFileName = '';
+    this.selectedFileSize = '';
+  }
+
   startAdd(): void {
     this.editingQuiz = null;
+    this.imageUrl = '';
+    this.selectedFileName = '';
+    this.selectedFileSize = '';
     this.formData = {
       nomQuiz: '',
       points: 50,
       description: '',
       categorie: 'Histoire & Empires',
-      nombreQuestions: 5
+      nombreQuestions: 5,
+      imageUrl: '',
+      imageQuiz: '',
+      logoUrl: ''
     };
     this.isEditing = true;
     this.router.navigate(['/quiz/ajouter']);
@@ -90,7 +173,15 @@ export class QuizComponent implements OnInit {
 
   startEdit(quiz: Quiz): void {
     this.editingQuiz = quiz;
-    this.formData = { ...quiz };
+    this.imageUrl = quiz.imageUrl || quiz.imageQuiz || quiz.logoUrl || '';
+    this.selectedFileName = this.imageUrl ? 'Logo actuel' : '';
+    this.selectedFileSize = '';
+    this.formData = {
+      ...quiz,
+      imageUrl: this.imageUrl,
+      imageQuiz: this.imageUrl,
+      logoUrl: this.imageUrl
+    };
     this.isEditing = true;
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -98,6 +189,9 @@ export class QuizComponent implements OnInit {
   cancelEdit(): void {
     this.isEditing = false;
     this.editingQuiz = null;
+    this.imageUrl = '';
+    this.selectedFileName = '';
+    this.selectedFileSize = '';
     this.router.navigate(['/quiz']);
   }
 
@@ -109,13 +203,29 @@ export class QuizComponent implements OnInit {
   }
 
   saveQuiz(): void {
+    if (this.isUploadingImage) {
+      alert('Veuillez patienter pendant la fin du téléversement du logo vers Supabase...');
+      return;
+    }
+
     if (!this.formData.nomQuiz || !this.formData.nomQuiz.trim()) {
       alert('Veuillez renseigner le nom du quiz.');
       return;
     }
 
+    const defaultQuizImage = 'https://dzhqwkpwaljqsjwoqvso.supabase.co/storage/v1/object/public/maliexplorer-media/quiz/ccdf2147-5998-4f94-8db4-683bc327e128_A_Visit_to_the_Dogon_Tribe_High_in_the_Bandiagara___Travel_Photographs_By_Rosemary_Sheel.jpg';
+    const img = (this.imageUrl || this.formData.imageUrl || '').trim() || defaultQuizImage;
+    const quizToSave: Quiz = {
+      ...this.formData,
+      nomQuiz: this.formData.nomQuiz.trim(),
+      description: this.formData.description?.trim() || '',
+      imageUrl: img,
+      imageQuiz: img,
+      logoUrl: img
+    } as Quiz;
+
     if (this.editingQuiz && this.editingQuiz.id) {
-      this.quizService.updateQuiz(this.editingQuiz.id, this.formData as Quiz).subscribe({
+      this.quizService.updateQuiz(this.editingQuiz.id, quizToSave).subscribe({
         next: (updated) => {
           const idx = this.quizList.findIndex((q) => String(q.id) === String(updated.id));
           if (idx !== -1) {
@@ -128,7 +238,7 @@ export class QuizComponent implements OnInit {
         }
       });
     } else {
-      this.quizService.createQuiz(this.formData as Quiz).subscribe({
+      this.quizService.createQuiz(quizToSave).subscribe({
         next: (created) => {
           this.quizList.unshift(created);
           this.filterQuiz();

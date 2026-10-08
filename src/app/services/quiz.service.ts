@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of, catchError } from 'rxjs';
+import { Observable, of, catchError, map } from 'rxjs';
 import { Quiz } from '../models/quiz.model';
 import { environment } from '../../environments/environment';
 
@@ -134,10 +134,12 @@ export class QuizService {
       categorie: quiz.categorie || 'Culture & Histoire',
       point: pts,
       points: pts,
-      imageQuiz: quiz.imageUrl || ''
+      imageQuiz: quiz.imageUrl || '',
+      imageUrl: quiz.imageUrl || ''
     };
 
     return this.http.post<any>(this.apiUrl, payload).pipe(
+      map((res) => this.mapQuiz(res)),
       catchError((error) => {
         console.warn('API Spring Boot non joignable, enregistrement local du quiz :', error);
         const newQuiz: Quiz = {
@@ -161,10 +163,12 @@ export class QuizService {
       categorie: quiz.categorie || 'Culture & Histoire',
       point: pts,
       points: pts,
-      imageQuiz: quiz.imageUrl || ''
+      imageQuiz: quiz.imageUrl || '',
+      imageUrl: quiz.imageUrl || ''
     };
 
     return this.http.put<any>(`${this.apiUrl}/${id}`, payload).pipe(
+      map((res) => this.mapQuiz(res)),
       catchError((error) => {
         console.warn('API Spring Boot non joignable, mise à jour locale du quiz :', error);
         const current = this.getLocalQuizList();

@@ -6,4 +6,6 @@ export interface Quiz {
   nombreQuestions?: number;
   categorie?: string;
   imageUrl?: string;
+  imageQuiz?: string;
+  logoUrl?: string;
 }

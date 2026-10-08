@@ -14,16 +14,16 @@ export class VilleService {
   private readonly STORAGE_KEY = 'maliexplorer_villes_custom';
 
   private fallbackVilles: Ville[] = [
-    { id: 1, nom: 'Bamako', region: 'Bamako (District)', population: '2 800 000 hab', description: 'Capitale politique, économique et carrefour culturel du Mali sur le fleuve Niger.' },
-    { id: 2, nom: 'Djenné', region: 'Mopti', population: '35 000 hab', description: 'Cité millénaire réputée pour sa Grande Mosquée en terre crue inscrite au patrimoine mondial.' },
-    { id: 3, nom: 'Tombouctou', region: 'Tombouctou', population: '55 000 hab', description: 'La cité aux 333 saints, haut lieu historique du commerce transsaharien et des manuscrits anciens.' },
-    { id: 4, nom: 'Mopti', region: 'Mopti', population: '150 000 hab', description: 'La « Venise malienne », confluence majeure du Niger et du Bani et carrefour fluvial.' },
-    { id: 5, nom: 'Ségou', region: 'Ségou', population: '135 000 hab', description: 'Cité des balanzans, ancienne capitale du grand Royaume bambara de Ségou.' },
-    { id: 6, nom: 'Sikasso', region: 'Sikasso', population: '225 000 hab', description: 'Capitale du Kénédougou, poumon agricole et carrefour transfrontalier verdoyant.' },
-    { id: 7, nom: 'Gao', region: 'Gao', population: '90 000 hab', description: 'Ancienne capitale de l’Empire Songhaï, abritant le tombeau des Askia.' },
-    { id: 8, nom: 'Kayes', region: 'Kayes', population: '130 000 hab', description: 'La cité du rail et des chutes du Félou, porte d’entrée occidentale du Mali.' },
-    { id: 9, nom: 'Koulikoro', region: 'Koulikoro', population: '45 000 hab', description: 'Terminus ferroviaire et port fluvial de départ vers le nord.' },
-    { id: 10, nom: 'Kidal', region: 'Kidal', population: '25 000 hab', description: 'Cité de l’Adrar des Ifoghas et berceau de la culture touarègue.' }
+    // { id: 1, nom: 'Bamako', region: 'Bamako (District)', population: '2 800 000 hab', description: 'Capitale politique, économique et carrefour culturel du Mali sur le fleuve Niger.' },
+    // { id: 2, nom: 'Djenné', region: 'Mopti', population: '35 000 hab', description: 'Cité millénaire réputée pour sa Grande Mosquée en terre crue inscrite au patrimoine mondial.' },
+    // { id: 3, nom: 'Tombouctou', region: 'Tombouctou', population: '55 000 hab', description: 'La cité aux 333 saints, haut lieu historique du commerce transsaharien et des manuscrits anciens.' },
+    // { id: 4, nom: 'Mopti', region: 'Mopti', population: '150 000 hab', description: 'La « Venise malienne », confluence majeure du Niger et du Bani et carrefour fluvial.' },
+    // { id: 5, nom: 'Ségou', region: 'Ségou', population: '135 000 hab', description: 'Cité des balanzans, ancienne capitale du grand Royaume bambara de Ségou.' },
+    // { id: 6, nom: 'Sikasso', region: 'Sikasso', population: '225 000 hab', description: 'Capitale du Kénédougou, poumon agricole et carrefour transfrontalier verdoyant.' },
+    // { id: 7, nom: 'Gao', region: 'Gao', population: '90 000 hab', description: 'Ancienne capitale de l’Empire Songhaï, abritant le tombeau des Askia.' },
+    // { id: 8, nom: 'Kayes', region: 'Kayes', population: '130 000 hab', description: 'La cité du rail et des chutes du Félou, porte d’entrée occidentale du Mali.' },
+    // { id: 9, nom: 'Koulikoro', region: 'Koulikoro', population: '45 000 hab', description: 'Terminus ferroviaire et port fluvial de départ vers le nord.' },
+    // { id: 10, nom: 'Kidal', region: 'Kidal', population: '25 000 hab', description: 'Cité de l’Adrar des Ifoghas et berceau de la culture touarègue.' }
   ];
 
   private getLocalVilles(): Ville[] {

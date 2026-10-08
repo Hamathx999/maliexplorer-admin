@@ -18,6 +18,7 @@
         <table class="figma-table">
           <thead>
             <tr>
+              <th style="width: 70px;">Logo</th>
               <th>Nom quiz</th>
               <th>Point</th>
               <th>Description</th>
@@ -27,11 +28,24 @@
           <tbody>
             @if (filteredQuiz.length === 0) {
               <tr>
-                <td colspan="4" style="text-align: center; padding: 24px; color: #64748B;">Aucun quiz trouvé.</td>
+                <td colspan="5" style="text-align: center; padding: 24px; color: #64748B;">Aucun quiz trouvé.</td>
               </tr>
             } @else {
               @for (q of filteredQuiz; track q.id ?? q.nomQuiz) {
                 <tr>
+                  <td>
+                    @if (q.imageUrl || q.imageQuiz || q.logoUrl) {
+                      <img [src]="q.imageUrl || q.imageQuiz || q.logoUrl" [alt]="q.nomQuiz" class="figma-thumb-small" />
+                    } @else {
+                      <div class="figma-thumb-small" style="display: flex; align-items: center; justify-content: center; color: #94A3B8;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
+                      </div>
+                    }
+                  </td>
                   <td><strong>{{ q.nomQuiz }}</strong></td>
                   <td>
                     <span style="font-weight: 700; color: #D97706;">{{ formatPoints(q.points) }}</span>
@@ -68,32 +82,114 @@
     <div class="figma-add-header">
       <h2 class="figma-add-title">{{ editingQuiz ? 'Modifier le quiz' : 'Ajouter un nouveau quiz' }}</h2>
       <p class="figma-add-subtitle">
-        Renseignez les informations ci-dessous pour créer un nouveau quiz sur la plateforme MaliExplorer. Veillez à utiliser des images de haute qualité et des descriptions riches.
+        Renseignez les informations ci-dessous pour créer un nouveau quiz sur la plateforme MaliExplorer. Veillez à utiliser un logo ou une image de haute qualité.
       </p>
     </div>
 
-    <div class="figma-card">
-      <h3 class="figma-section-title">Informations générales</h3>
+    <div class="figma-two-columns">
+      <!-- Colonne Gauche : Informations générales -->
+      <div class="figma-card">
+        <h3 class="figma-section-title">Informations générales</h3>
 
-      <div class="figma-form-group">
-        <label class="figma-label">Nom du quiz</label>
-        <input type="text" class="figma-input" [(ngModel)]="formData.nomQuiz" placeholder="Ex: Les Rois et Empereurs du Mandé, Faune du Gourma..." required />
+        <div class="figma-form-group">
+          <label class="figma-label">Nom du quiz</label>
+          <input type="text" class="figma-input" [(ngModel)]="formData.nomQuiz" placeholder="Ex: Les Rois et Empereurs du Mandé, Faune du Gourma..." required />
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div class="figma-form-group">
+            <label class="figma-label">Points</label>
+            <input type="number" class="figma-input" [(ngModel)]="formData.points" placeholder="Ex: 50" />
+          </div>
+
+          <div class="figma-form-group">
+            <label class="figma-label">Nombre de questions</label>
+            <input type="number" class="figma-input" [(ngModel)]="formData.nombreQuestions" placeholder="Ex: 5" />
+          </div>
+        </div>
+
+        <div class="figma-form-group">
+          <label class="figma-label">Description</label>
+          <textarea rows="4" class="figma-textarea" [(ngModel)]="formData.description" placeholder="Présentez les objectifs de ce quiz, les personnages historiques ou thématiques clés explorés..."></textarea>
+        </div>
       </div>
 
-      <div class="figma-form-group" style="max-width: 280px;">
-        <label class="figma-label">Points</label>
-        <input type="number" class="figma-input" [(ngModel)]="formData.points" placeholder="Ex: 50" />
-      </div>
+      <!-- Colonne Droite : Logo / Image du quiz -->
+      <div class="figma-upload-card">
+        <div class="figma-upload-header">
+          <h4 class="figma-upload-title">Logo / Image du quiz</h4>
+          <p class="figma-upload-subtitle">Ajoutez une image représentative ou un badge pour ce quiz.</p>
+        </div>
 
-      <div class="figma-form-group">
-        <label class="figma-label">Description</label>
-        <textarea rows="4" class="figma-textarea" [(ngModel)]="formData.description" placeholder="Présentez les objectifs de ce quiz, les personnages historiques ou thématiques clés explorés..."></textarea>
+        <input #fileInput type="file" accept="image/png,image/jpeg,image/webp" style="display: none;" (change)="onFilePicked($event)" />
+
+        @if (imageUrl) {
+          <div class="figma-preview-box">
+            <div class="figma-preview-img-wrap">
+              <img [src]="imageUrl" alt="Aperçu logo quiz" class="figma-preview-img" />
+              <div class="figma-preview-actions-overlay">
+                <button type="button" class="figma-preview-btn" (click)="fileInput.click()" title="Changer le logo">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                  </svg>
+                  Remplacer
+                </button>
+                <button type="button" class="figma-preview-btn delete" (click)="removeImage()" title="Supprimer le logo">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="figma-preview-footer">
+              <span class="figma-preview-filename">{{ selectedFileName || 'Logo sélectionné' }}</span>
+              <span class="figma-preview-meta">{{ selectedFileSize || 'Prêt' }}</span>
+            </div>
+          </div>
+        } @else {
+          <div
+            class="figma-dropzone"
+            [class.dragging]="isDragging"
+            (dragover)="onDragOver($event)"
+            (dragleave)="onDragLeave($event)"
+            (drop)="onDrop($event)"
+            (click)="fileInput.click()"
+          >
+            <div class="figma-dropzone-icon-box">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+            </div>
+            <p class="figma-dropzone-text">Glissez-déposez le logo du quiz</p>
+            <p class="figma-dropzone-hint">PNG, JPG ou WEBP jusqu'à 5 Mo</p>
+            <button type="button" class="figma-btn-browse" (click)="$event.stopPropagation(); fileInput.click()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+              Parcourir les fichiers
+            </button>
+          </div>
+        }
+
+        @if (isUploadingImage) {
+          <div class="figma-upload-progress">
+            <span style="font-size: 12px; color: #0E8F76; font-weight: 600;">Téléversement vers Supabase en cours...</span>
+            <div class="figma-upload-progressbar">
+              <div class="figma-upload-progressfill"></div>
+            </div>
+          </div>
+        }
       </div>
     </div>
 
     <div class="figma-form-actions">
       <button type="button" class="figma-btn-cancel" (click)="cancelEdit()">Annuler</button>
-      <button type="button" class="figma-btn-primary" (click)="saveQuiz()">
+      <button type="button" class="figma-btn-primary" (click)="saveQuiz()" [disabled]="isUploadingImage">
         {{ editingQuiz ? 'Modifier le quiz' : 'Ajouter le quiz' }}
       </button>
     </div>

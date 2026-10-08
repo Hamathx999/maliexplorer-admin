@@ -117,10 +117,23 @@ export class UserService {
       nom: dto.nom || '',
       prenom: dto.prenom || '',
       email: dto.email || '',
+      telephone: dto.telephone || '',
+      adresse: dto.adresse || '',
       role: this.mapRoleFromBackend(dto.role),
       statut: dto.statut || 'ACTIF',
       points: typeof dto.points === 'number' ? dto.points : 0,
       photoUrl: dto.photoUrl,
+      pieceIdentite: dto.pieceIdentite,
+      nomOrganisation: dto.nomOrganisation,
+      adresseOrganisation: dto.adresseOrganisation,
+      piecesJustificatifs: dto.piecesJustificatifs,
+      photoPieceOrganisation: dto.photoPieceOrganisation,
+      nomEvenement: dto.nomEvenement,
+      dateEvenement: dto.dateEvenement,
+      descriptionEvenement: dto.descriptionEvenement,
+      photosEvenement: dto.photosEvenement,
+      langues: dto.langues || dto.langue,
+      experience: dto.experience,
       dateInscription: dateStr || 'Récemment inscrit'
     };
   }
@@ -150,13 +163,31 @@ export class UserService {
     );
   }
 
+  private mapRoleToBackend(role: any): string {
+    if (!role) return 'touriste';
+    const r = String(role).toLowerCase();
+    if (r.includes('super')) return 'superAdmin';
+    if (r.includes('admin')) return 'admin';
+    if (r.includes('guide')) return 'guide';
+    if (r.includes('artisan')) return 'artisan';
+    if (r.includes('promoteur')) return 'promoteur';
+    if (r.includes('partenaire')) return 'partenaire';
+    if (r.includes('investisseur')) return 'investisseur';
+    return 'touriste';
+  }
+
   createUser(user: User): Observable<User> {
     const todayStr = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date());
     const payload = {
-      nom: user.nom,
-      prenom: user.prenom,
-      email: user.email,
-      role: user.role,
+      nom: user.nom?.trim() || '',
+      prenom: user.prenom?.trim() || user.nom?.trim() || 'Utilisateur',
+      email: user.email?.trim() || '',
+      telephone: user.telephone?.trim() || '',
+      adresse: user.adresse?.trim() || '',
+      photoUrl: user.photoUrl?.trim() || '',
+      pieceIdentite: user.pieceIdentite?.trim() || '',
+      nomOrganisation: user.nomOrganisation?.trim() || '',
+      role: this.mapRoleToBackend(user.role),
       points: user.points ?? 0
     };
 
@@ -178,10 +209,15 @@ export class UserService {
 
   updateUser(id: number | string, user: User): Observable<User> {
     const payload = {
-      nom: user.nom,
-      prenom: user.prenom,
-      email: user.email,
-      role: user.role,
+      nom: user.nom?.trim() || '',
+      prenom: user.prenom?.trim() || user.nom?.trim() || 'Utilisateur',
+      email: user.email?.trim() || '',
+      telephone: user.telephone?.trim() || '',
+      adresse: user.adresse?.trim() || '',
+      photoUrl: user.photoUrl?.trim() || '',
+      pieceIdentite: user.pieceIdentite?.trim() || '',
+      nomOrganisation: user.nomOrganisation?.trim() || '',
+      role: this.mapRoleToBackend(user.role),
       points: user.points ?? 0
     };
 

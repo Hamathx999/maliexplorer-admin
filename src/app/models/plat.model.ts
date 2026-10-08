@@ -7,6 +7,7 @@ export interface Plat {
   tempsPreparation?: string;
   difficulte?: string;
   imageUrl?: string;
+  images?: string[];
   ingredients?: string[];
   ingredientIds?: number[];
 }

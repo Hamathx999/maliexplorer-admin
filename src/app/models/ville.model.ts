@@ -6,5 +6,7 @@ export interface Ville {
   population?: number | string;
   description?: string;
   superficie?: string;
+  cordonnees?: string;
   imageUrl?: string;
+  images?: string[];
 }

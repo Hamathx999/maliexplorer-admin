@@ -18,6 +18,7 @@
         <table class="figma-table">
           <thead>
             <tr>
+              <th style="width: 70px;">Image</th>
               <th>Nom du plat</th>
               <th>Ingrédients</th>
               <th>Description</th>
@@ -27,11 +28,14 @@
           <tbody>
             @if (filteredPlats.length === 0) {
               <tr>
-                <td colspan="4" style="text-align: center; padding: 24px; color: #64748B;">Aucun plat trouvé.</td>
+                <td colspan="5" style="text-align: center; padding: 24px; color: #64748B;">Aucun plat trouvé.</td>
               </tr>
             } @else {
               @for (plat of filteredPlats; track plat.id ?? plat.nom) {
                 <tr>
+                  <td>
+                    <img [src]="getPlatImage(plat)" [alt]="plat.nom" class="figma-thumb-small" />
+                  </td>
                   <td><strong>{{ plat.nom }}</strong></td>
                   <td>
                     <div style="display: flex; flex-wrap: wrap; gap: 4px; max-width: 280px;">
@@ -52,7 +56,7 @@
                       }
                     </div>
                   </td>
-                  <td style="color: #64748B; max-width: 420px;">
+                  <td style="color: #64748B; max-width: 360px;">
                     {{ plat.description || 'Plat emblématique de la gastronomie malienne.' }}
                   </td>
                   <td>
@@ -79,7 +83,7 @@
     </div>
   }
 
-  <!-- VUE 2 : PAGE INDÉPENDANTE D'AJOUT / MODIFICATION (Figma) -->
+  <!-- VUE 2 : PAGE INDÉPENDANTE D'AJOUT / MODIFICATION (Figma 2 colonnes) -->
   @if (isEditing) {
     <div class="figma-add-header">
       <h2 class="figma-add-title">{{ editingPlat ? 'Modifier le plat' : 'Ajouter un nouveau plat' }}</h2>
@@ -88,57 +92,134 @@
       </p>
     </div>
 
-    <div class="figma-card">
-      <h3 class="figma-section-title">Informations du plat</h3>
+    <div class="figma-two-col-layout">
+      <!-- Colonne Gauche : Informations du plat -->
+      <div class="figma-card" style="margin-bottom: 0;">
+        <h3 class="figma-section-title">Informations du plat</h3>
 
-      <div class="figma-form-group">
-        <label class="figma-label">Nom du plat</label>
-        <input type="text" class="figma-input" [(ngModel)]="formData.nom" placeholder="Ex: Fakoye, Tigadèguè Na, Djouka..." required />
-      </div>
-
-      <div class="figma-form-group">
-        <label class="figma-label">Ingrédients associés</label>
-        <div class="ingredient-select-wrapper">
-          <select class="figma-input figma-select" (change)="addIngredientFromSelect($event)">
-            <option value="">-- Sélectionner un ingrédient dans la liste déroulante pour l'ajouter --</option>
-            @for (ing of availableIngredients; track ing.id ?? ing.idIngredient) {
-              <option [value]="ing.id ?? ing.idIngredient" [disabled]="isIngredientSelected(ing.id ?? ing.idIngredient)">
-                {{ ing.nom || ing.nomPlat }} ({{ ing.categorie || 'Ingrédient' }}) {{ isIngredientSelected(ing.id ?? ing.idIngredient) ? '✓ Déjà ajouté' : '' }}
-              </option>
-            }
-          </select>
+        <div class="figma-form-group">
+          <label class="figma-label">Nom du plat</label>
+          <input type="text" class="figma-input" [(ngModel)]="formData.nom" placeholder="Ex: Fakoye, Tigadèguè Na, Djouka..." required />
         </div>
 
-        <div class="selected-ingredients-chips">
-          @if (getSelectedIngredientObjects().length === 0) {
-            <p class="no-ingredient-hint">Aucun ingrédient sélectionné pour le moment. Choisissez dans la liste déroulante ci-dessus.</p>
-          } @else {
-            @for (ing of getSelectedIngredientObjects(); track ing.id ?? ing.idIngredient) {
-              <span class="ingredient-chip">
-                <span class="chip-name">{{ ing.nom || ing.nomPlat }}</span>
-                <button type="button" class="chip-remove-btn" (click)="removeIngredient(ing.id ?? ing.idIngredient)" title="Retirer cet ingrédient">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                  </svg>
+        <div class="figma-form-group">
+          <label class="figma-label">Ingrédients associés</label>
+          <div class="ingredient-select-wrapper">
+            <select class="figma-input figma-select" (change)="addIngredientFromSelect($event)">
+              <option value="">-- Sélectionner un ingrédient dans la liste déroulante pour l'ajouter --</option>
+              @for (ing of availableIngredients; track ing.id ?? ing.idIngredient) {
+                <option [value]="ing.id ?? ing.idIngredient" [disabled]="isIngredientSelected(ing.id ?? ing.idIngredient)">
+                  {{ ing.nom || ing.nomPlat }} ({{ ing.categorie || 'Ingrédient' }}) {{ isIngredientSelected(ing.id ?? ing.idIngredient) ? '✓ Déjà ajouté' : '' }}
+                </option>
+              }
+            </select>
+          </div>
+
+          <div class="selected-ingredients-chips">
+            @if (getSelectedIngredientObjects().length === 0) {
+              <p class="no-ingredient-hint">Aucun ingrédient sélectionné pour le moment. Choisissez dans la liste déroulante ci-dessus.</p>
+            } @else {
+              @for (ing of getSelectedIngredientObjects(); track ing.id ?? ing.idIngredient) {
+                <span class="ingredient-chip">
+                  <span class="chip-name">{{ ing.nom || ing.nomPlat }}</span>
+                  <button type="button" class="chip-remove-btn" (click)="removeIngredient(ing.id ?? ing.idIngredient)" title="Retirer cet ingrédient">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                  </button>
+                </span>
+              }
+            }
+          </div>
+        </div>
+
+        <div class="figma-form-group">
+          <label class="figma-label">Description</label>
+          <textarea rows="4" class="figma-textarea" [(ngModel)]="formData.description" placeholder="Décrivez l'origine, les spécificités aromatiques et les accompagnements traditionnels recommandés..."></textarea>
+        </div>
+      </div>
+
+      <!-- Colonne Droite : Images du plat -->
+      <div class="figma-upload-card">
+        <div class="figma-upload-header">
+          <h4 class="figma-upload-title">Images du plat</h4>
+          <p class="figma-upload-subtitle">Sélectionnez une ou plusieurs photos (la 1ère sera la couverture).</p>
+        </div>
+
+        <input #fileInput type="file" multiple accept="image/png,image/jpeg,image/webp" style="display: none;" (change)="onFilesPicked($event)" />
+
+        @if (images.length > 0) {
+          <div class="figma-multi-gallery">
+            @for (img of images; track img; let idx = $index) {
+              <div class="figma-gallery-card" [style.cursor]="idx !== 0 ? 'pointer' : 'default'" (click)="idx !== 0 && setPrimaryImage(idx)" [title]="idx === 0 ? 'Image de couverture' : 'Cliquer pour définir comme couverture'">
+                <img [src]="img" alt="Photo plat" class="figma-gallery-img" />
+                @if (idx === 0) {
+                  <span class="figma-gallery-badge-cover">Couverture</span>
+                }
+                <button type="button" class="figma-gallery-delete" (click)="$event.stopPropagation(); removeImageAtIndex(idx)" title="Supprimer cette image">
+                  &times;
                 </button>
-              </span>
+              </div>
             }
-          }
-        </div>
-      </div>
+          </div>
 
-      <div class="figma-form-group">
-        <label class="figma-label">Description</label>
-        <textarea rows="4" class="figma-textarea" [(ngModel)]="formData.description" placeholder="Décrivez l'origine, les spécificités aromatiques et les accompagnements traditionnels recommandés..."></textarea>
+          <div class="figma-multi-info">
+            <span>{{ images.length }} image{{ images.length > 1 ? 's' : '' }} sélectionnée{{ images.length > 1 ? 's' : '' }}</span>
+            <button type="button" class="figma-multi-add-btn" (click)="fileInput.click()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Ajouter des photos
+            </button>
+          </div>
+        } @else {
+          <div
+            class="figma-dropzone"
+            [class.dragging]="isDragging"
+            (dragover)="onDragOver($event)"
+            (dragleave)="onDragLeave($event)"
+            (drop)="onDrop($event)"
+            (click)="fileInput.click()"
+          >
+            <div class="figma-dropzone-icon-box">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+            </div>
+            <p class="figma-dropzone-text">Glissez-déposez vos images ici</p>
+            <p class="figma-dropzone-hint">Sélection multiple supportée (PNG, JPG, WEBP)</p>
+            <button type="button" class="figma-btn-browse" (click)="$event.stopPropagation(); fileInput.click()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+              Parcourir les fichiers
+            </button>
+          </div>
+        }
+
+        @if (isUploadingImage) {
+          <div class="figma-upload-progress">
+            <span style="font-size: 12px; color: #0E8F76; font-weight: 600;">Téléversement vers Supabase en cours...</span>
+            <div class="figma-upload-progressbar">
+              <div class="figma-upload-progressfill"></div>
+            </div>
+          </div>
+        }
       </div>
     </div>
 
     <div class="figma-form-actions">
       <button type="button" class="figma-btn-cancel" (click)="cancelEdit()">Annuler</button>
-      <button type="button" class="figma-btn-primary" (click)="savePlat()">
+      <button type="button" class="figma-btn-primary" (click)="savePlat()" [disabled]="isUploadingImage">
         {{ editingPlat ? 'Modifier le plat' : 'Ajouter le plat' }}
       </button>
     </div>
   }
 </div>
+

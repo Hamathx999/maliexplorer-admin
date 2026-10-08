@@ -29,6 +29,7 @@
         <table class="figma-table">
           <thead>
             <tr>
+              <th style="width: 70px;">Image</th>
               <th>Nom</th>
               <th>Description</th>
               <th>Région</th>
@@ -38,12 +39,20 @@
           </thead>
           <tbody>
             @if (isLoading) {
-              <tr><td colspan="5" style="text-align: center; padding: 24px; color: #64748B;">Chargement des villes...</td></tr>
+              <tr><td colspan="6" style="text-align: center; padding: 24px; color: #64748B;">Chargement des villes...</td></tr>
             } @else if (villes.length === 0) {
-              <tr><td colspan="5" style="text-align: center; padding: 24px; color: #64748B;">Aucune ville trouvée.</td></tr>
+              <tr><td colspan="6" style="text-align: center; padding: 24px; color: #64748B;">Aucune ville trouvée.</td></tr>
             } @else {
               @for (ville of villes; track ville.id ?? ville.nom) {
                 <tr>
+                  <td>
+                    <img
+                      [src]="getVilleImage(ville)"
+                      [alt]="ville.nom"
+                      class="figma-thumb-small"
+                      (error)="onImageError($event, ville)"
+                    />
+                  </td>
                   <td><strong>{{ ville.nom }}</strong></td>
                   <td style="color: #64748B; max-width: 320px;">{{ ville.description || 'Description sur la ville de ' + ville.nom }}</td>
                   <td>{{ ville.region }}</td>
@@ -72,7 +81,7 @@
     </div>
   }
 
-  <!-- VUE 2 : PAGE INDÉPENDANTE D'AJOUT / MODIFICATION (Figma) -->
+  <!-- VUE 2 : PAGE INDÉPENDANTE D'AJOUT / MODIFICATION (Figma 2 colonnes) -->
   @if (isEditing) {
     <div class="figma-add-header">
       <h2 class="figma-add-title">{{ editingVilleId ? 'Modifier la ville' : 'Ajouter une nouvelle ville' }}</h2>
@@ -81,41 +90,123 @@
       </p>
     </div>
 
-    <div class="figma-card">
-      <h3 class="figma-section-title">Informations générales</h3>
+    <div class="figma-two-col-layout">
+      <!-- Colonne Gauche : Informations générales -->
+      <div class="figma-card" style="margin-bottom: 0;">
+        <h3 class="figma-section-title">Informations générales</h3>
 
-      <div class="figma-form-grid">
-        <div class="figma-form-group">
-          <label class="figma-label" for="nomVille">Nom de la ville</label>
-          <input id="nomVille" type="text" class="figma-input" placeholder="Ex: Ségou" [(ngModel)]="nom" />
+        <div class="figma-form-grid">
+          <div class="figma-form-group">
+            <label class="figma-label" for="nomVille">Nom de la ville</label>
+            <input id="nomVille" type="text" class="figma-input" placeholder="Ex: Ségou" [(ngModel)]="nom" />
+          </div>
+
+          <div class="figma-form-group">
+            <label class="figma-label" for="regionVille">Région</label>
+            <select id="regionVille" class="figma-select" [(ngModel)]="selectedRegion">
+              @for (reg of regions; track reg.nom) {
+                <option [value]="reg.nom">{{ reg.nom }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="figma-form-group">
+            <label class="figma-label" for="popVille">Nombre d'habitants</label>
+            <input id="popVille" type="text" class="figma-input" placeholder="Ex: 35 000 hab" [(ngModel)]="population" />
+          </div>
+
+          <div class="figma-form-group">
+            <label class="figma-label" for="coordVille">Coordonnées (GPS / Localisation)</label>
+            <input id="coordVille" type="text" class="figma-input" placeholder="Ex: 13.4432, -6.2625" [(ngModel)]="cordonnees" />
+          </div>
         </div>
 
         <div class="figma-form-group">
-          <label class="figma-label" for="regionVille">Région</label>
-          <select id="regionVille" class="figma-select" [(ngModel)]="selectedRegion">
-            @for (reg of regions; track reg.nom) {
-              <option [value]="reg.nom">{{ reg.nom }}</option>
-            }
-          </select>
-        </div>
-
-        <div class="figma-form-group">
-          <label class="figma-label" for="popVille">Nombre d'habitants</label>
-          <input id="popVille" type="text" class="figma-input" placeholder="Ex: 35 000 hab" [(ngModel)]="population" />
+          <label class="figma-label" for="descVille">Description</label>
+          <textarea id="descVille" class="figma-textarea" rows="4" placeholder="Description sur la ville..." [(ngModel)]="description"></textarea>
         </div>
       </div>
 
-      <div class="figma-form-group">
-        <label class="figma-label" for="descVille">Description</label>
-        <textarea id="descVille" class="figma-textarea" rows="3" placeholder="Description sur la ville..." [(ngModel)]="description"></textarea>
+      <!-- Colonne Droite : Galerie d'images -->
+      <div class="figma-upload-card">
+        <div class="figma-upload-header">
+          <h4 class="figma-upload-title">Images de la ville</h4>
+          <p class="figma-upload-subtitle">Sélectionnez une ou plusieurs photos (la 1ère sera la couverture).</p>
+        </div>
+
+        <input #fileInput type="file" multiple accept="image/png,image/jpeg,image/webp" style="display: none;" (change)="onFilesPicked($event)" />
+
+        @if (images.length > 0) {
+          <div class="figma-multi-gallery">
+            @for (img of images; track img; let idx = $index) {
+              <div class="figma-gallery-card" [style.cursor]="idx !== 0 ? 'pointer' : 'default'" (click)="idx !== 0 && setPrimaryImage(idx)" [title]="idx === 0 ? 'Image de couverture' : 'Cliquer pour définir comme couverture'">
+                <img [src]="img" alt="Photo ville" class="figma-gallery-img" />
+                @if (idx === 0) {
+                  <span class="figma-gallery-badge-cover">Couverture</span>
+                }
+                <button type="button" class="figma-gallery-delete" (click)="$event.stopPropagation(); removeImageAtIndex(idx)" title="Supprimer cette image">
+                  &times;
+                </button>
+              </div>
+            }
+          </div>
+
+          <div class="figma-multi-info">
+            <span>{{ images.length }} image{{ images.length > 1 ? 's' : '' }} sélectionnée{{ images.length > 1 ? 's' : '' }}</span>
+            <button type="button" class="figma-multi-add-btn" (click)="fileInput.click()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Ajouter des photos
+            </button>
+          </div>
+        } @else {
+          <div
+            class="figma-dropzone"
+            [class.dragging]="isDragging"
+            (dragover)="onDragOver($event)"
+            (dragleave)="onDragLeave($event)"
+            (drop)="onDrop($event)"
+            (click)="fileInput.click()"
+          >
+            <div class="figma-dropzone-icon-box">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+            </div>
+            <p class="figma-dropzone-text">Glissez-déposez vos images ici</p>
+            <p class="figma-dropzone-hint">Sélection multiple supportée (PNG, JPG, WEBP)</p>
+            <button type="button" class="figma-btn-browse" (click)="$event.stopPropagation(); fileInput.click()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+              Parcourir les fichiers
+            </button>
+          </div>
+        }
+
+        @if (isUploadingImage) {
+          <div class="figma-upload-progress">
+            <span style="font-size: 12px; color: #0E8F76; font-weight: 600;">Téléversement vers Supabase en cours...</span>
+            <div class="figma-upload-progressbar">
+              <div class="figma-upload-progressfill"></div>
+            </div>
+          </div>
+        }
       </div>
     </div>
 
     <div class="figma-form-actions">
       <button type="button" class="figma-btn-cancel" (click)="resetForm()">Annuler</button>
-      <button type="button" class="figma-btn-primary" (click)="onSubmit()">
+      <button type="button" class="figma-btn-primary" (click)="onSubmit()" [disabled]="isUploadingImage">
         {{ editingVilleId ? 'Modifier la ville' : 'Ajouter la ville' }}
       </button>
     </div>
   }
 </div>
+
