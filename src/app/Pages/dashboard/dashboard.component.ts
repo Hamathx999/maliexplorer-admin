@@ -346,17 +346,9 @@ export class DashboardComponent implements OnInit {
   }
 
   getEventFallbackImage(event: Evenement): string {
-    const title = (event.titre || '').toLowerCase();
-    if (title.includes('balafon') || title.includes('musique')) {
-      return 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=300&auto=format&fit=crop';
-    }
-    if (title.includes('masque') || title.includes('dogon')) {
-      return 'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?q=80&w=300&auto=format&fit=crop';
-    }
-    if (title.includes('niger') || title.includes('fleuve') || title.includes('ségou')) {
-      return 'https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?q=80&w=300&auto=format&fit=crop';
-    }
-    return 'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?q=80&w=300&auto=format&fit=crop';
+    if (event.imageUrl && event.imageUrl.trim()) return event.imageUrl;
+    if (event.afficheUrl && event.afficheUrl.trim()) return event.afficheUrl;
+    return '/assets/MaliExplorer.png';
   }
 
   navigateToContent(item: ContentToValidate): void {

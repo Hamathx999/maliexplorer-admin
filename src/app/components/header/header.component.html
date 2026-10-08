@@ -8,6 +8,7 @@
       <div class="avatar-wrapper">
         <img
           [src]="currentUserPhoto()"
+          (error)="$any($event.target).src = '/assets/MaliExplorer.png'"
           alt="Avatar Admin"
           class="avatar-img"
         />

@@ -8,4 +8,5 @@ export interface Plat {
   difficulte?: string;
   imageUrl?: string;
   ingredients?: string[];
+  ingredientIds?: number[];
 }

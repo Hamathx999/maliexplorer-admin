@@ -19,6 +19,7 @@
           <thead>
             <tr>
               <th>Nom</th>
+              <th>Quiz associé</th>
               <th>Question</th>
               <th>Réponse</th>
               <th>Durée</th>
@@ -28,7 +29,7 @@
           <tbody>
             @if (filteredQuestions.length === 0) {
               <tr>
-                <td colspan="5" style="text-align: center; padding: 24px; color: #64748B;">Aucune question trouvée.</td>
+                <td colspan="6" style="text-align: center; padding: 24px; color: #64748B;">Aucune question trouvée.</td>
               </tr>
             } @else {
               @for (q of filteredQuestions; track q.id ?? q.question) {
@@ -38,7 +39,12 @@
                       {{ q.theme || 'Culture générale' }}
                     </span>
                   </td>
-                  <td style="max-width: 380px;"><strong>{{ q.question }}</strong></td>
+                  <td>
+                    <span class="figma-pill-badge" style="background: #FEF3C7; color: #92400E; font-weight: 600;">
+                      {{ getQuizName(q.quizId) }}
+                    </span>
+                  </td>
+                  <td style="max-width: 340px;"><strong>{{ q.question }}</strong></td>
                   <td>{{ q.reponse }}</td>
                   <td>{{ q.duree || '30s' }}</td>
                   <td>
@@ -79,7 +85,17 @@
 
       <div class="figma-form-grid">
         <div class="figma-form-group">
-          <label class="figma-label">Nom</label>
+          <label class="figma-label">Quiz associé</label>
+          <select class="figma-input figma-select" [(ngModel)]="formData.quizId">
+            <option [ngValue]="undefined">-- Sélectionner un quiz --</option>
+            @for (quiz of quizzes; track quiz.id) {
+              <option [ngValue]="quiz.id">{{ quiz.nomQuiz }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="figma-form-group">
+          <label class="figma-label">Nom / Thème</label>
           <input type="text" class="figma-input" [(ngModel)]="formData.theme" placeholder="Ex: Culture générale" />
         </div>
 

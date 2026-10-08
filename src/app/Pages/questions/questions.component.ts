@@ -4,7 +4,9 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs';
 import { QuestionService } from '../../services/question.service';
+import { QuizService } from '../../services/quiz.service';
 import { Question } from '../../models/question.model';
+import { Quiz } from '../../models/quiz.model';
 
 @Component({
   selector: 'app-questions',
@@ -15,10 +17,12 @@ import { Question } from '../../models/question.model';
 })
 export class QuestionsComponent implements OnInit {
   private readonly questionService = inject(QuestionService);
+  private readonly quizService = inject(QuizService);
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
 
   questions: Question[] = [];
+  quizzes: Quiz[] = [];
   filteredQuestions: Question[] = [];
   searchTerm: string = '';
   selectedTheme: string = 'TOUS';
@@ -27,6 +31,7 @@ export class QuestionsComponent implements OnInit {
   editingQuestion: Question | null = null;
   formData: Partial<Question> = {
     theme: 'Culture générale',
+    quizId: undefined,
     question: '',
     reponse: '',
     duree: '30s',
@@ -35,6 +40,7 @@ export class QuestionsComponent implements OnInit {
   };
 
   ngOnInit(): void {
+    this.loadQuizzes();
     this.loadQuestions();
     this.checkRoute(this.router.url);
 
@@ -44,6 +50,22 @@ export class QuestionsComponent implements OnInit {
         this.checkRoute(event.urlAfterRedirects);
         this.cdr.detectChanges();
       });
+  }
+
+  loadQuizzes(): void {
+    this.quizService.getQuizList().subscribe({
+      next: (data) => {
+        this.quizzes = data;
+        this.cdr.markForCheck();
+      },
+      error: (err) => console.error('Erreur chargement quiz', err)
+    });
+  }
+
+  getQuizName(quizId?: number | string | null): string {
+    if (!quizId) return 'Aucun';
+    const found = this.quizzes.find((q) => String(q.id) === String(quizId));
+    return found ? found.nomQuiz : `Quiz #${quizId}`;
   }
 
   private checkRoute(url: string): void {
@@ -88,6 +110,7 @@ export class QuestionsComponent implements OnInit {
     this.editingQuestion = null;
     this.formData = {
       theme: 'Culture générale',
+      quizId: this.quizzes.length > 0 ? (this.quizzes[0].id ?? undefined) : undefined,
       question: '',
       reponse: '',
       duree: '30s',
@@ -102,6 +125,7 @@ export class QuestionsComponent implements OnInit {
     this.editingQuestion = q;
     this.formData = {
       ...q,
+      quizId: q.quizId ? Number(q.quizId) : undefined,
       question: q.question || q.nomQuestion || '',
       options: q.options && q.options.length === 4 ? [...q.options] : [q.reponse, '', '', '']
     };
@@ -131,6 +155,7 @@ export class QuestionsComponent implements OnInit {
       reponse: reponseText,
       theme: this.formData.theme?.trim() || 'Culture générale',
       duree: this.formData.duree || '30s',
+      quizId: this.formData.quizId ? Number(this.formData.quizId) : undefined,
       options: this.formData.options || [reponseText]
     };
 

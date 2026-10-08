@@ -183,7 +183,7 @@
         } @else {
           @for (item of recentContents; track item.id ?? item.title) {
             <div class="content-item" (click)="navigateToContent(item)" title="Examiner et modérer cet événement">
-              <img [src]="item.imageUrl" [alt]="item.title" class="content-thumb" />
+              <img [src]="item.imageUrl" [alt]="item.title" class="content-thumb" (error)="$any($event.target).src = '/assets/MaliExplorer.png'" />
               <div class="content-info">
                 <h4 class="content-title">{{ item.title }}</h4>
                 <span class="content-meta">
