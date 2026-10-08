@@ -74,52 +74,652 @@
     </div>
   }
 
-  <!-- VUE 2 : PAGE INDÉPENDANTE D'AJOUT / MODIFICATION (Figma) -->
+  <!-- VUE 2 : PAGE D'AJOUT / MODIFICATION (Design Figma Touriste / Promoteur / Guide) -->
   @if (isEditing) {
-    <div class="figma-add-header">
-      <h2 class="figma-add-title">{{ editingUser ? 'Modifier l\'utilisateur' : 'Ajouter un nouvel utilisateur' }}</h2>
-      <p class="figma-add-subtitle">
-        Renseignez les informations ci-dessous pour ajouter un utilisateur sur la plateforme MaliExplorer.
-      </p>
-    </div>
+    <div class="figma-user-container">
+      <div class="figma-user-header">
+        <button type="button" class="figma-back-btn" (click)="cancelEdit()" title="Retour à la liste">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
 
-    <div class="figma-card">
-      <h3 class="figma-section-title">Informations générales</h3>
+        <h2 class="figma-user-title">{{ editingUser ? 'Modifier le compte' : 'Créer un compte utilisateur' }}</h2>
+        <p class="figma-user-subtitle">
+          @if (activeRoleTab === 'Touriste') {
+            Création d'un touriste !
+          } @else if (activeRoleTab === 'Guide') {
+            Création d'un guide !
+          } @else {
+            Création d'un promoteur !
+          }
+        </p>
 
-      <div class="figma-form-grid">
-        <div class="figma-form-group">
-          <label class="figma-label">Prénom</label>
-          <input type="text" class="figma-input" [(ngModel)]="formData.prenom" placeholder="Ex: Aïssata, Amadou, Fatoumata..." />
-        </div>
+        <div class="figma-role-label">rôle de l'utilisateur</div>
 
-        <div class="figma-form-group">
-          <label class="figma-label">Nom</label>
-          <input type="text" class="figma-input" [(ngModel)]="formData.nom" placeholder="Ex: Coulibaly, Traoré, Diallo..." required />
-        </div>
+        <!-- 3 Rôles Switcher (Touriste, Promoteur, Guide) -->
+        <div class="figma-role-pill-group">
+          <button
+            type="button"
+            class="figma-role-pill-btn"
+            [class.active]="activeRoleTab === 'Touriste'"
+            (click)="selectRole('Touriste')"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            Touriste
+          </button>
 
-        <div class="figma-form-group">
-          <label class="figma-label">Adresse Email</label>
-          <input type="email" class="figma-input" [(ngModel)]="formData.email" placeholder="Ex: aissata.coulibaly@gmail.com" required />
-        </div>
+          <button
+            type="button"
+            class="figma-role-pill-btn"
+            [class.active]="activeRoleTab === 'Promoteur'"
+            (click)="selectRole('Promoteur')"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
+            Promoteur
+          </button>
 
-        <div class="figma-form-group">
-          <label class="figma-label">Rôle</label>
-          <select class="figma-select" [(ngModel)]="formData.role">
-            <option value="Visiteur">Visiteur</option>
-            <option value="Partenaire">Partenaire</option>
-            <option value="Artisan">Artisan</option>
-            <option value="Explorateur">Explorateur</option>
-            <option value="Administrateur">Administrateur</option>
-          </select>
+          <button
+            type="button"
+            class="figma-role-pill-btn"
+            [class.active]="activeRoleTab === 'Guide'"
+            (click)="selectRole('Guide')"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 18h6"></path>
+              <path d="M10 22h4"></path>
+              <path d="M12 2a7 7 0 0 0-7 7c0 2.38 1.19 4.47 3 5.74V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.26c1.81-1.27 3-3.36 3-5.74a7 7 0 0 0-7-7z"></path>
+            </svg>
+            Guide
+          </button>
         </div>
       </div>
-    </div>
 
-    <div class="figma-form-actions">
-      <button type="button" class="figma-btn-cancel" (click)="cancelEdit()">Annuler</button>
-      <button type="button" class="figma-btn-primary" (click)="saveUser()">
-        {{ editingUser ? 'Modifier l\'utilisateur' : 'Ajouter l\'utilisateur' }}
-      </button>
+      <!-- Hidden file inputs -->
+      <input #photoFileInput type="file" accept="image/png,image/jpeg,image/webp" style="display: none;" (change)="onPhotoPicked($event)" />
+      <input #pieceFileInput type="file" accept="image/png,image/jpeg,application/pdf" style="display: none;" (change)="onPiecePicked($event)" />
+      <input #pieceOrgFileInput type="file" accept="image/png,image/jpeg,application/pdf" style="display: none;" (change)="onPieceOrgPicked($event)" />
+      <input #eventPhotosFileInput type="file" multiple accept="image/png,image/jpeg,image/webp" style="display: none;" (change)="onEventPhotosPicked($event)" />
+
+      <!-- ========================================== -->
+      <!-- CAS 1 : INTERFACE TOURISTE INSCRIPTION     -->
+      <!-- ========================================== -->
+      @if (activeRoleTab === 'Touriste') {
+        <div class="figma-field-row">
+          <div class="figma-input-with-icon">
+            <span class="figma-input-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+            </span>
+            <input type="text" class="figma-native-input" [(ngModel)]="formData.nom" placeholder="Nom" required />
+          </div>
+        </div>
+
+        <div class="figma-field-row">
+          <div class="figma-input-with-icon">
+            <span class="figma-input-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+            </span>
+            <input type="text" class="figma-native-input" [(ngModel)]="formData.prenom" placeholder="Prénom" />
+          </div>
+        </div>
+
+        <div class="figma-field-row">
+          <div class="figma-input-with-icon">
+            <span class="figma-input-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+              </svg>
+            </span>
+            <input type="text" class="figma-native-input" [(ngModel)]="formData.adresse" placeholder="Adresse" />
+          </div>
+        </div>
+
+        <!-- Photo de profil -->
+        <div class="figma-upload-doc-card" (click)="photoFileInput.click()">
+          <div class="figma-upload-doc-left">
+            <div class="figma-upload-doc-icon-sq">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                <polyline points="21 15 16 10 5 21"></polyline>
+              </svg>
+            </div>
+            <div class="figma-upload-doc-meta">
+              <p class="figma-upload-doc-title">Photo de profil</p>
+              <p class="figma-upload-doc-hint">{{ isUploadingPhoto ? 'Envoi en cours...' : 'JPG, PNG (max 10 MO)' }}</p>
+            </div>
+          </div>
+          <div class="figma-upload-doc-right">
+            @if (formData.photoUrl) {
+              <img [src]="formData.photoUrl" alt="Photo profil" class="figma-preview-avatar" />
+              <button type="button" class="figma-remove-btn-small" (click)="$event.stopPropagation(); removePhoto()" title="Supprimer">&times;</button>
+            } @else {
+              <div class="figma-placeholder-circle">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="figma-field-row">
+          <div class="figma-input-with-icon">
+            <span class="figma-input-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                <polyline points="22,6 12,13 2,6"></polyline>
+              </svg>
+            </span>
+            <input type="email" class="figma-native-input" [(ngModel)]="formData.email" placeholder="Email" required />
+          </div>
+        </div>
+
+        <div class="figma-field-row">
+          <div class="figma-input-with-icon">
+            <span class="figma-input-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+            </span>
+            <input
+              [type]="showPassword ? 'text' : 'password'"
+              class="figma-native-input"
+              [(ngModel)]="formData.motDePasse"
+              placeholder="Mot de passe"
+            />
+            <button type="button" class="figma-eye-btn" (click)="showPassword = !showPassword" title="Afficher/Masquer le mot de passe">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- <div class="figma-terms-checkbox">
+          <input type="checkbox" id="termsCheckTouriste" [(ngModel)]="acceptTerms" />
+          <label for="termsCheckTouriste">J'accepte les conditions d'utilisation</label>
+        </div> -->
+
+        <button type="button" class="figma-btn-submit-main" (click)="saveUser()" [disabled]="isUploadingPhoto">
+          {{ editingUser ? 'Mettre à jour le compte' : 'S\'inscrire' }}
+        </button>
+
+        <!-- <div class="figma-footer-login-link">
+          Déjà un compte ? <span class="link-text" (click)="cancelEdit()">Se connecter</span>
+        </div> -->
+      }
+
+      <!-- ========================================== -->
+      <!-- CAS 2 : INTERFACE GUIDE INSCRIPTION        -->
+      <!-- ========================================== -->
+      @if (activeRoleTab === 'Guide') {
+        <div class="figma-section-block">
+          <div class="figma-section-title-wrap">
+            <div class="figma-section-icon-badge">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+            </div>
+            <div class="figma-section-text-col">
+              <h4 class="figma-section-title-text">Informations personnelles</h4>
+              <p class="figma-section-desc-text">Renseignez vos informations d'identité et de contact</p>
+            </div>
+          </div>
+
+          <div class="figma-field-row">
+            <div class="figma-input-with-icon">
+              <span class="figma-input-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+              </span>
+              <input type="text" class="figma-native-input" [(ngModel)]="formData.prenom" placeholder="Prénom" />
+            </div>
+          </div>
+
+          <div class="figma-field-row">
+            <div class="figma-input-with-icon">
+              <span class="figma-input-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+              </span>
+              <input type="text" class="figma-native-input" [(ngModel)]="formData.nom" placeholder="Nom" required />
+            </div>
+          </div>
+
+          <div class="figma-field-row">
+            <div class="figma-input-with-icon">
+              <span class="figma-input-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                  <polyline points="22,6 12,13 2,6"></polyline>
+                </svg>
+              </span>
+              <input type="email" class="figma-native-input" [(ngModel)]="formData.email" placeholder="Email" required />
+            </div>
+          </div>
+
+          <div class="figma-field-row">
+            <div class="figma-input-with-icon">
+              <span class="figma-input-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                </svg>
+              </span>
+              <input type="tel" class="figma-native-input" [(ngModel)]="formData.telephone" placeholder="Téléphone" />
+            </div>
+          </div>
+
+          <div class="figma-field-row">
+            <div class="figma-input-with-icon">
+              <span class="figma-input-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                  <circle cx="12" cy="10" r="3"></circle>
+                </svg>
+              </span>
+              <input type="text" class="figma-native-input" [(ngModel)]="formData.adresse" placeholder="Adresse" />
+            </div>
+          </div>
+
+          <!-- Upload 1: Photo de profil -->
+          <div class="figma-upload-doc-card" (click)="photoFileInput.click()">
+            <div class="figma-upload-doc-left">
+              <div class="figma-upload-doc-icon-sq">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+              </div>
+              <div class="figma-upload-doc-meta">
+                <p class="figma-upload-doc-title">Photo de profil</p>
+                <p class="figma-upload-doc-hint">{{ isUploadingPhoto ? 'Envoi en cours...' : 'JPG, PNG (max 10 MO)' }}</p>
+              </div>
+            </div>
+            <div class="figma-upload-doc-right">
+              @if (formData.photoUrl) {
+                <img [src]="formData.photoUrl" alt="Photo profil" class="figma-preview-avatar" />
+                <button type="button" class="figma-remove-btn-small" (click)="$event.stopPropagation(); removePhoto()" title="Supprimer">&times;</button>
+              } @else {
+                <div class="figma-placeholder-circle">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Upload 2: Carte d'identité -->
+          <div class="figma-upload-doc-card" (click)="pieceFileInput.click()">
+            <div class="figma-upload-doc-left">
+              <div class="figma-upload-doc-icon-sq">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+                  <circle cx="9" cy="10" r="2"></circle>
+                  <line x1="15" y1="8" x2="17" y2="8"></line>
+                  <line x1="15" y1="12" x2="17" y2="12"></line>
+                </svg>
+              </div>
+              <div class="figma-upload-doc-meta">
+                <p class="figma-upload-doc-title">Carte d'identité</p>
+                <p class="figma-upload-doc-hint">{{ isUploadingPiece ? 'Envoi en cours...' : 'JPG, PNG, PDF (max 10 MO)' }}</p>
+              </div>
+            </div>
+            <div class="figma-upload-doc-right">
+              @if (formData.pieceIdentite) {
+                <img [src]="formData.pieceIdentite" alt="Carte identité" class="figma-preview-doc-badge" />
+                <button type="button" class="figma-remove-btn-small" (click)="$event.stopPropagation(); removePiece()" title="Supprimer">&times;</button>
+              } @else {
+                <div class="figma-placeholder-rect">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+                    <circle cx="9" cy="10" r="2"></circle>
+                  </svg>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+
+        <button type="button" class="figma-btn-submit-main" (click)="saveUser()" [disabled]="isUploadingPhoto || isUploadingPiece">
+          {{ editingUser ? 'Mettre à jour le guide' : 'S\'inscrire' }}
+        </button>
+
+        <!-- <div class="figma-footer-login-link">
+          Déjà un compte ? <span class="link-text" (click)="cancelEdit()">Créer le compte</span>
+        </div> -->
+      }
+
+      <!-- ========================================== -->
+      <!-- CAS 3 : INTERFACE PROMOTEUR INSCRIPTION    -->
+      <!-- ========================================== -->
+      @if (activeRoleTab === 'Promoteur') {
+        <!-- Section 1 : Informations personnelles -->
+        <div class="figma-section-block">
+          <div class="figma-section-title-wrap">
+            <div class="figma-section-icon-badge">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+            </div>
+            <div class="figma-section-text-col">
+              <h4 class="figma-section-title-text">Informations personnelles</h4>
+              <p class="figma-section-desc-text">Renseignez vos informations d'identité et de contact</p>
+            </div>
+          </div>
+
+          <div class="figma-field-row">
+            <div class="figma-input-with-icon">
+              <span class="figma-input-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+              </span>
+              <input type="text" class="figma-native-input" [(ngModel)]="formData.prenom" placeholder="Prénom" />
+            </div>
+          </div>
+
+          <div class="figma-field-row">
+            <div class="figma-input-with-icon">
+              <span class="figma-input-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+              </span>
+              <input type="text" class="figma-native-input" [(ngModel)]="formData.nom" placeholder="Nom" required />
+            </div>
+          </div>
+
+          <div class="figma-field-row">
+            <div class="figma-input-with-icon">
+              <span class="figma-input-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                  <polyline points="22,6 12,13 2,6"></polyline>
+                </svg>
+              </span>
+              <input type="email" class="figma-native-input" [(ngModel)]="formData.email" placeholder="Email" required />
+            </div>
+          </div>
+
+          <div class="figma-field-row">
+            <div class="figma-input-with-icon">
+              <span class="figma-input-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                </svg>
+              </span>
+              <input type="tel" class="figma-native-input" [(ngModel)]="formData.telephone" placeholder="Téléphone" />
+            </div>
+          </div>
+
+          <!-- Choisir une photo -->
+          <div class="figma-upload-doc-card" (click)="photoFileInput.click()">
+            <div class="figma-upload-doc-left">
+              <div class="figma-upload-doc-icon-sq">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+              </div>
+              <div class="figma-upload-doc-meta">
+                <p class="figma-upload-doc-title">Choisir une photo</p>
+                <p class="figma-upload-doc-hint">{{ isUploadingPhoto ? 'Envoi en cours...' : 'JPG, PNG (max 10 MO)' }}</p>
+              </div>
+            </div>
+            <div class="figma-upload-doc-right">
+              @if (formData.photoUrl) {
+                <img [src]="formData.photoUrl" alt="Photo profil" class="figma-preview-avatar" />
+                <button type="button" class="figma-remove-btn-small" (click)="$event.stopPropagation(); removePhoto()" title="Supprimer">&times;</button>
+              } @else {
+                <div class="figma-placeholder-circle">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Pièce d'identité -->
+          <div class="figma-upload-doc-card" (click)="pieceFileInput.click()">
+            <div class="figma-upload-doc-left">
+              <div class="figma-upload-doc-icon-sq">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+                  <circle cx="9" cy="10" r="2"></circle>
+                  <line x1="15" y1="8" x2="17" y2="8"></line>
+                  <line x1="15" y1="12" x2="17" y2="12"></line>
+                </svg>
+              </div>
+              <div class="figma-upload-doc-meta">
+                <p class="figma-upload-doc-title">Pièce d'identité</p>
+                <p class="figma-upload-doc-hint">{{ isUploadingPiece ? 'Envoi en cours...' : 'JPG, PNG, PDF (max 10 MO)' }}</p>
+              </div>
+            </div>
+            <div class="figma-upload-doc-right">
+              @if (formData.pieceIdentite) {
+                <img [src]="formData.pieceIdentite" alt="Carte identité" class="figma-preview-doc-badge" />
+                <button type="button" class="figma-remove-btn-small" (click)="$event.stopPropagation(); removePiece()" title="Supprimer">&times;</button>
+              } @else {
+                <div class="figma-placeholder-rect">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+                    <circle cx="9" cy="10" r="2"></circle>
+                  </svg>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 2 : Informations sur l'organisation -->
+        <div class="figma-section-block">
+          <div class="figma-section-title-wrap">
+            <div class="figma-section-icon-badge">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 21h18"></path>
+                <path d="M5 21V7l8-4v18"></path>
+                <path d="M19 21V11l-6-3"></path>
+                <path d="M9 9h1"></path>
+                <path d="M9 13h1"></path>
+                <path d="M9 17h1"></path>
+              </svg>
+            </div>
+            <div class="figma-section-text-col">
+              <h4 class="figma-section-title-text">Informations sur l'organisation</h4>
+              <p class="figma-section-desc-text">Parlez nous de votre structure</p>
+            </div>
+          </div>
+
+          <div class="figma-field-row">
+            <label style="font-size: 12px; font-weight: 600; color: #1E293B; margin-bottom: 6px; display: block;">Nom de l'organisation</label>
+            <div class="figma-input-with-icon">
+              <span class="figma-input-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                </svg>
+              </span>
+              <input type="text" class="figma-native-input" [(ngModel)]="formData.nomOrganisation" placeholder="Ex : Association culturelle du Mali" />
+            </div>
+          </div>
+
+          <div class="figma-field-row">
+            <label style="font-size: 12px; font-weight: 600; color: #1E293B; margin-bottom: 6px; display: block;">Adresse complète</label>
+            <div class="figma-input-with-icon">
+              <span class="figma-input-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                  <circle cx="12" cy="10" r="3"></circle>
+                </svg>
+              </span>
+              <input type="text" class="figma-native-input" [(ngModel)]="formData.adresseOrganisation" placeholder="Ex : Bamako, Mali" />
+            </div>
+          </div>
+
+          <div class="figma-field-row">
+            <label style="font-size: 12px; font-weight: 600; color: #1E293B; margin-bottom: 6px; display: block;">Pièces justificatifs (NIF, RCCM ...)</label>
+            <div class="figma-input-with-icon">
+              <span class="figma-input-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                </svg>
+              </span>
+              <input type="text" class="figma-native-input" [(ngModel)]="formData.piecesJustificatifs" placeholder="Ex : 1 445 665 89 90 D" />
+            </div>
+          </div>
+
+          <!-- Photo de la pièce -->
+          <div class="figma-upload-doc-card" (click)="pieceOrgFileInput.click()">
+            <div class="figma-upload-doc-left">
+              <div class="figma-upload-doc-icon-sq">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+              </div>
+              <div class="figma-upload-doc-meta">
+                <p class="figma-upload-doc-title">Photo de la pièce</p>
+                <p class="figma-upload-doc-hint">{{ isUploadingPieceOrg ? 'Envoi en cours...' : 'JPG, PNG, PDF (max 10 MO)' }}</p>
+              </div>
+            </div>
+            <div class="figma-upload-doc-right">
+              @if (formData.photoPieceOrganisation) {
+                <img [src]="formData.photoPieceOrganisation" alt="Photo pièce" class="figma-preview-doc-badge" />
+                <button type="button" class="figma-remove-btn-small" (click)="$event.stopPropagation(); removePieceOrg()" title="Supprimer">&times;</button>
+              } @else {
+                <div class="figma-placeholder-rect"></div>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3 : Informations sur l'évènement -->
+        <div class="figma-section-block">
+          <div class="figma-section-title-wrap">
+            <div class="figma-section-icon-badge">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+            </div>
+            <div class="figma-section-text-col">
+              <h4 class="figma-section-title-text">Informations sur l'évènement</h4>
+              <p class="figma-section-desc-text">Parlez nous de votre événement</p>
+            </div>
+          </div>
+
+          <div class="figma-field-row">
+            <label style="font-size: 12px; font-weight: 600; color: #1E293B; margin-bottom: 6px; display: block;">Nom de l'événement</label>
+            <div class="figma-input-with-icon">
+              <span class="figma-input-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+              </span>
+              <input type="text" class="figma-native-input" [(ngModel)]="formData.nomEvenement" placeholder="Ex : Festi Dibi" />
+            </div>
+          </div>
+
+          <div class="figma-field-row">
+            <label style="font-size: 12px; font-weight: 600; color: #1E293B; margin-bottom: 6px; display: block;">Date de l'événement</label>
+            <div class="figma-input-with-icon">
+              <span class="figma-input-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+              </span>
+              <input type="text" class="figma-native-input" [(ngModel)]="formData.dateEvenement" placeholder="Ex : 24 sept 2027" />
+            </div>
+          </div>
+
+          <div class="figma-field-row">
+            <label style="font-size: 12px; font-weight: 600; color: #1E293B; margin-bottom: 6px; display: block;">Décrit le motif de l'événement et son déroulement</label>
+            <textarea
+              class="figma-textarea"
+              rows="3"
+              style="width: 100%; border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 10px 14px; outline: none; font-family: inherit; font-size: 13.5px;"
+              [(ngModel)]="formData.descriptionEvenement"
+              placeholder="Expliquez les objectifs, animations prévues et participants attendus..."
+            ></textarea>
+          </div>
+
+          <!-- Photos descriptives -->
+          <label style="font-size: 12px; font-weight: 600; color: #1E293B; margin-bottom: 6px; display: block;">Quelques photos descriptifs</label>
+          <div class="figma-upload-doc-card" (click)="eventPhotosFileInput.click()">
+            <div class="figma-upload-doc-left">
+              <div class="figma-upload-doc-icon-sq">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+              </div>
+              <div class="figma-upload-doc-meta">
+                <p class="figma-upload-doc-title">Photos</p>
+                <p class="figma-upload-doc-hint">
+                  {{ isUploadingEventPhotos ? 'Envoi en cours...' : (formData.photosEvenement?.length ? formData.photosEvenement?.length + ' photo(s) ajoutée(s)' : 'Sélectionner des photos') }}
+                </p>
+              </div>
+            </div>
+            <div class="figma-upload-doc-right">
+              @if (formData.photosEvenement && formData.photosEvenement.length > 0) {
+                <img [src]="formData.photosEvenement[0]" alt="Aperçu événement" class="figma-preview-doc-badge" />
+              } @else {
+                <div class="figma-placeholder-rect"></div>
+              }
+            </div>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          class="figma-btn-submit-main"
+          (click)="saveUser()"
+          [disabled]="isUploadingPhoto || isUploadingPiece || isUploadingPieceOrg || isUploadingEventPhotos"
+        >
+          {{ editingUser ? 'Mettre à jour le promoteur' : 'S\'inscrire' }}
+        </button>
+
+        <!-- <div class="figma-footer-login-link">
+          Déjà un compte ? <span class="link-text" (click)="cancelEdit()">Créer le profil</span>
+        </div> -->
+      }
     </div>
   }
 </div>

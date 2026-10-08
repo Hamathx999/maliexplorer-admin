@@ -370,3 +370,344 @@ button {
   font-weight: 600;
 }
 
+/* =========================================================
+   FIGMA 2-COLUMN FORM & DRAG-AND-DROP IMAGE UPLOADER
+   ========================================================= */
+
+.figma-two-col-layout {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 28px;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .figma-two-col-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.figma-upload-card {
+  background: #FFFFFF;
+  border-radius: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  border: 1px solid #EDF2F7;
+  padding: 24px;
+}
+
+.figma-upload-header {
+  margin-bottom: 18px;
+}
+
+.figma-upload-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #16332D;
+  margin-bottom: 4px;
+}
+
+.figma-upload-subtitle {
+  font-size: 13px;
+  color: #64748B;
+  line-height: 1.4;
+}
+
+.figma-dropzone {
+  border: 2px dashed #CBD5E1;
+  border-radius: 12px;
+  background-color: #F8FAFC;
+  padding: 32px 20px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: relative;
+  min-height: 220px;
+}
+
+.figma-dropzone:hover,
+.figma-dropzone.dragging {
+  border-color: #0E8F76;
+  background-color: #F0FDF4;
+  box-shadow: 0 0 0 4px rgba(14, 143, 118, 0.08);
+}
+
+.figma-dropzone-icon-box {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background-color: #E6F4F1;
+  color: #0E8F76;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+  transition: transform 0.2s ease;
+}
+
+.figma-dropzone:hover .figma-dropzone-icon-box {
+  transform: translateY(-2px) scale(1.05);
+}
+
+.figma-dropzone-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1E293B;
+  margin-bottom: 4px;
+}
+
+.figma-dropzone-hint {
+  font-size: 12px;
+  color: #94A3B8;
+  margin-bottom: 16px;
+}
+
+.figma-btn-browse {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #16332D;
+  color: #FFFFFF;
+  padding: 9px 20px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(22, 51, 45, 0.15);
+}
+
+.figma-btn-browse:hover {
+  background-color: #0E8F76;
+  transform: translateY(-1px);
+}
+
+/* Image Preview humanized box */
+.figma-preview-box {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #E2E8F0;
+  background: #F8FAFC;
+}
+
+.figma-preview-img-wrap {
+  width: 100%;
+  height: 210px;
+  position: relative;
+  background-color: #0B1E19;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.figma-preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.figma-preview-box:hover .figma-preview-img {
+  transform: scale(1.03);
+}
+
+.figma-preview-actions-overlay {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 6px;
+  z-index: 2;
+}
+
+.figma-preview-btn {
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(4px);
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.figma-preview-btn:hover {
+  background: rgba(15, 23, 42, 0.95);
+}
+
+.figma-preview-btn.delete {
+  background: rgba(220, 38, 38, 0.85);
+}
+
+.figma-preview-btn.delete:hover {
+  background: #DC2626;
+}
+
+.figma-preview-footer {
+  padding: 12px 14px;
+  background: #FFFFFF;
+  border-top: 1px solid #F1F5F9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.figma-preview-filename {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1E293B;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.figma-preview-meta {
+  font-size: 11px;
+  color: #64748B;
+}
+
+.figma-upload-progress {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.figma-upload-progressbar {
+  width: 100%;
+  height: 4px;
+  background-color: #E2E8F0;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.figma-upload-progressfill {
+  height: 100%;
+  background-color: #0E8F76;
+  width: 100%;
+  animation: figmaPulse 1.5s infinite;
+}
+
+@keyframes figmaPulse {
+  0% { opacity: 0.4; }
+  50% { opacity: 1; }
+  100% { opacity: 0.4; }
+}
+
+.figma-thumb-small {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid #E2E8F0;
+  background: #F1F5F9;
+}
+
+/* Multi-image gallery styling */
+.figma-multi-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.figma-gallery-card {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  height: 82px;
+  border: 1.5px solid #E2E8F0;
+  background: #0B1E19;
+}
+
+.figma-gallery-card:hover .figma-gallery-img {
+  transform: scale(1.05);
+}
+
+.figma-gallery-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.25s ease;
+}
+
+.figma-gallery-delete {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: rgba(220, 38, 38, 0.9);
+  color: #FFFFFF;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: none;
+  font-size: 12px;
+  font-weight: 700;
+  z-index: 2;
+  transition: background 0.2s;
+}
+
+.figma-gallery-delete:hover {
+  background: #DC2626;
+}
+
+.figma-gallery-badge-cover {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  background: #0E8F76;
+  color: #FFFFFF;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  z-index: 2;
+}
+
+.figma-multi-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+  font-size: 12px;
+  color: #64748B;
+  font-weight: 500;
+}
+
+.figma-multi-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #0E8F76;
+  cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 6px;
+  background: rgba(14, 143, 118, 0.08);
+  border: 1px solid rgba(14, 143, 118, 0.2);
+  transition: all 0.2s;
+}
+
+.figma-multi-add-btn:hover {
+  background: rgba(14, 143, 118, 0.15);
+}
+
+

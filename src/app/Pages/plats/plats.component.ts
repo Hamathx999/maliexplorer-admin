@@ -5,6 +5,7 @@ import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs';
 import { PlatService } from '../../services/plat.service';
 import { IngredientService } from '../../services/ingredient.service';
+import { UploadService } from '../../services/upload.service';
 import { Plat } from '../../models/plat.model';
 import { Ingredient } from '../../models/ingredient.model';
 
@@ -18,6 +19,7 @@ import { Ingredient } from '../../models/ingredient.model';
 export class PlatsComponent implements OnInit {
   private readonly platService = inject(PlatService);
   private readonly ingredientService = inject(IngredientService);
+  private readonly uploadService = inject(UploadService);
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
 
@@ -28,6 +30,13 @@ export class PlatsComponent implements OnInit {
   searchTerm: string = '';
   selectedRegion: string = 'TOUTES';
 
+  imageUrl: string = '';
+  images: string[] = [];
+  isUploadingImage: boolean = false;
+  isDragging: boolean = false;
+  selectedFileName: string = '';
+  selectedFileSize: string = '';
+
   isEditing: boolean = false;
   editingPlat: Plat | null = null;
   formData: Partial<Plat> = {
@@ -37,6 +46,7 @@ export class PlatsComponent implements OnInit {
     region: 'Nationale',
     tempsPreparation: '1h 30min',
     difficulte: 'Moyen',
+    imageUrl: '',
     description: ''
   };
 
@@ -122,6 +132,7 @@ export class PlatsComponent implements OnInit {
   loadPlats(): void {
     this.platService.getPlats().subscribe({
       next: (data) => {
+        console.log(data);
         this.plats = data;
         this.filterPlats();
         this.cdr.markForCheck();
@@ -145,9 +156,102 @@ export class PlatsComponent implements OnInit {
     });
   }
 
+  onFilesPicked(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input?.files && input.files.length > 0) {
+      this.uploadFiles(input.files);
+      input.value = '';
+    }
+  }
+
+  onDragOver(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragging = true;
+  }
+
+  onDragLeave(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragging = false;
+  }
+
+  onDrop(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragging = false;
+    if (event.dataTransfer?.files && event.dataTransfer.files.length > 0) {
+      this.uploadFiles(event.dataTransfer.files);
+    }
+  }
+
+  private uploadFiles(fileList: FileList | File[]): void {
+    const files = Array.from(fileList).filter((f) => f.type.startsWith('image/'));
+    if (files.length === 0) {
+      alert('Veuillez sélectionner des fichiers images valides (JPG, PNG, WEBP).');
+      return;
+    }
+
+    this.isUploadingImage = true;
+    this.selectedFileName = `${files.length} image(s) en cours d'envoi...`;
+
+    this.uploadService.uploadMultipleImages(files, 'plats', 'PLAT', this.editingPlat?.id ?? undefined).subscribe({
+      next: (urls) => {
+        urls.forEach((url) => {
+          if (!this.images.includes(url)) {
+            this.images.push(url);
+          }
+        });
+        if (this.images.length > 0) {
+          this.imageUrl = this.images[0];
+          this.formData.imageUrl = this.imageUrl;
+        }
+        this.isUploadingImage = false;
+        this.selectedFileName = `${this.images.length} image(s) au total`;
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        console.error('Erreur téléversement images plat:', err);
+        this.isUploadingImage = false;
+        alert(err.message || 'Erreur lors du téléversement des images.');
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  removeImageAtIndex(index: number): void {
+    this.images.splice(index, 1);
+    this.imageUrl = this.images.length > 0 ? this.images[0] : '';
+    this.formData.imageUrl = this.imageUrl;
+    this.selectedFileName = this.images.length > 0 ? `${this.images.length} image(s)` : '';
+    this.cdr.markForCheck();
+  }
+
+  setPrimaryImage(index: number): void {
+    if (index > 0 && index < this.images.length) {
+      const chosen = this.images.splice(index, 1)[0];
+      this.images.unshift(chosen);
+      this.imageUrl = this.images[0];
+      this.formData.imageUrl = this.imageUrl;
+      this.cdr.markForCheck();
+    }
+  }
+
+  removeImage(): void {
+    this.images = [];
+    this.imageUrl = '';
+    this.formData.imageUrl = '';
+    this.selectedFileName = '';
+    this.selectedFileSize = '';
+  }
+
   startAdd(): void {
     this.editingPlat = null;
     this.selectedIngredientIds = [];
+    this.imageUrl = '';
+    this.images = [];
+    this.selectedFileName = '';
+    this.selectedFileSize = '';
     this.formData = {
       nom: '',
       ingredientPrincipal: '',
@@ -155,6 +259,7 @@ export class PlatsComponent implements OnInit {
       region: 'Nationale',
       tempsPreparation: '1h 30min',
       difficulte: 'Moyen',
+      imageUrl: '',
       description: ''
     };
     this.isEditing = true;
@@ -164,6 +269,17 @@ export class PlatsComponent implements OnInit {
   startEdit(plat: Plat): void {
     this.editingPlat = plat;
     this.selectedIngredientIds = [];
+    this.imageUrl = plat.imageUrl || '';
+    if (plat.images && plat.images.length > 0) {
+      this.images = [...plat.images];
+    } else if (this.imageUrl) {
+      this.images = this.imageUrl.split(',').map((u) => u.trim()).filter(Boolean);
+    } else {
+      this.images = [];
+    }
+    this.selectedFileName = this.images.length > 0 ? `${this.images.length} image(s)` : '';
+    this.selectedFileSize = '';
+
     if (plat.ingredientIds && plat.ingredientIds.length > 0) {
       this.selectedIngredientIds = plat.ingredientIds.map(Number);
     } else if (plat.ingredientPrincipal || (plat.ingredients && plat.ingredients.length > 0)) {
@@ -183,6 +299,7 @@ export class PlatsComponent implements OnInit {
 
     this.formData = {
       ...plat,
+      imageUrl: this.imageUrl,
       ingredientIds: [...this.selectedIngredientIds]
     };
     this.isEditing = true;
@@ -192,10 +309,29 @@ export class PlatsComponent implements OnInit {
   cancelEdit(): void {
     this.isEditing = false;
     this.editingPlat = null;
+    this.imageUrl = '';
+    this.images = [];
+    this.selectedFileName = '';
+    this.selectedFileSize = '';
     this.router.navigate(['/plats']);
   }
 
+  getPlatImage(plat: Plat): string {
+    if (plat.imageUrl && plat.imageUrl.trim()) {
+      return plat.imageUrl.split(',')[0].trim();
+    }
+    if (plat.images && plat.images.length > 0 && plat.images[0]) {
+      return plat.images[0];
+    }
+    return 'https://dzhqwkpwaljqsjwoqvso.supabase.co/storage/v1/object/public/maliexplorer-media/plats/1a4120a4-11f1-4850-833f-19bd89ea6639_ville_de_tombouctou.jpg';
+  }
+
   savePlat(): void {
+    if (this.isUploadingImage) {
+      alert('Veuillez patienter pendant le téléversement de l\'image vers Supabase...');
+      return;
+    }
+
     if (!this.formData.nom || !this.formData.nom.trim()) {
       alert('Veuillez renseigner le nom du plat.');
       return;
@@ -203,10 +339,20 @@ export class PlatsComponent implements OnInit {
 
     this.syncIngredientPrincipal();
 
+    const defaultFallback = 'https://dzhqwkpwaljqsjwoqvso.supabase.co/storage/v1/object/public/maliexplorer-media/plats/1a4120a4-11f1-4850-833f-19bd89ea6639_ville_de_tombouctou.jpg';
+    let primaryUrl = this.images.length > 0 ? this.images[0] : (this.imageUrl || this.formData.imageUrl || '').trim();
+    if (!primaryUrl) {
+      primaryUrl = defaultFallback;
+    }
+
+    const imagesList = this.images.length > 0 ? this.images : [primaryUrl];
+
     const platToSave: Plat = {
       ...this.formData,
       nom: this.formData.nom.trim(),
       description: this.formData.description?.trim() || '',
+      imageUrl: primaryUrl,
+      images: imagesList,
       ingredientPrincipal: this.formData.ingredientPrincipal || '',
       ingredientIds: [...this.selectedIngredientIds],
       ingredients: this.getSelectedIngredientObjects().map((i) => i.nom || i.nomPlat || '')

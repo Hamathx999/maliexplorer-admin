@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of, catchError } from 'rxjs';
+import { Observable, of, catchError, map } from 'rxjs';
 import { Plat } from '../models/plat.model';
 import { environment } from '../../environments/environment';
 
@@ -126,6 +126,23 @@ export class PlatService {
 
     const principal = dto.ingredientPrincipal || ingredientNames.join(', ') || '';
 
+    const rawImages: string[] = [];
+    if (Array.isArray(dto.images)) {
+      dto.images.forEach((x: any) => {
+        if (typeof x === 'string' && x.trim() && !rawImages.includes(x.trim())) {
+          rawImages.push(x.trim());
+        }
+      });
+    }
+    const directImageUrl = dto.imageUrl || dto.image_url || dto.image || '';
+    if (typeof directImageUrl === 'string' && directImageUrl.trim()) {
+      directImageUrl.split(',').map((s: string) => s.trim()).filter(Boolean).forEach((s) => {
+        if (!rawImages.includes(s)) rawImages.push(s);
+      });
+    }
+
+    const primaryImage = rawImages.length > 0 ? rawImages[0] : (typeof directImageUrl === 'string' ? directImageUrl.trim() : '');
+
     return {
       id: dto.id ?? dto.idPlat,
       nom: dto.nom ?? dto.nomPlat ?? 'Plat traditionnel',
@@ -134,7 +151,8 @@ export class PlatService {
       region: dto.region || (dto.regions && dto.regions.length ? dto.regions.map((r: any) => r.nom || r.nomRegion).join(', ') : 'Mali'),
       tempsPreparation: typeof dto.tempsPreparation === 'number' ? `${dto.tempsPreparation} min` : (dto.tempsPreparation || '45 min'),
       difficulte: dto.difficulte || 'Facile',
-      imageUrl: dto.imageUrl || '',
+      imageUrl: primaryImage,
+      images: rawImages.length > 0 ? rawImages : (primaryImage ? [primaryImage] : []),
       ingredients: ingredientNames.length ? ingredientNames : (principal ? principal.split(',').map((s: string) => s.trim()) : []),
       ingredientIds: ingredientIds
     };
@@ -142,15 +160,17 @@ export class PlatService {
 
   getPlats(): Observable<Plat[]> {
     return this.http.get<any[]>(this.apiUrl).pipe(
+      map((plats) => (Array.isArray(plats) ? plats.map((p) => this.mapPlat(p)) : [])),
       catchError((error) => {
         console.warn('API Spring Boot non disponible pour les plats, utilisation du stockage local :', error);
-        return of(this.getLocalPlats());
+        return of(this.getLocalPlats().map((p) => this.mapPlat(p)));
       })
     );
   }
 
   getPlatById(id: number | string): Observable<Plat> {
     return this.http.get<any>(`${this.apiUrl}/${id}`).pipe(
+      map((res) => this.mapPlat(res)),
       catchError(() => {
         const local = this.getLocalPlats();
         const found = local.find((p) => String(p.id) === String(id));
@@ -161,9 +181,28 @@ export class PlatService {
 
   createPlat(plat: Plat): Observable<Plat> {
     const tempsNum = parseInt(String(plat.tempsPreparation).replace(/\D/g, ''), 10) || 45;
+    const imagesList: string[] = [];
+    if (Array.isArray(plat.images)) {
+      plat.images.forEach((img) => {
+        if (typeof img === 'string' && img.trim() && !imagesList.includes(img.trim())) {
+          imagesList.push(img.trim());
+        }
+      });
+    }
+    if (plat.imageUrl && typeof plat.imageUrl === 'string' && plat.imageUrl.trim()) {
+      plat.imageUrl.split(',').map((s) => s.trim()).filter(Boolean).forEach((s) => {
+        if (!imagesList.includes(s)) imagesList.push(s);
+      });
+    }
+    const primaryUrl = imagesList.length > 0 ? imagesList[0] : (plat.imageUrl?.trim() || '');
+
     const payload = {
       nom: plat.nom,
       description: plat.description,
+      imageUrl: primaryUrl,
+      images: imagesList,
+      image: primaryUrl,
+      image_url: primaryUrl,
       ingredientPrincipal: plat.ingredientPrincipal,
       ingredients: plat.ingredientPrincipal,
       ingredientIds: plat.ingredientIds || [],
@@ -174,11 +213,15 @@ export class PlatService {
     };
 
     return this.http.post<any>(this.apiUrl, payload).pipe(
+      map((res) => this.mapPlat(res)),
       catchError((error) => {
         console.warn('API Spring Boot non joignable, enregistrement local du plat :', error);
+        console.error('Détails précis erreur serveur backend (status ' + error.status + ') :', error.error || error.message);
         const newPlat: Plat = {
           ...plat,
-          id: Date.now()
+          id: Date.now(),
+          imageUrl: primaryUrl,
+          images: imagesList
         };
         const current = this.getLocalPlats();
         current.unshift(newPlat);
@@ -190,9 +233,28 @@ export class PlatService {
 
   updatePlat(id: number | string, plat: Plat): Observable<Plat> {
     const tempsNum = parseInt(String(plat.tempsPreparation).replace(/\D/g, ''), 10) || 45;
+    const imagesList: string[] = [];
+    if (Array.isArray(plat.images)) {
+      plat.images.forEach((img) => {
+        if (typeof img === 'string' && img.trim() && !imagesList.includes(img.trim())) {
+          imagesList.push(img.trim());
+        }
+      });
+    }
+    if (plat.imageUrl && typeof plat.imageUrl === 'string' && plat.imageUrl.trim()) {
+      plat.imageUrl.split(',').map((s) => s.trim()).filter(Boolean).forEach((s) => {
+        if (!imagesList.includes(s)) imagesList.push(s);
+      });
+    }
+    const primaryUrl = imagesList.length > 0 ? imagesList[0] : (plat.imageUrl?.trim() || '');
+
     const payload = {
       nom: plat.nom,
       description: plat.description,
+      imageUrl: primaryUrl,
+      images: imagesList,
+      image: primaryUrl,
+      image_url: primaryUrl,
       ingredientPrincipal: plat.ingredientPrincipal,
       ingredients: plat.ingredientPrincipal,
       ingredientIds: plat.ingredientIds || [],
@@ -203,15 +265,17 @@ export class PlatService {
     };
 
     return this.http.put<any>(`${this.apiUrl}/${id}`, payload).pipe(
+      map((res) => this.mapPlat(res)),
       catchError((error) => {
         console.warn('API Spring Boot non joignable, mise à jour locale du plat :', error);
+        console.error('Détails précis erreur serveur backend (status ' + error.status + ') :', error.error || error.message);
         const current = this.getLocalPlats();
         const index = current.findIndex((p) => String(p.id) === String(id));
         if (index !== -1) {
-          current[index] = { ...current[index], ...plat, id };
+          current[index] = { ...current[index], ...plat, id, imageUrl: primaryUrl, images: imagesList };
           this.saveLocalPlats(current);
         }
-        return of({ ...plat, id });
+        return of({ ...plat, id, imageUrl: primaryUrl, images: imagesList });
       })
     );
   }

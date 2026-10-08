@@ -6,5 +6,7 @@ export interface Ethnie {
   region?: string;
   langues: string;
   populationEstimee?: string;
+  population?: string;
   imageUrl?: string;
+  images?: string[];
 }

@@ -29,21 +29,35 @@
         <table class="figma-table">
           <thead>
             <tr>
+              <th style="width: 70px;">Image</th>
               <th>Nom</th>
               <th>Description</th>
-              <th>Ville</th>
+              <th>Ville / Région</th>
               <th>Langues</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             @if (isLoading) {
-              <tr><td colspan="5" style="text-align: center; padding: 24px; color: #64748B;">Chargement des ethnies...</td></tr>
+              <tr><td colspan="6" style="text-align: center; padding: 24px; color: #64748B;">Chargement des ethnies...</td></tr>
             } @else if (ethnies.length === 0) {
-              <tr><td colspan="5" style="text-align: center; padding: 24px; color: #64748B;">Aucune ethnie trouvée.</td></tr>
+              <tr><td colspan="6" style="text-align: center; padding: 24px; color: #64748B;">Aucune ethnie trouvée.</td></tr>
             } @else {
               @for (ethnie of ethnies; track ethnie.id ?? ethnie.nom) {
                 <tr>
+                  <td>
+                    @if (ethnie.imageUrl) {
+                      <img [src]="ethnie.imageUrl" [alt]="ethnie.nom" class="figma-thumb-small" />
+                    } @else {
+                      <div class="figma-thumb-small" style="display: flex; align-items: center; justify-content: center; color: #94A3B8;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                          <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                          <polyline points="21 15 16 10 5 21"></polyline>
+                        </svg>
+                      </div>
+                    }
+                  </td>
                   <td><strong>{{ ethnie.nom }}</strong></td>
                   <td style="color: #64748B; max-width: 320px;">{{ ethnie.description || 'Description sur l\'ethnie ' + ethnie.nom }}</td>
                   <td>{{ ethnie.region || '—' }}</td>
@@ -72,46 +86,128 @@
     </div>
   }
 
-  <!-- VUE 2 : PAGE INDÉPENDANTE D'AJOUT / MODIFICATION (Figma) -->
+  <!-- VUE 2 : PAGE INDÉPENDANTE D'AJOUT / MODIFICATION (Figma 2 colonnes) -->
   @if (isEditing) {
     <div class="figma-add-header">
       <h2 class="figma-add-title">{{ editingEthnieId ? 'Modifier l\'ethnie' : 'Ajouter une nouvelle ethnie' }}</h2>
       <p class="figma-add-subtitle">
-        Renseignez les informations ci-dessous pour ajouter une ethnie sur la plateforme MaliExplorer. Veillez à utiliser des images de haute qualité et des descriptions riches.
+        Remplissez les informations ci-dessous pour ajouter une ethnie sur la plateforme MaliExplorer. Veillez à utiliser des images de haute qualité et des descriptions riches.
       </p>
     </div>
 
-    <div class="figma-card">
-      <h3 class="figma-section-title">Informations générales</h3>
+    <div class="figma-two-col-layout">
+      <!-- Colonne Gauche : Informations générales -->
+      <div class="figma-card" style="margin-bottom: 0;">
+        <h3 class="figma-section-title">Informations générales</h3>
 
-      <div class="figma-form-grid">
-        <div class="figma-form-group">
-          <label class="figma-label" for="nomEthnie">Nom de l'ethnie</label>
-          <input id="nomEthnie" type="text" class="figma-input" placeholder="Ex: Dogon" [(ngModel)]="nom" />
+        <div class="figma-form-grid">
+          <div class="figma-form-group">
+            <label class="figma-label" for="nomEthnie">Nom de l'ethnie</label>
+            <input id="nomEthnie" type="text" class="figma-input" placeholder="Ex: Dogon, Bambara..." [(ngModel)]="nom" />
+          </div>
+
+          <div class="figma-form-group">
+            <label class="figma-label" for="regionEthnie">Région principale</label>
+            <input id="regionEthnie" type="text" class="figma-input" placeholder="Ex: Bandiagara, Mopti" [(ngModel)]="region" />
+          </div>
+
+          <div class="figma-form-group">
+            <label class="figma-label" for="populationEthnie">Population estimée</label>
+            <input id="populationEthnie" type="text" class="figma-input" placeholder="Ex: 800 000 habitants..." [(ngModel)]="population" />
+          </div>
+
+          <div class="figma-form-group">
+            <label class="figma-label" for="langueEthnie">Langue(s) parlée(s)</label>
+            <input id="langueEthnie" type="text" class="figma-input" placeholder="Ex: Dogon, Bamanankan..." [(ngModel)]="langues" />
+          </div>
         </div>
 
         <div class="figma-form-group">
-          <label class="figma-label" for="langueEthnie">Langue(s) parlée(s)</label>
-          <input id="langueEthnie" type="text" class="figma-input" placeholder="Ex: Dogon, Bamanankan" [(ngModel)]="langues" />
-        </div>
-
-        <div class="figma-form-group">
-          <label class="figma-label" for="regionEthnie">Ville / Région principale</label>
-          <input id="regionEthnie" type="text" class="figma-input" placeholder="Ex: Bandiagara, Mopti" [(ngModel)]="region" />
+          <label class="figma-label" for="descEthnie">Description détaillée</label>
+          <textarea id="descEthnie" class="figma-textarea" rows="4" placeholder="Décrivez l'histoire, les traditions, les fêtes et les modes de vie de cette communauté..." [(ngModel)]="description"></textarea>
         </div>
       </div>
 
-      <div class="figma-form-group">
-        <label class="figma-label" for="descEthnie">Description et traditions</label>
-        <textarea id="descEthnie" class="figma-textarea" rows="3" placeholder="Présentation de l'ethnie..." [(ngModel)]="description"></textarea>
+      <!-- Colonne Droite : Images -->
+      <div class="figma-upload-card">
+        <div class="figma-upload-header">
+          <h4 class="figma-upload-title">Images de l'ethnie</h4>
+          <p class="figma-upload-subtitle">Sélectionnez une ou plusieurs photos (la 1ère sera la couverture).</p>
+        </div>
+
+        <input #fileInput type="file" multiple accept="image/png,image/jpeg,image/webp" style="display: none;" (change)="onFilesPicked($event)" />
+
+        @if (images.length > 0) {
+          <div class="figma-multi-gallery">
+            @for (img of images; track img; let idx = $index) {
+              <div class="figma-gallery-card" [style.cursor]="idx !== 0 ? 'pointer' : 'default'" (click)="idx !== 0 && setPrimaryImage(idx)" [title]="idx === 0 ? 'Image de couverture' : 'Cliquer pour définir comme couverture'">
+                <img [src]="img" alt="Photo ethnie" class="figma-gallery-img" />
+                @if (idx === 0) {
+                  <span class="figma-gallery-badge-cover">Couverture</span>
+                }
+                <button type="button" class="figma-gallery-delete" (click)="$event.stopPropagation(); removeImageAtIndex(idx)" title="Supprimer cette image">
+                  &times;
+                </button>
+              </div>
+            }
+          </div>
+
+          <div class="figma-multi-info">
+            <span>{{ images.length }} image{{ images.length > 1 ? 's' : '' }} sélectionnée{{ images.length > 1 ? 's' : '' }}</span>
+            <button type="button" class="figma-multi-add-btn" (click)="fileInput.click()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Ajouter des photos
+            </button>
+          </div>
+        } @else {
+          <div
+            class="figma-dropzone"
+            [class.dragging]="isDragging"
+            (dragover)="onDragOver($event)"
+            (dragleave)="onDragLeave($event)"
+            (drop)="onDrop($event)"
+            (click)="fileInput.click()"
+          >
+            <div class="figma-dropzone-icon-box">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+            </div>
+            <p class="figma-dropzone-text">Glissez-déposez vos images ici</p>
+            <p class="figma-dropzone-hint">Sélection multiple supportée (PNG, JPG, WEBP)</p>
+            <button type="button" class="figma-btn-browse" (click)="$event.stopPropagation(); fileInput.click()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+              Parcourir les fichiers
+            </button>
+          </div>
+        }
+
+        @if (isUploadingImage) {
+          <div class="figma-upload-progress">
+            <span style="font-size: 12px; color: #0E8F76; font-weight: 600;">Téléversement vers Supabase en cours...</span>
+            <div class="figma-upload-progressbar">
+              <div class="figma-upload-progressfill"></div>
+            </div>
+          </div>
+        }
       </div>
     </div>
 
     <div class="figma-form-actions">
       <button type="button" class="figma-btn-cancel" (click)="resetForm()">Annuler</button>
-      <button type="button" class="figma-btn-primary" (click)="onSubmit()">
+      <button type="button" class="figma-btn-primary" (click)="onSubmit()" [disabled]="isUploadingImage">
         {{ editingEthnieId ? 'Modifier l\'ethnie' : 'Ajouter l\'ethnie' }}
       </button>
     </div>
   }
 </div>
+
