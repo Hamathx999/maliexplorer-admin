@@ -32,6 +32,9 @@ export class VillesComponent implements OnInit {
   cordonnees: string = '';
   imageUrl: string = '';
   images: string[] = [];
+  misEnAvantHome: boolean = false;
+  ordreHome: number = 0;
+  legende: string = '';
   isUploadingImage: boolean = false;
   isDragging: boolean = false;
   selectedFileName: string = '';
@@ -75,6 +78,9 @@ export class VillesComponent implements OnInit {
     this.images = [];
     this.selectedFileName = '';
     this.selectedFileSize = '';
+    this.misEnAvantHome = false;
+    this.ordreHome = 0;
+    this.legende = '';
     if (this.regions.length > 0 && !this.selectedRegion) {
       this.selectedRegion = this.regions[0].nom;
     }
@@ -223,7 +229,10 @@ export class VillesComponent implements OnInit {
       cordonnees: (this.cordonnees || '').trim(),
       imageUrl: primaryUrl,
       images: resolvedImages,
-      description: (this.description || '').trim()
+      description: (this.description || '').trim(),
+      misEnAvantHome: Boolean(this.misEnAvantHome),
+      ordreHome: Number(this.ordreHome) || 0,
+      legende: (this.legende || '').trim()
     };
 
     if (this.editingVilleId !== null) {
@@ -248,12 +257,15 @@ export class VillesComponent implements OnInit {
   }
 
   onEdit(ville: Ville): void {
-    this.editingVilleId = ville.id ?? null;
+    this.editingVilleId = ville.id ?? (ville as any).idVille ?? null;
     this.nom = ville.nom;
     this.selectedRegion = ville.region;
     this.population = String(ville.population || '');
     this.cordonnees = (ville as any).cordonnees || '';
     this.imageUrl = (ville as any).imageUrl || '';
+    this.misEnAvantHome = Boolean(ville.misEnAvantHome);
+    this.ordreHome = Number(ville.ordreHome) || 0;
+    this.legende = ville.legende || '';
     if (ville.images && ville.images.length > 0) {
       this.images = [...ville.images];
     } else if (this.imageUrl) {
@@ -269,9 +281,10 @@ export class VillesComponent implements OnInit {
   }
 
   onDelete(ville: Ville): void {
-    if (!ville.id) return;
+    const targetId = ville.id ?? (ville as any).idVille;
+    if (!targetId) return;
     if (window.confirm(`Supprimer la ville "${ville.nom}" ?`)) {
-      this.villeService.deleteVille(ville.id).subscribe({
+      this.villeService.deleteVille(targetId).subscribe({
         next: () => {
           this.showNotification(`Ville "${ville.nom}" supprimée.`);
           this.loadVilles();
@@ -279,6 +292,21 @@ export class VillesComponent implements OnInit {
         error: () => this.showNotification('Erreur de suppression.', true)
       });
     }
+  }
+
+  toggleMisEnAvantHome(ville: Ville): void {
+    const targetId = ville.id ?? (ville as any).idVille;
+    if (!targetId) return;
+    const newStatus = !ville.misEnAvantHome;
+    const updated = { ...ville, misEnAvantHome: newStatus };
+    this.villeService.updateVille(targetId, updated).subscribe({
+      next: () => {
+        ville.misEnAvantHome = newStatus;
+        this.showNotification(`"${ville.nom}" ${newStatus ? 'mise en avant sur le carrousel du Home' : 'retirée du carrousel du Home'}.`);
+        this.cdr.markForCheck();
+      },
+      error: () => this.showNotification('Erreur mise à jour carrousel Home.', true)
+    });
   }
 
   getCityFallbackImage(nom?: string, region?: string): string {

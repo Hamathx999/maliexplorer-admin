@@ -30,11 +30,13 @@ export class SidebarComponent {
 
   navItems: NavItem[] = [
     { label: 'Tableau de bord', route: '/dashboard', icon: 'dashboard' },
+    { label: 'Gestion diaporama', route: '/home-slides', icon: 'image' },
     { label: 'Événements', route: '/evenements', icon: 'calendar' },
     { label: 'Les régions', route: '/regions', icon: 'map' },
     { label: 'Les villes', route: '/villes', icon: 'building' },
     { label: 'Lieux historiques', route: '/lieux-historiques', icon: 'landmark' },
     { label: 'Les ethnies', route: '/ethnies', icon: 'users' },
+    { label: 'Les religions', route: '/religions', icon: 'sun' },
     { label: 'Les plats', route: '/plats', icon: 'utensils' },
     { label: 'Les ingredients', route: '/ingredients', icon: 'carrot' },
     { label: 'Les quiz', route: '/quiz', icon: 'help-circle' },

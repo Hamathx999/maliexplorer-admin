@@ -227,8 +227,8 @@ export class EthniesComponent implements OnInit {
   }
 
   onEdit(ethnie: Ethnie): void {
-    this.editingEthnieId = ethnie.id ?? null;
-    this.nom = ethnie.nom || '';
+    this.editingEthnieId = ethnie.id ?? (ethnie as any).idEthnie ?? null;
+    this.nom = ethnie.nom || (ethnie as any).nomEthnie || '';
     this.langues = ethnie.langues || '';
     this.region = ethnie.region || ethnie.ville || '';
     this.population = (ethnie as any).population || '';
@@ -248,11 +248,12 @@ export class EthniesComponent implements OnInit {
   }
 
   onDelete(ethnie: Ethnie): void {
-    if (!ethnie.id) return;
-    if (window.confirm(`Supprimer l'ethnie "${ethnie.nom}" ?`)) {
-      this.ethnieService.deleteEthnie(ethnie.id).subscribe({
+    const ethnieId = ethnie.id ?? (ethnie as any).idEthnie;
+    if (!ethnieId) return;
+    if (window.confirm(`Supprimer l'ethnie "${ethnie.nom || (ethnie as any).nomEthnie}" ?`)) {
+      this.ethnieService.deleteEthnie(ethnieId).subscribe({
         next: () => {
-          this.showNotification(`Ethnie "${ethnie.nom}" supprimée.`);
+          this.showNotification(`Ethnie "${ethnie.nom || (ethnie as any).nomEthnie}" supprimée.`);
           this.loadEthnies();
         },
         error: () => this.showNotification('Erreur de suppression.', true)

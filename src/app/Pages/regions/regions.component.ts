@@ -103,17 +103,18 @@ export class RegionsComponent implements OnInit {
   }
 
   onEdit(region: Region): void {
-    this.editingRegionId = region.id ?? null;
+    this.editingRegionId = region.id ?? (region as any).idRegion ?? null;
     this.regionName = region.nom;
     this.isEditing = true;
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   onDelete(region: Region): void {
-    if (!region.id) return;
+    const targetId = region.id ?? (region as any).idRegion;
+    if (!targetId) return;
     const confirmDelete = window.confirm(`Voulez-vous vraiment supprimer la région "${region.nom}" ?`);
     if (confirmDelete) {
-      this.regionService.deleteRegion(region.id).subscribe({
+      this.regionService.deleteRegion(targetId).subscribe({
         next: () => {
           this.showNotification(`Région "${region.nom}" supprimée.`);
           this.loadRegions();

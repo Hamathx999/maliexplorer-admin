@@ -24,6 +24,7 @@ export class UtilisateursComponent implements OnInit {
   filteredUsers: User[] = [];
   searchTerm: string = '';
   selectedRole: string = 'TOUS';
+  imageLoadErrors: Record<string, boolean> = {};
 
   // Role selector for add/edit form (Touriste, Promoteur, Guide)
   activeRoleTab: 'Touriste' | 'Promoteur' | 'Guide' = 'Touriste';
@@ -272,6 +273,13 @@ export class UtilisateursComponent implements OnInit {
     this.router.navigate(['/utilisateurs']);
   }
 
+  onAvatarError(key: number | string | undefined): void {
+    if (key != null) {
+      this.imageLoadErrors[String(key)] = true;
+      this.cdr.markForCheck();
+    }
+  }
+
   getAvatarColor(name: string): { bg: string; color: string } {
     const palette = [
       { bg: '#E8F5E9', color: '#1B5E20' },
@@ -299,12 +307,15 @@ export class UtilisateursComponent implements OnInit {
 
     this.formData.role = this.activeRoleTab;
 
-    if (this.editingUser && this.editingUser.id) {
-      this.userService.updateUser(this.editingUser.id, this.formData as User).subscribe({
+    const editingId = this.editingUser?.id ?? (this.editingUser as any)?.idUsers ?? this.formData?.id ?? (this.formData as any)?.idUsers;
+
+    if (editingId) {
+      this.userService.updateUser(editingId, this.formData as User).subscribe({
         next: (updated) => {
-          const idx = this.utilisateurs.findIndex((u) => String(u.id) === String(updated.id));
+          const updatedId = updated?.id ?? (updated as any)?.idUsers ?? editingId;
+          const idx = this.utilisateurs.findIndex((u) => String(u.id ?? (u as any).idUsers) === String(updatedId));
           if (idx !== -1) {
-            this.utilisateurs[idx] = updated;
+            this.utilisateurs[idx] = { ...updated, id: updatedId };
           } else {
             this.loadUsers();
           }
@@ -324,11 +335,12 @@ export class UtilisateursComponent implements OnInit {
   }
 
   deleteUser(user: User): void {
-    if (!user.id) return;
+    const userId = user?.id ?? (user as any)?.idUsers;
+    if (!userId) return;
     if (confirm(`Confirmez-vous la suppression du compte "${user.email}" ?`)) {
-      this.userService.deleteUser(user.id).subscribe({
+      this.userService.deleteUser(userId).subscribe({
         next: () => {
-          this.utilisateurs = this.utilisateurs.filter((u) => String(u.id) !== String(user.id));
+          this.utilisateurs = this.utilisateurs.filter((u) => String(u.id ?? (u as any).idUsers) !== String(userId));
           this.filterUsers();
         }
       });

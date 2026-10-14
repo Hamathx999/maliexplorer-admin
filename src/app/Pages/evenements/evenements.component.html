@@ -48,6 +48,21 @@
                   </td>
                   <td>
                     <div class="figma-action-cell" (click)="$event.stopPropagation()">
+                      @if (evt.statut !== 'APPROUVE' && evt.statut !== 'VALIDE') {
+                        <button type="button" class="figma-icon-btn approve" (click)="approve(evt)" title="Approuver l'événement">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                          </svg>
+                        </button>
+                      }
+                      @if (evt.statut !== 'REFUSE') {
+                        <button type="button" class="figma-icon-btn reject" (click)="reject(evt)" title="Rejeter l'événement">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                          </svg>
+                        </button>
+                      }
                       <button type="button" class="figma-icon-btn edit" (click)="startEdit(evt)" title="Modifier">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                           <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
@@ -84,17 +99,17 @@
 
       <div class="figma-form-grid">
         <div class="figma-form-group">
-          <label class="figma-label">Nom de l'événement</label>
-          <input type="text" class="figma-input" [(ngModel)]="formData.titre" placeholder="Ex: Festival sur le Niger" required />
+          <label class="figma-label">Nom de l'événement *</label>
+          <input type="text" class="figma-input" [(ngModel)]="formData.titre" placeholder="Ex: Festival International sur le Niger" required />
         </div>
 
         <div class="figma-form-group">
           <label class="figma-label">Catégorie</label>
-          <input type="text" class="figma-input" [(ngModel)]="formData.categorie" placeholder="Ex: Festival Culturel" />
+          <input type="text" class="figma-input" [(ngModel)]="formData.categorie" placeholder="Ex: Festival Culturel / Salon / Foire" />
         </div>
 
         <div class="figma-form-group">
-          <label class="figma-label">Date de début</label>
+          <label class="figma-label">Date de début *</label>
           <input type="text" class="figma-input" [(ngModel)]="formData.dateDebut" placeholder="Ex: 01 Fév 2026" required />
         </div>
 
@@ -104,35 +119,112 @@
         </div>
 
         <div class="figma-form-group">
-          <label class="figma-label">Lieu</label>
-          <input type="text" class="figma-input" [(ngModel)]="formData.lieu" placeholder="Ex: Quai des Arts" />
+          <label class="figma-label">Heure de début</label>
+          <input type="text" class="figma-input" [(ngModel)]="formData.heureDebut" placeholder="Ex: 09:00" />
+        </div>
+
+        <div class="figma-form-group">
+          <label class="figma-label">Heure de fin</label>
+          <input type="text" class="figma-input" [(ngModel)]="formData.heureFin" placeholder="Ex: 23:00" />
+        </div>
+
+        <div class="figma-form-group">
+          <label class="figma-label">Lieu précis</label>
+          <input type="text" class="figma-input" [(ngModel)]="formData.lieu" placeholder="Ex: Quai des Arts / Palais de la Culture" />
         </div>
 
         <div class="figma-form-group">
           <label class="figma-label">Ville</label>
-          <input type="text" class="figma-input" [(ngModel)]="formData.ville" placeholder="Ex: Ségou" />
+          <input type="text" class="figma-input" [(ngModel)]="formData.ville" placeholder="Ex: Ségou / Bamako" />
         </div>
 
         <div class="figma-form-group">
-          <label class="figma-label">Organisateur</label>
-          <input type="text" class="figma-input" [(ngModel)]="formData.nomOrganisateur" placeholder="Ex: Fondation Festival sur le Niger" />
+          <label class="figma-label">Nom de l'organisation / Promoteur</label>
+          <input type="text" class="figma-input" [(ngModel)]="formData.nomOrganisateur" placeholder="Ex: Agence Culture & Tourisme Mali" />
         </div>
 
         <div class="figma-form-group">
-          <label class="figma-label">Tarif</label>
+          <label class="figma-label">Email de contact du promoteur</label>
+          <input type="email" class="figma-input" [(ngModel)]="formData.emailOrganisateur" placeholder="Ex: contact@organisation.ml" />
+        </div>
+
+        <div class="figma-form-group">
+          <label class="figma-label">Téléphone du promoteur</label>
+          <input type="tel" class="figma-input" [(ngModel)]="formData.telephoneOrganisateur" placeholder="Ex: +223 70 00 00 00" />
+        </div>
+
+        <div class="figma-form-group">
+          <label class="figma-label">Tarif d'accès / Billetterie</label>
           <input type="text" class="figma-input" [(ngModel)]="formData.prix" placeholder="Ex: Gratuit ou 2000 FCFA" />
         </div>
       </div>
 
       <div class="figma-form-group">
-        <label class="figma-label">Description</label>
-        <textarea rows="3" class="figma-textarea" [(ngModel)]="formData.description" placeholder="Description de l'événement..."></textarea>
+        <label class="figma-label">Description du projet et déroulement</label>
+        <textarea rows="3" class="figma-textarea" [(ngModel)]="formData.description" placeholder="Objectifs culturels, artistes invités, déroulement et programme..."></textarea>
+      </div>
+
+      <!-- Affiche / Image illustrative avec upload Supabase -->
+      <div class="figma-form-group" style="margin-top: 14px;">
+        <label class="figma-label">Affiche ou photo descriptive de l'événement</label>
+        <input #afficheFileInput type="file" accept="image/png,image/jpeg,image/webp" style="display: none;" (change)="onAffichePicked($event)" />
+
+        @if (formData.afficheUrl) {
+          <div style="display: flex; align-items: center; gap: 16px; background: #F8FAFC; border: 1.5px solid #E2E8F0; border-radius: 12px; padding: 12px 16px;">
+            <img [src]="formData.afficheUrl" alt="Affiche" style="width: 60px; height: 60px; border-radius: 8px; object-fit: cover; border: 2px solid #075E4D; flex-shrink: 0;" />
+            <div style="flex: 1; min-width: 0;">
+              <p style="font-size: 13px; font-weight: 600; color: #1E293B; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ selectedAfficheName || 'Affiche officielle' }}</p>
+              <p style="font-size: 11.5px; color: #0E8F76; margin: 2px 0 0 0; font-weight: 500;">Hébergée sur Supabase Storage</p>
+            </div>
+            <button type="button" class="figma-btn-browse" style="padding: 6px 12px; font-size: 12px;" (click)="afficheFileInput.click()">
+              Changer
+            </button>
+            <button type="button" class="figma-icon-btn delete" (click)="removeAffiche()" title="Supprimer l'affiche">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+            </button>
+          </div>
+        } @else {
+          <div
+            class="figma-dropzone"
+            [class.dragging]="isDragging"
+            (dragover)="onDragOver($event)"
+            (dragleave)="onDragLeave($event)"
+            (drop)="onDrop($event)"
+            (click)="afficheFileInput.click()"
+            style="padding: 18px 14px; border: 2px dashed #CBD5E1; border-radius: 12px; text-align: center; cursor: pointer; transition: all 0.2s;"
+          >
+            <div class="figma-dropzone-icon-box" style="margin: 0 auto 8px auto; width: 40px; height: 40px; border-radius: 50%; background: #E8F4F0; display: flex; align-items: center; justify-content: center; color: #075E4D;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+            </div>
+            <p class="figma-dropzone-text" style="font-size: 13px; font-weight: 600; color: #1E293B; margin: 0 0 4px 0;">Sélectionner ou glisser l'affiche de l'événement</p>
+            <p class="figma-dropzone-hint" style="font-size: 11.5px; color: #64748B; margin: 0 0 10px 0;">JPG, PNG, WEBP (téléversement automatique Supabase)</p>
+            <button type="button" class="figma-btn-browse" style="padding: 6px 14px; font-size: 12px;" (click)="$event.stopPropagation(); afficheFileInput.click()">
+              Parcourir les fichiers
+            </button>
+          </div>
+        }
+
+        @if (isUploadingAffiche) {
+          <div style="margin-top: 8px;">
+            <span style="font-size: 12px; color: #0E8F76; font-weight: 600;">Téléversement vers Supabase en cours...</span>
+            <div style="height: 4px; background: #E2E8F0; border-radius: 2px; overflow: hidden; margin-top: 4px;">
+              <div style="height: 100%; background: #075E4D; width: 100%; animation: pulse 1.5s infinite;"></div>
+            </div>
+          </div>
+        }
       </div>
     </div>
 
     <div class="figma-form-actions">
       <button type="button" class="figma-btn-cancel" (click)="cancelEdit()">Annuler</button>
-      <button type="button" class="figma-btn-primary" (click)="saveEvenement()">
+      <button type="button" class="figma-btn-primary" (click)="saveEvenement()" [disabled]="isUploadingAffiche">
         {{ editingEvenement ? 'Modifier l\'événement' : 'Ajouter l\'événement' }}
       </button>
     </div>

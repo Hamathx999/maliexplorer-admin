@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs';
 import { EvenementService } from '../../services/evenement.service';
+import { UploadService } from '../../services/upload.service';
 import { Evenement } from '../../models/evenement.model';
 
 @Component({
@@ -15,6 +16,7 @@ import { Evenement } from '../../models/evenement.model';
 })
 export class EvenementsComponent implements OnInit {
   private readonly evenementService = inject(EvenementService);
+  private readonly uploadService = inject(UploadService);
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
 
@@ -25,6 +27,10 @@ export class EvenementsComponent implements OnInit {
 
   isEditing: boolean = false;
   editingEvenement: Evenement | null = null;
+  isUploadingAffiche: boolean = false;
+  isDragging: boolean = false;
+  selectedAfficheName: string = '';
+
   formData: Partial<Evenement> = {
     titre: '',
     nomOrganisateur: '',
@@ -40,7 +46,9 @@ export class EvenementsComponent implements OnInit {
     categorie: 'Festival Culturel',
     statut: 'APPROUVE',
     description: '',
-    prix: 'Gratuit'
+    prix: 'Gratuit',
+    afficheUrl: '',
+    imageUrl: ''
   };
 
   ngOnInit(): void {
@@ -96,6 +104,7 @@ export class EvenementsComponent implements OnInit {
 
   startAdd(): void {
     this.editingEvenement = null;
+    this.selectedAfficheName = '';
     this.formData = {
       titre: '',
       nomOrganisateur: '',
@@ -111,15 +120,79 @@ export class EvenementsComponent implements OnInit {
       categorie: 'Festival Culturel',
       statut: 'APPROUVE',
       description: '',
-      prix: 'Gratuit'
+      prix: 'Gratuit',
+      afficheUrl: '',
+      imageUrl: ''
     };
     this.isEditing = true;
     this.router.navigate(['/evenements/ajouter']);
   }
 
+  onAffichePicked(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files[0]) {
+      this.uploadAffiche(input.files[0]);
+    }
+  }
+
+  onDragOver(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragging = true;
+  }
+
+  onDragLeave(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragging = false;
+  }
+
+  onDrop(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragging = false;
+    if (event.dataTransfer?.files && event.dataTransfer.files[0]) {
+      this.uploadAffiche(event.dataTransfer.files[0]);
+    }
+  }
+
+  private uploadAffiche(file: File): void {
+    if (!file.type.startsWith('image/')) {
+      alert('Veuillez sélectionner un fichier image valide (JPG, PNG, WEBP).');
+      return;
+    }
+    this.isUploadingAffiche = true;
+    this.selectedAfficheName = file.name;
+    this.cdr.markForCheck();
+
+    const evtId = this.editingEvenement?.id ?? (this.editingEvenement as any)?.idEvenement;
+    this.uploadService.uploadImage(file, 'evenements', 'EVENEMENT', evtId ?? undefined).subscribe({
+      next: (url) => {
+        this.formData.afficheUrl = url;
+        this.formData.imageUrl = url;
+        this.isUploadingAffiche = false;
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        console.error('Erreur téléversement affiche événement:', err);
+        this.isUploadingAffiche = false;
+        alert(err.message || 'Erreur lors du téléversement de l’affiche.');
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  removeAffiche(): void {
+    this.formData.afficheUrl = '';
+    this.formData.imageUrl = '';
+    this.selectedAfficheName = '';
+    this.cdr.markForCheck();
+  }
+
   startEdit(evt: Evenement): void {
     this.editingEvenement = evt;
     this.formData = { ...evt };
+    this.selectedAfficheName = '';
     this.isEditing = true;
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -127,6 +200,7 @@ export class EvenementsComponent implements OnInit {
   cancelEdit(): void {
     this.isEditing = false;
     this.editingEvenement = null;
+    this.selectedAfficheName = '';
     this.router.navigate(['/evenements']);
   }
 
@@ -136,10 +210,13 @@ export class EvenementsComponent implements OnInit {
       return;
     }
 
-    if (this.editingEvenement && this.editingEvenement.id) {
-      this.evenementService.updateEvenement(this.editingEvenement.id, this.formData as Evenement).subscribe({
+    const editingId = this.editingEvenement?.id ?? (this.editingEvenement as any)?.idEvenement ?? this.formData?.id ?? (this.formData as any)?.idEvenement;
+
+    if (editingId) {
+      this.evenementService.updateEvenement(editingId, this.formData as Evenement).subscribe({
         next: (updated) => {
-          const idx = this.evenements.findIndex((e) => e.id === updated.id);
+          const updatedId = updated?.id ?? (updated as any)?.idEvenement ?? editingId;
+          const idx = this.evenements.findIndex((e) => (e.id ?? (e as any).idEvenement) === updatedId);
           if (idx !== -1) this.evenements[idx] = updated;
           this.filterEvenements();
           this.cancelEdit();
@@ -157,8 +234,9 @@ export class EvenementsComponent implements OnInit {
   }
 
   approve(evt: Evenement): void {
-    if (!evt.id) return;
-    this.evenementService.approveEvenement(evt.id).subscribe({
+    const evtId = evt?.id ?? (evt as any)?.idEvenement;
+    if (!evtId) return;
+    this.evenementService.approveEvenement(evtId).subscribe({
       next: () => {
         evt.statut = 'APPROUVE';
         this.filterEvenements();
@@ -167,9 +245,10 @@ export class EvenementsComponent implements OnInit {
   }
 
   reject(evt: Evenement): void {
-    if (!evt.id) return;
+    const evtId = evt?.id ?? (evt as any)?.idEvenement;
+    if (!evtId) return;
     const motif = prompt('Veuillez indiquer le motif du refus (optionnel) :');
-    this.evenementService.rejectEvenement(evt.id, motif || undefined).subscribe({
+    this.evenementService.rejectEvenement(evtId, motif || undefined).subscribe({
       next: () => {
         evt.statut = 'REFUSE';
         this.filterEvenements();
@@ -178,16 +257,17 @@ export class EvenementsComponent implements OnInit {
   }
 
   goToValidation(evt: Evenement): void {
-    const id = evt.id ?? 1;
+    const id = evt?.id ?? (evt as any)?.idEvenement ?? 1;
     this.router.navigate(['/validation-evenement', id]);
   }
 
   deleteEvenement(evt: Evenement): void {
-    if (!evt.id) return;
+    const evtId = evt?.id ?? (evt as any)?.idEvenement;
+    if (!evtId) return;
     if (confirm(`Confirmez-vous la suppression de l'événement "${evt.titre}" ?`)) {
-      this.evenementService.deleteEvenement(evt.id).subscribe({
+      this.evenementService.deleteEvenement(evtId).subscribe({
         next: () => {
-          this.evenements = this.evenements.filter((e) => e.id !== evt.id);
+          this.evenements = this.evenements.filter((e) => (e.id ?? (e as any).idEvenement) !== evtId);
           this.filterEvenements();
         }
       });

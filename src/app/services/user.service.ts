@@ -188,10 +188,18 @@ export class UserService {
       pieceIdentite: user.pieceIdentite?.trim() || '',
       nomOrganisation: user.nomOrganisation?.trim() || '',
       role: this.mapRoleToBackend(user.role),
+      statut: user.statut || 'ACTIF',
       points: user.points ?? 0
     };
 
     return this.http.post<any>(this.apiUrl, payload).pipe(
+      map((res) => {
+        const mapped = this.mapUser(res);
+        const current = this.getLocalUsers();
+        current.unshift(mapped);
+        this.saveLocalUsers(current);
+        return mapped;
+      }),
       catchError((error) => {
         console.warn('API Spring Boot non joignable, enregistrement local utilisateur :', error);
         const newUser: User = {
@@ -218,10 +226,21 @@ export class UserService {
       pieceIdentite: user.pieceIdentite?.trim() || '',
       nomOrganisation: user.nomOrganisation?.trim() || '',
       role: this.mapRoleToBackend(user.role),
+      statut: user.statut || 'ACTIF',
       points: user.points ?? 0
     };
 
     return this.http.put<any>(`${this.apiUrl}/${id}`, payload).pipe(
+      map((res) => {
+        const mapped = this.mapUser(res);
+        const current = this.getLocalUsers();
+        const index = current.findIndex((u) => String(u.id) === String(id));
+        if (index !== -1) {
+          current[index] = mapped;
+          this.saveLocalUsers(current);
+        }
+        return mapped;
+      }),
       catchError((error) => {
         console.warn('API Spring Boot non joignable, mise à jour locale utilisateur :', error);
         const current = this.getLocalUsers();

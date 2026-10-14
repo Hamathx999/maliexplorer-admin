@@ -358,12 +358,15 @@ export class PlatsComponent implements OnInit {
       ingredients: this.getSelectedIngredientObjects().map((i) => i.nom || i.nomPlat || '')
     } as Plat;
 
-    if (this.editingPlat && this.editingPlat.id) {
-      this.platService.updatePlat(this.editingPlat.id, platToSave).subscribe({
+    const editingId = this.editingPlat?.id ?? (this.editingPlat as any)?.idPlat ?? this.formData?.id ?? (this.formData as any)?.idPlat;
+
+    if (editingId) {
+      this.platService.updatePlat(editingId, platToSave).subscribe({
         next: (updated) => {
-          const idx = this.plats.findIndex((p) => String(p.id) === String(updated.id));
+          const updatedId = updated.id ?? (updated as any).idPlat ?? editingId;
+          const idx = this.plats.findIndex((p) => String(p.id ?? (p as any).idPlat) === String(updatedId));
           if (idx !== -1) {
-            this.plats[idx] = updated;
+            this.plats[idx] = { ...updated, id: updatedId };
           } else {
             this.loadPlats();
           }
@@ -391,12 +394,17 @@ export class PlatsComponent implements OnInit {
   }
 
   deletePlat(plat: Plat): void {
-    if (!plat.id) return;
+    const platId = plat?.id ?? (plat as any)?.idPlat;
+    if (!platId) return;
     if (confirm(`Confirmez-vous la suppression du plat traditionnel "${plat.nom}" ?`)) {
-      this.platService.deletePlat(plat.id).subscribe({
+      this.platService.deletePlat(platId).subscribe({
         next: () => {
-          this.plats = this.plats.filter((p) => String(p.id) !== String(plat.id));
+          this.plats = this.plats.filter((p) => String(p.id ?? (p as any).idPlat) !== String(platId));
           this.filterPlats();
+        },
+        error: (err) => {
+          console.error('Erreur suppression plat', err);
+          alert('Impossible de supprimer le plat.');
         }
       });
     }

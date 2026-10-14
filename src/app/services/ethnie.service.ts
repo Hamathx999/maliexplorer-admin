@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of, catchError } from 'rxjs';
+import { Observable, of, catchError, map } from 'rxjs';
 import { Ethnie } from '../models/ethnie.model';
 import { environment } from '../../environments/environment';
 
@@ -110,7 +110,16 @@ export class EthnieService {
   }
 
   getEthnies(): Observable<Ethnie[]> {
-    return this.http.get<Ethnie[]>(this.apiUrl).pipe(
+    return this.http.get<any[]>(this.apiUrl).pipe(
+      map((data: any[]) =>
+        Array.isArray(data)
+          ? data.map((e) => ({
+              ...e,
+              id: e.id ?? e.idEthnie,
+              nom: e.nom ?? e.nomEthnie ?? 'Ethnie'
+            }))
+          : []
+      ),
       catchError((error) => {
         console.warn('API Spring Boot non disponible pour les ethnies, utilisation du stockage local :', error);
         return of(this.getLocalEthnies());
@@ -119,7 +128,12 @@ export class EthnieService {
   }
 
   getEthnieById(id: number | string): Observable<Ethnie> {
-    return this.http.get<Ethnie>(`${this.apiUrl}/${id}`).pipe(
+    return this.http.get<any>(`${this.apiUrl}/${id}`).pipe(
+      map((e: any) => ({
+        ...e,
+        id: e.id ?? e.idEthnie,
+        nom: e.nom ?? e.nomEthnie ?? 'Ethnie inconnue'
+      })),
       catchError(() => {
         const local = this.getLocalEthnies();
         const found = local.find((e) => String(e.id) === String(id));

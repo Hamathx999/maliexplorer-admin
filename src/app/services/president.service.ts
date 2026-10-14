@@ -101,10 +101,11 @@ export class PresidentService {
   }
 
   getPresidents(): Observable<President[]> {
-    return this.http.get<President[]>(this.apiUrl).pipe(
-      map((data: President[]) =>
+    return this.http.get<any[]>(this.apiUrl).pipe(
+      map((data: any[]) =>
         data.map((p) => ({
           ...p,
+          id: p.id ?? p.idPresident,
           periode: p.periodeMandat || p.periode || '',
           periodeMandat: p.periodeMandat || p.periode || ''
         }))
@@ -117,16 +118,17 @@ export class PresidentService {
   }
 
   getPresidentById(id: number | string): Observable<President> {
-    return this.http.get<President>(`${this.apiUrl}/${id}`).pipe(
-      map((p: President) => ({
+    return this.http.get<any>(`${this.apiUrl}/${id}`).pipe(
+      map((p: any) => ({
         ...p,
+        id: p.id ?? p.idPresident,
         periode: p.periodeMandat || p.periode || '',
         periodeMandat: p.periodeMandat || p.periode || ''
       })),
       catchError(() => {
         const local = this.getLocalPresidents();
         const found = local.find((p) => String(p.id) === String(id));
-        return of(found ?? { id, nom: 'Chef d\'État', periode: '', prenom: '' });
+        return of(found ?? { id, nom: 'Chef d\'État' });
       })
     );
   }

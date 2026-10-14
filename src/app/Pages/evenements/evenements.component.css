@@ -362,3 +362,25 @@
   color: #ffffff;
 }
 
+.figma-icon-btn.approve {
+  color: #16a34a;
+  border-color: #dcfce7;
+  background-color: #f0fdf4;
+}
+
+.figma-icon-btn.approve:hover {
+  background-color: #16a34a;
+  color: #ffffff;
+}
+
+.figma-icon-btn.reject {
+  color: #dc2626;
+  border-color: #fee2e2;
+  background-color: #fef2f2;
+}
+
+.figma-icon-btn.reject:hover {
+  background-color: #dc2626;
+  color: #ffffff;
+}
+

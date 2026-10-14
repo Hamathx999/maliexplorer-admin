@@ -34,14 +34,15 @@
               <th>Description</th>
               <th>Région</th>
               <th>Nombre habitant</th>
+              <th>Carrousel Home</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             @if (isLoading) {
-              <tr><td colspan="6" style="text-align: center; padding: 24px; color: #64748B;">Chargement des villes...</td></tr>
+              <tr><td colspan="7" style="text-align: center; padding: 24px; color: #64748B;">Chargement des villes...</td></tr>
             } @else if (villes.length === 0) {
-              <tr><td colspan="6" style="text-align: center; padding: 24px; color: #64748B;">Aucune ville trouvée.</td></tr>
+              <tr><td colspan="7" style="text-align: center; padding: 24px; color: #64748B;">Aucune ville trouvée.</td></tr>
             } @else {
               @for (ville of villes; track ville.id ?? ville.nom) {
                 <tr>
@@ -57,6 +58,11 @@
                   <td style="color: #64748B; max-width: 320px;">{{ ville.description || 'Description sur la ville de ' + ville.nom }}</td>
                   <td>{{ ville.region }}</td>
                   <td>{{ ville.population || '—' }}</td>
+                  <td>
+                    <button type="button" class="figma-pill-btn" [class.pill-active]="ville.misEnAvantHome" [class.pill-inactive]="!ville.misEnAvantHome" (click)="toggleMisEnAvantHome(ville)" title="Cliquer pour afficher ou masquer du carrousel de l'accueil">
+                      {{ ville.misEnAvantHome ? '★ En avant' + (ville.ordreHome ? ' (#' + ville.ordreHome + ')' : '') : 'Masqué' }}
+                    </button>
+                  </td>
                   <td>
                     <div class="figma-action-cell">
                       <button type="button" class="figma-icon-btn edit" (click)="onEdit(ville)" title="Modifier">
@@ -123,7 +129,28 @@
 
         <div class="figma-form-group">
           <label class="figma-label" for="descVille">Description</label>
-          <textarea id="descVille" class="figma-textarea" rows="4" placeholder="Description sur la ville..." [(ngModel)]="description"></textarea>
+          <textarea id="descVille" class="figma-textarea" rows="3" placeholder="Description sur la ville..." [(ngModel)]="description"></textarea>
+        </div>
+
+        <!-- Section Carrousel Continu du Home -->
+        <div class="figma-home-box" style="background: #F8FAFC; border: 1px dashed #CBD5E1; border-radius: 8px; padding: 14px; margin-top: 14px;">
+          <h4 style="font-size: 13.5px; font-weight: 700; color: #075E4D; margin: 0 0 10px 0;">Carrousel Continu du Home (Accueil)</h4>
+          <label class="checkbox-label" style="margin-bottom: 10px; display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="checkbox" [(ngModel)]="misEnAvantHome" />
+            <span style="font-size: 13px; font-weight: 600; color: #1E293B;">Mettre en avant cette ville dans le carrousel continu de l'accueil</span>
+          </label>
+
+          @if (misEnAvantHome) {
+            <div class="figma-form-group" style="margin-bottom: 10px;">
+              <label class="figma-label" for="ordreHome">Ordre d'affichage dans le carrousel</label>
+              <input id="ordreHome" type="number" class="figma-input" placeholder="Ex: 1, 2, 3..." [(ngModel)]="ordreHome" />
+            </div>
+
+            <div class="figma-form-group" style="margin-bottom: 0;">
+              <label class="figma-label" for="legendeHome">Légende / Surnom court pour la carte</label>
+              <input id="legendeHome" type="text" class="figma-input" placeholder="Ex: La cité aux 333 saints ou La Venise malienne" [(ngModel)]="legende" />
+            </div>
+          }
         </div>
       </div>
 

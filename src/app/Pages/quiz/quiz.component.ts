@@ -224,17 +224,23 @@ export class QuizComponent implements OnInit {
       logoUrl: img
     } as Quiz;
 
-    if (this.editingQuiz && this.editingQuiz.id) {
-      this.quizService.updateQuiz(this.editingQuiz.id, quizToSave).subscribe({
+    const editingId = this.editingQuiz?.id ?? (this.editingQuiz as any)?.idQuiz ?? this.formData.id ?? (this.formData as any)?.idQuiz;
+
+    if (this.editingQuiz && editingId) {
+      this.quizService.updateQuiz(editingId, quizToSave).subscribe({
         next: (updated) => {
-          const idx = this.quizList.findIndex((q) => String(q.id) === String(updated.id));
+          const idx = this.quizList.findIndex((q) => String(q.id ?? (q as any).idQuiz) === String(editingId));
           if (idx !== -1) {
-            this.quizList[idx] = updated;
+            this.quizList[idx] = { ...this.quizList[idx], ...updated, id: editingId };
           } else {
             this.loadQuiz();
           }
           this.filterQuiz();
           this.cancelEdit();
+        },
+        error: (err) => {
+          console.error('Erreur mise à jour quiz:', err);
+          alert('Erreur lors de la modification du quiz : ' + (err?.error?.message || err.message));
         }
       });
     } else {
@@ -243,18 +249,27 @@ export class QuizComponent implements OnInit {
           this.quizList.unshift(created);
           this.filterQuiz();
           this.cancelEdit();
+        },
+        error: (err) => {
+          console.error('Erreur création quiz:', err);
+          alert('Erreur lors de la création du quiz : ' + (err?.error?.message || err.message));
         }
       });
     }
   }
 
   deleteQuiz(quiz: Quiz): void {
-    if (!quiz.id) return;
+    const id = quiz.id ?? (quiz as any).idQuiz;
+    if (!id) return;
     if (confirm(`Confirmez-vous la suppression du quiz "${quiz.nomQuiz}" ?`)) {
-      this.quizService.deleteQuiz(quiz.id).subscribe({
+      this.quizService.deleteQuiz(id).subscribe({
         next: () => {
-          this.quizList = this.quizList.filter((q) => String(q.id) !== String(quiz.id));
+          this.quizList = this.quizList.filter((q) => String(q.id ?? (q as any).idQuiz) !== String(id));
           this.filterQuiz();
+        },
+        error: (err) => {
+          console.error('Erreur suppression quiz:', err);
+          alert('Impossible de supprimer ce quiz : ' + (err?.error?.message || err.message));
         }
       });
     }

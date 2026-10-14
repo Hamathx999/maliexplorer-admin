@@ -1,0 +1,268 @@
+<div class="page-container">
+  @if (successMessage) {
+    <div class="toast toast-success">
+      <span>{{ successMessage }}</span>
+    </div>
+  }
+  @if (errorMessage) {
+    <div class="toast toast-error">
+      <span>{{ errorMessage }}</span>
+    </div>
+  }
+
+  <!-- VUE 1 : LISTE DES RELIGIONS -->
+  @if (!isEditing) {
+    <div class="figma-list-topbar">
+      <div class="topbar-info">
+        <h2 class="section-heading">Module des Religions & Spiritualités au Mali</h2>
+        <p class="section-subheading">Gestion documentée des cultes, statistiques officielles (RGPH-5 / INSTAT 2022) et du vivre-ensemble malien.</p>
+      </div>
+      <button type="button" class="figma-btn-header-add" (click)="startAdd()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        Ajouter une religion / culte
+      </button>
+    </div>
+
+    <!-- Bannière statistique de référence -->
+    <div class="stats-overview-card">
+      <div class="stats-header">
+        <span class="stats-badge-tag">Données Démographiques Officielles</span>
+        <span class="stats-source-ref">RGPH-5 INSTAT 2022 & Rapport International sur la Liberté Religieuse (US State Dept 2023)</span>
+      </div>
+      <div class="stats-bars-container">
+        @for (r of religions; track r.id) {
+          @if (r.estPublie && r.pourcentageEstime > 0) {
+            <div class="stat-pill">
+              <span class="stat-name">{{ r.nom }}</span>
+              <span class="stat-pct">{{ r.pourcentageEstime }}%</span>
+            </div>
+          }
+        }
+      </div>
+    </div>
+
+    <div class="figma-card">
+      <h3 class="figma-card-title-center">Religions et Spiritualités Enregistrées</h3>
+
+      <div class="table-responsive">
+        <table class="figma-table">
+          <thead>
+            <tr>
+              <th style="width: 50px;">Ordre</th>
+              <th style="width: 80px;">Visuel</th>
+              <th>Culte / Religion</th>
+              <th>Part estimée</th>
+              <th>Source & Année</th>
+              <th>Courants / Branches</th>
+              <th>Statut</th>
+              <th style="width: 140px;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @if (isLoading) {
+              <tr><td colspan="8" style="text-align: center; padding: 24px; color: #64748B;">Chargement des religions...</td></tr>
+            } @else if (religions.length === 0) {
+              <tr><td colspan="8" style="text-align: center; padding: 24px; color: #64748B;">Aucune religion enregistrée.</td></tr>
+            } @else {
+              @for (rel of religions; track rel.id) {
+                <tr [class.row-inactive]="!rel.estPublie">
+                  <td><strong>#{{ rel.ordreAffichage }}</strong></td>
+                  <td>
+                    <div class="thumb-wrapper">
+                      @if (rel.imageUrl) {
+                        <img [src]="rel.imageUrl" [alt]="rel.nom" class="slide-thumb" />
+                      } @else {
+                        <div class="no-img-placeholder">🕊️</div>
+                      }
+                    </div>
+                  </td>
+                  <td>
+                    <strong style="color: #0F172A; font-size: 14px;">{{ rel.nom }}</strong>
+                    <p class="desc-snippet">{{ rel.descriptionHistorique }}</p>
+                  </td>
+                  <td>
+                    <span class="badge-pct">{{ rel.pourcentageEstime }}%</span>
+                  </td>
+                  <td style="color: #64748B; font-size: 12px; max-width: 180px;">
+                    <div>{{ rel.sourceStatistique || 'RGPH-5 INSTAT' }}</div>
+                    <strong>Année : {{ rel.anneeStatistique || 2022 }}</strong>
+                  </td>
+                  <td style="max-width: 180px;">
+                    @if (rel.courantsOuBranches && rel.courantsOuBranches.length > 0) {
+                      <div class="branches-tags">
+                        @for (b of rel.courantsOuBranches; track b) {
+                          <span class="branch-tag">{{ b }}</span>
+                        }
+                      </div>
+                    } @else {
+                      <span style="color: #94A3B8;">—</span>
+                    }
+                  </td>
+                  <td>
+                    <button type="button" class="badge-status-btn" [class.badge-active]="rel.estPublie" [class.badge-inactive]="!rel.estPublie" (click)="togglePublication(rel)" title="Cliquer pour publier / masquer">
+                      {{ rel.estPublie ? 'Publié' : 'Brouillon' }}
+                    </button>
+                  </td>
+                  <td>
+                    <div class="figma-action-cell">
+                      <button type="button" class="figma-icon-btn edit" (click)="onEdit(rel)" title="Modifier">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                        </svg>
+                      </button>
+                      <button type="button" class="figma-icon-btn delete" (click)="onDelete(rel)" title="Supprimer">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <polyline points="3 6 5 6 21 6"></polyline>
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+
+  <!-- VUE 2 : FORMULAIRE D'ÉDITION / AJOUT -->
+  @if (isEditing) {
+    <div class="figma-add-header">
+      <button type="button" class="btn-back" (click)="cancelEdit()">
+        ← Retour à la liste des religions
+      </button>
+      <h2 class="figma-add-title">{{ editingReligionId ? 'Modifier la religion' : 'Ajouter une religion ou spiritualité' }}</h2>
+      <p class="figma-add-subtitle">
+        Documentez avec rigueur l'histoire, la sociologie, les courants, les fêtes et les statistiques de la spiritualité au Mali.
+      </p>
+    </div>
+
+    <div class="figma-two-col-layout">
+      <!-- Colonne Gauche : Données historiques & sociologiques -->
+      <div class="figma-card">
+        <h3 class="figma-section-title">Informations Générales & Statistiques</h3>
+
+        <div class="form-row-duo">
+          <div class="figma-form-group">
+            <label class="figma-label" for="nomRel">Nom de la religion *</label>
+            <input id="nomRel" type="text" class="figma-input" placeholder="Ex: Islam, Christianisme..." [(ngModel)]="nom" />
+          </div>
+
+          <div class="figma-form-group">
+            <label class="figma-label" for="pctRel">Part estimée (%) *</label>
+            <input id="pctRel" type="number" step="0.1" class="figma-input" placeholder="Ex: 94.8" [(ngModel)]="pourcentageEstime" />
+          </div>
+        </div>
+
+        <div class="form-row-duo">
+          <div class="figma-form-group">
+            <label class="figma-label" for="sourceRel">Source statistique</label>
+            <input id="sourceRel" type="text" class="figma-input" placeholder="Ex: RGPH-5 INSTAT / US State Dept" [(ngModel)]="sourceStatistique" />
+          </div>
+
+          <div class="figma-form-group">
+            <label class="figma-label" for="anneeRel">Année de référence</label>
+            <input id="anneeRel" type="number" class="figma-input" placeholder="2022" [(ngModel)]="anneeStatistique" />
+          </div>
+        </div>
+
+        <div class="figma-form-group">
+          <label class="figma-label" for="descRel">Histoire & Implantation au Mali *</label>
+          <textarea id="descRel" class="figma-textarea" rows="4" placeholder="Historique documenté de la religion au Mali (siècles d'introduction, empires, grandes figures, tolérance...)" [(ngModel)]="descriptionHistorique"></textarea>
+        </div>
+
+        <div class="figma-form-group">
+          <label class="figma-label" for="branchesRel">Courants, Confréries ou Branches (séparés par des virgules)</label>
+          <input id="branchesRel" type="text" class="figma-input" placeholder="Ex: Malikisme, Tijaniyya, Qadiriyya, Hamallisme" [(ngModel)]="courantsInput" />
+        </div>
+
+        <div class="figma-form-group">
+          <label class="figma-label" for="fetesRel">Pratiques, Célébrations et Fêtes Majeures</label>
+          <textarea id="fetesRel" class="figma-textarea" rows="3" placeholder="Ex: Maouloud, Tabaski, Korité, Pâques, Noël, Rites ancestraux..." [(ngModel)]="pratiquesEtFetes"></textarea>
+        </div>
+
+        <div class="figma-form-group">
+          <label class="figma-label" for="lieuxRel">Lieux Emblématiques & Édifices</label>
+          <input id="lieuxRel" type="text" class="figma-input" placeholder="Ex: Grande Mosquée de Djenné, Cathédrale de Bamako, Sanctuaire de Kita..." [(ngModel)]="lieuxEmblematiques" />
+        </div>
+
+        <div class="form-row-duo">
+          <div class="figma-form-group">
+            <label class="figma-label" for="ordreRel">Ordre d'affichage</label>
+            <input id="ordreRel" type="number" class="figma-input" [(ngModel)]="ordreAffichage" />
+          </div>
+
+          <div class="figma-form-group" style="display: flex; align-items: center; padding-top: 24px;">
+            <label class="checkbox-label">
+              <input type="checkbox" [(ngModel)]="estPublie" />
+              <span>Publier immédiatement sur l'application mobile</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn-cancel" (click)="cancelEdit()">Annuler</button>
+          <button type="button" class="btn-submit" (click)="onSubmit()">
+            {{ editingReligionId ? 'Mettre à jour' : 'Enregistrer la religion' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Colonne Droite : Image d'illustration -->
+      <div class="figma-upload-card">
+        <h4 class="figma-upload-title">Image d'illustration (Supabase Storage)</h4>
+        <p class="figma-upload-subtitle">Sélectionnez une photo représentative de l'architecture, du patrimoine ou de la célébration.</p>
+
+        <input #fileInput type="file" accept="image/png,image/jpeg,image/webp" style="display: none;" (change)="onFilePicked($event)" />
+
+        @if (imageUrl) {
+          <div class="preview-box">
+            <img [src]="imageUrl" alt="Aperçu religion" class="preview-img" />
+            <div class="preview-overlay">
+              <span class="preview-hero-label">{{ nom || 'Religion' }}</span>
+              <span class="preview-hero-sub">{{ pourcentageEstime }}% de la population malienne</span>
+            </div>
+            <button type="button" class="btn-change-img" (click)="fileInput.click()">Changer l'image</button>
+          </div>
+        } @else {
+          <div
+            class="figma-dropzone"
+            [class.dragging]="isDragging"
+            (dragover)="onDragOver($event)"
+            (dragleave)="onDragLeave($event)"
+            (drop)="onDrop($event)"
+            (click)="fileInput.click()"
+          >
+            @if (isUploading) {
+              <div class="upload-loader">
+                <span class="spinner"></span>
+                <span>Téléversement vers Supabase Storage...</span>
+              </div>
+            } @else {
+              <div class="dropzone-content">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#075E4D" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                <p class="dropzone-text"><strong>Cliquez ici</strong> ou glissez une photo</p>
+                <span class="dropzone-hint">PNG, JPG, WEBP jusqu'à 10 Mo</span>
+              </div>
+            }
+          </div>
+        }
+
+        <div class="figma-form-group" style="margin-top: 16px;">
+          <label class="figma-label" for="manualUrlRel">Ou URL directe :</label>
+          <input id="manualUrlRel" type="text" class="figma-input" placeholder="https://..." [(ngModel)]="imageUrl" />
+        </div>
+      </div>
+    </div>
+  }
+</div>
+

@@ -13,6 +13,8 @@ import { QuestionsComponent } from './Pages/questions/questions.component';
 import { PlatsComponent } from './Pages/plats/plats.component';
 import { IngredientsComponent } from './Pages/ingredients/ingredients.component';
 import { LoginComponent } from './Pages/login/login.component';
+import { HomeSlidesComponent } from './Pages/home-slides/home-slides.component';
+import { ReligionsComponent } from './Pages/religions/religions.component';
 import { authGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
@@ -191,6 +193,30 @@ export const routes: Routes = [
     component: VillesComponent,
     canActivate: [authGuard],
     title: 'Ajouter une Ville - MaliExplorer Admin'
+  },
+  {
+    path: 'home-slides',
+    component: HomeSlidesComponent,
+    canActivate: [authGuard],
+    title: 'Diaporama du Home - MaliExplorer Admin'
+  },
+  {
+    path: 'home-slides/ajouter',
+    component: HomeSlidesComponent,
+    canActivate: [authGuard],
+    title: 'Ajouter une Diapositive - MaliExplorer Admin'
+  },
+  {
+    path: 'religions',
+    component: ReligionsComponent,
+    canActivate: [authGuard],
+    title: 'Gestion des Religions & Spiritualités - MaliExplorer Admin'
+  },
+  {
+    path: 'religions/ajouter',
+    component: ReligionsComponent,
+    canActivate: [authGuard],
+    title: 'Ajouter une Religion - MaliExplorer Admin'
   },
   {
     path: '**',

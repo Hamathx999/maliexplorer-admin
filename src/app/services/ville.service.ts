@@ -56,6 +56,14 @@ export class VilleService {
     );
   }
 
+  getHomeVilles(): Observable<Ville[]> {
+    return this.http.get<Ville[]>(`${this.apiUrl}/home`).pipe(
+      catchError(() => {
+        return of(this.getLocalVilles().filter(v => v.misEnAvantHome));
+      })
+    );
+  }
+
   getVillesByRegion(regionName: string): Observable<Ville[]> {
     return this.http.get<Ville[]>(`${this.apiUrl}?region=${encodeURIComponent(regionName)}`).pipe(
       catchError(() => {

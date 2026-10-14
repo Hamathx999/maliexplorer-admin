@@ -35,11 +35,18 @@
                 <tr>
                   <td>
                     <div style="display: flex; align-items: center; gap: 12px;">
-                      <div [style.background]="getAvatarColor((user.prenom || '') + ' ' + (user.nom || '')).bg"
-                           [style.color]="getAvatarColor((user.prenom || '') + ' ' + (user.nom || '')).color"
-                           style="width: 36px; height: 36px; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0;">
-                        {{ user.prenom?.charAt(0) || user.nom.charAt(0) || 'U' }}
-                      </div>
+                      @if (user.photoUrl && !imageLoadErrors[user.id ?? user.email]) {
+                        <img [src]="user.photoUrl"
+                             [alt]="(user.prenom || '') + ' ' + (user.nom || '')"
+                             (error)="onAvatarError(user.id ?? user.email)"
+                             style="width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 2px solid #E2E8F0; flex-shrink: 0;" />
+                      } @else {
+                        <div [style.background]="getAvatarColor((user.prenom || '') + ' ' + (user.nom || '')).bg"
+                             [style.color]="getAvatarColor((user.prenom || '') + ' ' + (user.nom || '')).color"
+                             style="width: 38px; height: 38px; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; border: 1.5px solid rgba(0,0,0,0.06);">
+                          {{ user.prenom?.charAt(0) || user.nom.charAt(0) || 'U' }}
+                        </div>
+                      }
                       <strong>{{ user.prenom }} {{ user.nom }}</strong>
                     </div>
                   </td>

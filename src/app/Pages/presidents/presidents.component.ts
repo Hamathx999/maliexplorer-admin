@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs';
 import { PresidentService } from '../../services/president.service';
+import { UploadService } from '../../services/upload.service';
 import { President } from '../../models/president.model';
 
 @Component({
@@ -14,6 +15,7 @@ import { President } from '../../models/president.model';
 })
 export class PresidentsComponent implements OnInit {
   private readonly presidentService = inject(PresidentService);
+  private readonly uploadService = inject(UploadService);
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
 
@@ -23,9 +25,13 @@ export class PresidentsComponent implements OnInit {
   periode: string = '';
   titre: string = '';
   biographie: string = '';
+  photoUrl: string = '';
   editingPresidentId: number | string | null = null;
   isEditing: boolean = false;
   isLoading: boolean = false;
+  isUploadingPhoto: boolean = false;
+  isDragging: boolean = false;
+  selectedFileName: string = '';
   successMessage: string = '';
   errorMessage: string = '';
 
@@ -76,8 +82,69 @@ export class PresidentsComponent implements OnInit {
     this.periode = '';
     this.titre = '';
     this.biographie = '';
+    this.photoUrl = '';
+    this.selectedFileName = '';
     this.isEditing = true;
     this.router.navigate(['/presidents/ajouter']);
+  }
+
+  onFilePicked(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files[0]) {
+      this.uploadPresidentPhoto(input.files[0]);
+    }
+  }
+
+  onDragOver(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragging = true;
+  }
+
+  onDragLeave(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragging = false;
+  }
+
+  onDrop(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragging = false;
+    if (event.dataTransfer?.files && event.dataTransfer.files[0]) {
+      this.uploadPresidentPhoto(event.dataTransfer.files[0]);
+    }
+  }
+
+  private uploadPresidentPhoto(file: File): void {
+    if (!file.type.startsWith('image/')) {
+      this.showNotification('Veuillez sélectionner un fichier image valide (JPG, PNG, WEBP).', true);
+      return;
+    }
+    this.isUploadingPhoto = true;
+    this.selectedFileName = file.name;
+    this.cdr.markForCheck();
+
+    this.uploadService.uploadImage(file, 'presidents', 'PRESIDENT', this.editingPresidentId ?? undefined).subscribe({
+      next: (url) => {
+        this.photoUrl = url;
+        this.isUploadingPhoto = false;
+        this.showNotification('Photo de profil téléversée avec succès sur Supabase.');
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        console.error('Erreur téléversement photo président:', err);
+        this.isUploadingPhoto = false;
+        this.showNotification(err.message || 'Erreur lors du téléversement de la photo.', true);
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  removePhoto(): void {
+    this.photoUrl = '';
+    this.selectedFileName = '';
+    this.cdr.markForCheck();
   }
 
   loadPresidents(): void {
@@ -115,7 +182,8 @@ export class PresidentsComponent implements OnInit {
       periode: periode,
       periodeMandat: periode,
       titre: (this.titre || '').trim(),
-      biographie: (this.biographie || '').trim()
+      biographie: (this.biographie || '').trim(),
+      photoUrl: (this.photoUrl || '').trim()
     };
 
     if (this.editingPresidentId !== null) {
@@ -140,20 +208,22 @@ export class PresidentsComponent implements OnInit {
   }
 
   onEdit(president: President): void {
-    this.editingPresidentId = president.id ?? null;
+    this.editingPresidentId = president.id ?? (president as any).idPresident ?? null;
     this.nom = president.nom || '';
     this.prenom = president.prenom || '';
     this.periode = president.periodeMandat || president.periode || '';
     this.titre = president.titre || '';
     this.biographie = president.biographie || '';
+    this.photoUrl = president.photoUrl || president.imageUrl || '';
     this.isEditing = true;
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   onDelete(president: President): void {
-    if (!president.id) return;
+    const presId = president.id ?? (president as any).idPresident;
+    if (!presId) return;
     if (window.confirm(`Supprimer "${president.nom}" ?`)) {
-      this.presidentService.deletePresident(president.id).subscribe({
+      this.presidentService.deletePresident(presId).subscribe({
         next: () => {
           this.showNotification(`Chef d'État "${president.nom}" supprimé.`);
           this.loadPresidents();
@@ -169,6 +239,10 @@ export class PresidentsComponent implements OnInit {
     this.periode = '';
     this.titre = '';
     this.biographie = '';
+    this.photoUrl = '';
+    this.selectedFileName = '';
+    this.isUploadingPhoto = false;
+    this.isDragging = false;
     this.editingPresidentId = null;
     this.isEditing = false;
     this.router.navigate(['/presidents']);

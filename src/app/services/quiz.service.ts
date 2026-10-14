@@ -105,6 +105,7 @@ export class QuizService {
 
   getQuizList(): Observable<Quiz[]> {
     return this.http.get<any[]>(this.apiUrl).pipe(
+      map((list) => (Array.isArray(list) ? list.map((dto) => this.mapQuiz(dto)) : [])),
       catchError((error) => {
         console.warn('API Spring Boot non disponible pour les quiz, utilisation du stockage local :', error);
         return of(this.getLocalQuizList());
@@ -184,11 +185,18 @@ export class QuizService {
 
   deleteQuiz(id: number | string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`).pipe(
-      catchError((error) => {
-        console.warn('API Spring Boot non joignable, suppression locale du quiz :', error);
+      map(() => {
         const current = this.getLocalQuizList().filter((q) => String(q.id) !== String(id));
         this.saveLocalQuizList(current);
-        return of(void 0);
+      }),
+      catchError((error) => {
+        if (error.status === 0) {
+          console.warn('API Spring Boot non joignable, suppression locale du quiz :', error);
+          const current = this.getLocalQuizList().filter((q) => String(q.id) !== String(id));
+          this.saveLocalQuizList(current);
+          return of(void 0);
+        }
+        throw error;
       })
     );
   }

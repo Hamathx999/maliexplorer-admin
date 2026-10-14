@@ -9,4 +9,7 @@ export interface Ville {
   cordonnees?: string;
   imageUrl?: string;
   images?: string[];
+  misEnAvantHome?: boolean;
+  ordreHome?: number;
+  legende?: string;
 }
