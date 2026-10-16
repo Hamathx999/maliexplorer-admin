@@ -206,9 +206,9 @@
         </div>
 
         <div class="form-actions">
-          <button type="button" class="btn-cancel" (click)="cancelEdit()">Annuler</button>
-          <button type="button" class="btn-submit" (click)="onSubmit()">
-            {{ editingReligionId ? 'Mettre à jour' : 'Enregistrer la religion' }}
+          <button type="button" class="btn-cancel" (click)="cancelEdit()" [disabled]="isSubmitting">Annuler</button>
+          <button type="button" class="btn-submit" (click)="onSubmit()" [disabled]="isSubmitting || isUploading">
+            {{ isSubmitting ? 'Enregistrement...' : (editingReligionId ? 'Mettre à jour' : 'Enregistrer la religion') }}
           </button>
         </div>
       </div>

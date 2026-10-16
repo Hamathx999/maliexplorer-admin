@@ -10,7 +10,7 @@ export interface User {
   avatar?: string;
   photoUrl?: string;
   pieceIdentite?: string;
-  // Promoteur fields
+  // Champs spécifiques aux Promoteurs
   nomOrganisation?: string;
   adresseOrganisation?: string;
   piecesJustificatifs?: string;
@@ -19,9 +19,11 @@ export interface User {
   dateEvenement?: string;
   descriptionEvenement?: string;
   photosEvenement?: string[];
-  // Guide fields
+  // Champs spécifiques aux Guides
   langues?: string;
   experience?: number;
+  description?: string;
+  statutModeration?: 'VALIDE' | 'EN_ATTENTE' | 'EN_ATTENTE_VALIDATION' | 'REJETE' | string;
   statut?: 'ACTIF' | 'BLOQUE' | 'EN_ATTENTE' | string;
   points?: number;
   dateInscription?: string;

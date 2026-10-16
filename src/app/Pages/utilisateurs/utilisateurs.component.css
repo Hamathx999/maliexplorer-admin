@@ -686,3 +686,52 @@
   cursor: pointer;
   text-decoration: underline;
 }
+
+/* Modération des Guides */
+.moderation-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 10px;
+  margin-left: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.mod-valide {
+  background-color: #D1FAE5;
+  color: #065F46;
+}
+
+.mod-attente {
+  background-color: #FEF3C7;
+  color: #92400E;
+}
+
+.mod-rejete {
+  background-color: #FEE2E2;
+  color: #991B1B;
+}
+
+.figma-icon-btn.approve {
+  color: #059669;
+  background: #ECFDF5;
+}
+
+.figma-icon-btn.approve:hover {
+  background: #D1FAE5;
+  color: #047857;
+}
+
+.figma-icon-btn.reject {
+  color: #DC2626;
+  background: #FEF2F2;
+}
+
+.figma-icon-btn.reject:hover {
+  background: #FEE2E2;
+  color: #B91C1C;
+}
+

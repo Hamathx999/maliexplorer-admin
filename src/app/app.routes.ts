@@ -15,6 +15,9 @@ import { IngredientsComponent } from './Pages/ingredients/ingredients.component'
 import { LoginComponent } from './Pages/login/login.component';
 import { HomeSlidesComponent } from './Pages/home-slides/home-slides.component';
 import { ReligionsComponent } from './Pages/religions/religions.component';
+import { AdministrateursComponent } from './Pages/administrateurs/administrateurs.component';
+import { PartenairesComponent } from './Pages/partenaires/partenaires.component';
+import { DemandesPartenariatComponent } from './Pages/demandes-partenariat/demandes-partenariat.component';
 import { authGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
@@ -96,6 +99,17 @@ export const routes: Routes = [
     component: UtilisateursComponent,
     canActivate: [authGuard],
     title: 'Ajouter un Utilisateur - MaliExplorer Admin'
+  },
+  {
+    path: 'guides',
+    redirectTo: 'utilisateurs',
+    pathMatch: 'full'
+  },
+  {
+    path: 'administrateurs',
+    component: AdministrateursComponent,
+    canActivate: [authGuard],
+    title: 'Gestion des Administrateurs - MaliExplorer Admin'
   },
   {
     path: 'evenements',
@@ -217,6 +231,18 @@ export const routes: Routes = [
     component: ReligionsComponent,
     canActivate: [authGuard],
     title: 'Ajouter une Religion - MaliExplorer Admin'
+  },
+  {
+    path: 'partenaires',
+    component: PartenairesComponent,
+    canActivate: [authGuard],
+    title: 'Gestion des Partenaires - MaliExplorer Admin'
+  },
+  {
+    path: 'demandes-partenariat',
+    component: DemandesPartenariatComponent,
+    canActivate: [authGuard],
+    title: 'Demandes de Partenariat - MaliExplorer Admin'
   },
   {
     path: '**',

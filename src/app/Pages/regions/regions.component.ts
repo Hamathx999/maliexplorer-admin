@@ -22,6 +22,7 @@ export class RegionsComponent implements OnInit {
   regionName: string = '';
   editingRegionId: number | string | null = null;
   isEditing: boolean = false;
+  isSubmitting: boolean = false;
   isLoading: boolean = false;
   successMessage: string = '';
   errorMessage: string = '';
@@ -71,31 +72,39 @@ export class RegionsComponent implements OnInit {
   }
 
   onSubmit(): void {
+    if (this.isSubmitting) return;
+
     const trimmedName = this.regionName.trim();
     if (!trimmedName) {
       this.showNotification('Veuillez saisir le nom de la région.', true);
       return;
     }
 
+    this.isSubmitting = true;
+
     if (this.editingRegionId !== null) {
       this.regionService.updateRegion(this.editingRegionId, { nom: trimmedName }).subscribe({
         next: () => {
+          this.isSubmitting = false;
           this.showNotification(`Région "${trimmedName}" mise à jour avec succès.`);
           this.resetForm();
           this.loadRegions();
         },
         error: () => {
+          this.isSubmitting = false;
           this.showNotification('Erreur lors de la mise à jour de la région.', true);
         }
       });
     } else {
       this.regionService.createRegion({ nom: trimmedName }).subscribe({
         next: () => {
+          this.isSubmitting = false;
           this.showNotification(`Région "${trimmedName}" ajoutée avec succès.`);
           this.resetForm();
           this.loadRegions();
         },
         error: () => {
+          this.isSubmitting = false;
           this.showNotification("Erreur lors de l'ajout de la région.", true);
         }
       });
@@ -130,6 +139,7 @@ export class RegionsComponent implements OnInit {
     this.regionName = '';
     this.editingRegionId = null;
     this.isEditing = false;
+    this.isSubmitting = false;
     this.router.navigate(['/regions']);
   }
 

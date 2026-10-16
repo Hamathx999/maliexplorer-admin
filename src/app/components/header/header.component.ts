@@ -58,6 +58,12 @@ export class HeaderComponent implements OnInit {
     if (url.includes('/validation-evenement') || url.includes('/evenements/validation')) {
       this.title = 'Modération d\'Événements';
       this.subtitle = 'Espace de validation et d\'examen des contributions des promoteurs.';
+    } else if (url.includes('/demandes-partenariat')) {
+      this.title = 'Demandes de Partenariat';
+      this.subtitle = 'Examinez et modérez les opportunités et dossiers de partenariats soumis.';
+    } else if (url.includes('/partenaires')) {
+      this.title = 'Gestion des Partenaires';
+      this.subtitle = 'Supervisez et collaborez avec les acteurs professionnels et culturels du Mali.';
     } else if (url.includes('/plats')) {
       this.title = 'Gestion des plats';
       this.subtitle = "Bienvenue dans l'administration des spécialités gastronomiques !";
@@ -91,6 +97,15 @@ export class HeaderComponent implements OnInit {
     } else if (url.includes('/utilisateurs')) {
       this.title = 'Gestion des utilisateurs';
       this.subtitle = "Bienvenue dans l'administration de MaliExplorer !";
+    } else if (url.includes('/administrateurs')) {
+      this.title = 'Gestion des administrateurs';
+      this.subtitle = "Administration des privilèges et accès d'administration MaliExplorer.";
+    } else if (url.includes('/home-slides')) {
+      this.title = 'Diaporama du Home';
+      this.subtitle = "Gestion des diapositives en vedette de l'application mobile.";
+    } else if (url.includes('/religions')) {
+      this.title = 'Gestion des religions & spiritualités';
+      this.subtitle = "Administration des croyances et du patrimoine spirituel malien.";
     } else {
       this.title = 'Tableau de bord';
       this.subtitle = "Bienvenue dans l'administration de MaliExplorer !";

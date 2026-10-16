@@ -1,10 +1,10 @@
 <div class="validation-page">
-  <!-- Toast Notification -->
+  <!-- Notification Toast -->
   <div *ngIf="actionMessage" class="toast-notification" [class.success]="actionSuccess" [class.danger]="!actionSuccess">
     {{ actionMessage }}
   </div>
 
-  <!-- Header Section -->
+  <!-- Section En-tête -->
   <div class="submission-header">
     <div class="submission-title-row">
       <h2 class="submission-title">Examen de la soumission</h2>
@@ -17,12 +17,12 @@
     </p>
   </div>
 
-  <!-- Card: Attributs de l'Événement -->
+  <!-- Carte : Attributs de l'Événement -->
   @if (selectedEvenement) {
     <div class="attributes-card">
       <h3 class="card-section-title">Attributs de l'Événement</h3>
 
-      <!-- Field 1: nomEvenement (String) -->
+      <!-- Champ 1 : nomEvenement (String) -->
       <div class="form-group-full">
         <label class="field-label">nomEvenement (String)</label>
         <input
@@ -33,7 +33,7 @@
         />
       </div>
 
-      <!-- Row 2: dateEvenement (Date) & lieu (String) -->
+      <!-- Ligne 2 : dateEvenement (Date) & lieu (String) -->
       <div class="form-row-two-cols">
         <div class="form-group">
           <label class="field-label">dateEvenement (Date)</label>
@@ -57,7 +57,7 @@
       </div>
     </div>
 
-    <!-- Actions Footer -->
+    <!-- Pied d'actions -->
     <div class="actions-footer">
       <button type="button" class="btn-return" (click)="returnToList()">
         Retourner à la liste

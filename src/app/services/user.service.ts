@@ -13,70 +13,17 @@ export class UserService {
 
   private readonly STORAGE_KEY = 'maliexplorer_users_custom';
 
-  private fallbackUsers: User[] = [
-    {
-      id: 1,
-      nom: 'Traoré',
-      prenom: 'Amadou',
-      email: 'amadou.traore@maliexplorer.ml',
-      role: 'Administrateur',
-      statut: 'ACTIF',
-      points: 850,
-      dateInscription: '12 janv. 2026'
-    },
-    {
-      id: 2,
-      nom: 'Coulibaly',
-      prenom: 'Fatoumata',
-      email: 'fatou.coulibaly@gmail.com',
-      role: 'Explorateur',
-      statut: 'ACTIF',
-      points: 1240,
-      dateInscription: '18 févr. 2026'
-    },
-    {
-      id: 3,
-      nom: 'Diallo',
-      prenom: 'Oumar',
-      email: 'oumar.diallo@yahoo.fr',
-      role: 'Guide Local',
-      statut: 'ACTIF',
-      points: 620,
-      dateInscription: '05 mars 2026'
-    },
-    {
-      id: 4,
-      nom: 'Cissé',
-      prenom: 'Aïssata',
-      email: 'aissata.cisse@orange.ml',
-      role: 'Explorateur',
-      statut: 'EN_ATTENTE',
-      points: 150,
-      dateInscription: '29 mars 2026'
-    },
-    {
-      id: 5,
-      nom: 'Keïta',
-      prenom: 'Bakary',
-      email: 'bakary.keita@gmail.com',
-      role: 'Promoteur',
-      statut: 'ACTIF',
-      points: 980,
-      dateInscription: '10 avr. 2026'
-    }
-  ];
-
   private getLocalUsers(): User[] {
     try {
       const stored = localStorage.getItem(this.STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) return parsed;
       }
     } catch (e) {
       console.warn('Erreur lecture localStorage utilisateurs', e);
     }
-    return [...this.fallbackUsers];
+    return [];
   }
 
   private saveLocalUsers(users: User[]): void {
@@ -94,7 +41,6 @@ export class UserService {
     if (r.includes('GUIDE')) return 'Guide Local';
     if (r.includes('EXPLORATEUR') || r.includes('TOURISTE')) return 'Explorateur';
     if (r.includes('PROMOTEUR')) return 'Promoteur';
-    if (r.includes('ARTISAN')) return 'Artisan';
     if (r.includes('PARTENAIRE')) return 'Partenaire';
     return 'Visiteur';
   }
@@ -134,6 +80,8 @@ export class UserService {
       photosEvenement: dto.photosEvenement,
       langues: dto.langues || dto.langue,
       experience: dto.experience,
+      description: dto.description || dto.descriptionEvenement,
+      statutModeration: dto.statutModeration,
       dateInscription: dateStr || 'Récemment inscrit'
     };
   }
@@ -169,7 +117,6 @@ export class UserService {
     if (r.includes('super')) return 'superAdmin';
     if (r.includes('admin')) return 'admin';
     if (r.includes('guide')) return 'guide';
-    if (r.includes('artisan')) return 'artisan';
     if (r.includes('promoteur')) return 'promoteur';
     if (r.includes('partenaire')) return 'partenaire';
     if (r.includes('investisseur')) return 'investisseur';

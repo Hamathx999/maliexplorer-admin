@@ -12,7 +12,7 @@ export class HomeSlideService {
   private readonly apiUrl = `${environment.apiUrl}/home-slides`;
 
   getAllSlides(): Observable<HomeSlide[]> {
-    return this.http.get<HomeSlide[]>(this.apiUrl);
+    return this.http.get<HomeSlide[]>(`${this.apiUrl}/all`);
   }
 
   getActiveSlides(): Observable<HomeSlide[]> {

@@ -13,57 +13,6 @@ export class QuizService {
 
   private readonly STORAGE_KEY = 'maliexplorer_quiz_custom';
 
-  private fallbackQuizList: Quiz[] = [
-    {
-      id: 1,
-      nomQuiz: 'Quiz Culture Malienne',
-      points: 50,
-      description: 'Testez vos connaissances sur les traditions et les valeurs du Mali.'
-    },
-    {
-      id: 2,
-      nomQuiz: 'Quiz Histoire du Mali',
-      points: 40,
-      description: "Découvrez les épopées médiévales et la charte de Kouroukan Fouga."
-    },
-    {
-      id: 3,
-      nomQuiz: 'Quiz Géographie Sahélienne',
-      points: 30,
-      description: 'Les fleuves, falaises, déserts et grandes cités du Mali.'
-    },
-    {
-      id: 4,
-      nomQuiz: 'Quiz Gastronomie Malienne',
-      points: 25,
-      description: 'Les ingrédients emblématiques et les recettes ancestrales.'
-    },
-    {
-      id: 5,
-      nomQuiz: 'Quiz Musique & Instruments',
-      points: 35,
-      description: 'La kora, le balafon, le ngoni et les grands maîtres de la musique.'
-    },
-    {
-      id: 6,
-      nomQuiz: 'Quiz Monuments & Patrimoine',
-      points: 45,
-      description: 'Les mosquées en terre de Djenné, les tombeaux et manuscrits de Tombouctou.'
-    },
-    {
-      id: 7,
-      nomQuiz: 'Quiz Ethnies & Coutumes',
-      points: 30,
-      description: 'Le cousinage à plaisanterie (Sinankunya) et la richesse des peuples.'
-    },
-    {
-      id: 8,
-      nomQuiz: 'Quiz Faune & Flore du Mali',
-      points: 20,
-      description: 'Les éléphants du Gourma, les baobabs géants et la biodiversité.'
-    }
-  ];
-
   private getLocalQuizList(): Quiz[] {
     try {
       const stored = localStorage.getItem(this.STORAGE_KEY);
@@ -74,7 +23,7 @@ export class QuizService {
     } catch (e) {
       console.warn('Erreur lecture localStorage quiz', e);
     }
-    return [...this.fallbackQuizList];
+    return [];
   }
 
   private saveLocalQuizList(list: Quiz[]): void {
@@ -107,8 +56,8 @@ export class QuizService {
     return this.http.get<any[]>(this.apiUrl).pipe(
       map((list) => (Array.isArray(list) ? list.map((dto) => this.mapQuiz(dto)) : [])),
       catchError((error) => {
-        console.warn('API Spring Boot non disponible pour les quiz, utilisation du stockage local :', error);
-        return of(this.getLocalQuizList());
+        console.warn('API Spring Boot non disponible pour les quiz :', error);
+        return of([]);
       })
     );
   }

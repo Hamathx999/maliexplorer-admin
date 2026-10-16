@@ -13,81 +13,6 @@ export class EthnieService {
 
   private readonly STORAGE_KEY = 'maliexplorer_ethnies_custom';
 
-  private fallbackEthnies: Ethnie[] = [
-    {
-      id: 1,
-      nom: 'Bambara (Bamana)',
-      langues: 'Bambara (Bamanankan)',
-      region: 'Ségou, Koulikoro, Bamako',
-      populationEstimee: '33% de la population',
-      description: 'Le groupe ethnique le plus important du Mali, réputé pour son riche patrimoine agraire, les masques Ciwara et la tradition orale des griots.'
-    },
-    {
-      id: 2,
-      nom: 'Peul (Fulani / Fula)',
-      langues: 'Peul (Fulfulde)',
-      region: 'Mopti, Ségou, Gao',
-      populationEstimee: '14% de la population',
-      description: 'Peuple pasteur emblématique du delta central du Niger, réputé pour son élevage, sa poésie pastorale et ses parures d’or et d’ambre.'
-    },
-    {
-      id: 3,
-      nom: 'Dogon',
-      langues: 'Langues dogon (Toro So, Tommo So)',
-      region: 'Bandiagara, Mopti',
-      populationEstimee: '9% de la population',
-      description: 'Célèbres pour leur cosmogonie complexe, leurs falaises classées au patrimoine de l’UNESCO, leurs danses de masques et leur architecture de pierre et banco.'
-    },
-    {
-      id: 4,
-      nom: 'Songhaï',
-      langues: 'Songhaï (Koyraboro Senni)',
-      region: 'Gao, Tombouctou',
-      populationEstimee: '7% de la population',
-      description: 'Héritiers du grand Empire Songhaï, peuple commerçant et lettré riverain du fleuve Niger aux manuscrits séculaires.'
-    },
-    {
-      id: 5,
-      nom: 'Soninké (Sarakolé)',
-      langues: 'Soninké',
-      region: 'Kayes, Nara, Koulikoro',
-      populationEstimee: '8% de la population',
-      description: 'Fondateurs du légendaire Empire du Ghana (Wagadou), reconnus pour leur maîtrise historique du commerce transsaharien.'
-    },
-    {
-      id: 6,
-      nom: 'Malinké (Maninka)',
-      langues: 'Malinké (Maninkakan)',
-      region: 'Koulikoro, Kita, Kayes',
-      populationEstimee: '6% de la population',
-      description: 'Bâtisseurs de l’Empire du Mali avec Soundiata Keïta, détenteurs de la Charte de Kouroukan Fouga (patrimoine mondial immatériel).'
-    },
-    {
-      id: 7,
-      nom: 'Touareg (Kel Tamasheq)',
-      langues: 'Tamasheq',
-      region: 'Kidal, Ménaka, Tombouctou, Gao',
-      populationEstimee: '3% de la population',
-      description: 'Peuple nomade du Sahara, maîtres de l’artisanat du cuir et de l’argent, vêtus du tagelmust bleu indigo.'
-    },
-    {
-      id: 8,
-      nom: 'Sénoufo',
-      langues: 'Sénoufo (Senari)',
-      region: 'Sikasso',
-      populationEstimee: '9% de la population',
-      description: 'Artisans du bois, sculpteurs de masques et virtuoses du balafon, vivant dans le sud verdoyant du Mali.'
-    },
-    {
-      id: 9,
-      nom: 'Bozo',
-      langues: 'Bozo',
-      region: 'Mopti, Ségou',
-      populationEstimee: '2% de la population',
-      description: 'Les « maîtres de l’eau », pêcheurs et navigateurs ancestraux du fleuve Niger.'
-    }
-  ];
-
   private getLocalEthnies(): Ethnie[] {
     try {
       const stored = localStorage.getItem(this.STORAGE_KEY);
@@ -98,7 +23,7 @@ export class EthnieService {
     } catch (e) {
       console.warn('Erreur lecture localStorage ethnies', e);
     }
-    return [...this.fallbackEthnies];
+    return [];
   }
 
   private saveLocalEthnies(ethnies: Ethnie[]): void {
@@ -121,8 +46,8 @@ export class EthnieService {
           : []
       ),
       catchError((error) => {
-        console.warn('API Spring Boot non disponible pour les ethnies, utilisation du stockage local :', error);
-        return of(this.getLocalEthnies());
+        console.warn('API Spring Boot non disponible pour les ethnies :', error);
+        return of([]);
       })
     );
   }

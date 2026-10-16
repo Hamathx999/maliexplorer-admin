@@ -1,26 +1,49 @@
 <div class="dashboard-container">
-  <!-- 1. KPI Cards Grid -->
+  <!-- 1. Grille des 5 Cartes KPI Supérieures -->
   <section class="kpi-grid">
-    @for (card of kpiCards; track card.label) {
-      <div class="kpi-card">
+    @for (card of kpiCards; track card.id) {
+      <div class="kpi-card" [class.kpi-card-alert]="card.isAlert">
         <div class="kpi-info">
           <span class="kpi-label">{{ card.label }}</span>
           <h3 class="kpi-value">{{ card.value }}</h3>
-          <!-- <span class="kpi-trend">
-            <svg class="trend-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <line x1="7" y1="17" x2="17" y2="7"></line>
-              <polyline points="7 7 17 7 17 17"></polyline>
-            </svg>
-            {{ card.trend }}
-          </span> -->
+          <span class="kpi-trend" [class.trend-positive]="card.deltaType === 'positive'" [class.trend-warning]="card.deltaType === 'warning'">
+            @if (card.deltaType === 'positive') {
+              <svg class="trend-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="7" y1="17" x2="17" y2="7"></line>
+                <polyline points="7 7 17 7 17 17"></polyline>
+              </svg>
+            } @else if (card.deltaType === 'warning') {
+              <svg class="trend-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+            }
+            {{ card.delta }}
+          </span>
         </div>
 
         <div class="kpi-icon-wrapper" [style.background-color]="card.iconBg">
           @switch (card.icon) {
-            @case ('user') {
+            @case ('layers') {
               <svg viewBox="0 0 24 24" fill="none" [attr.stroke]="card.iconColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                <circle cx="12" cy="7" r="4"></circle>
+                <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                <polyline points="2 17 12 22 22 17"></polyline>
+                <polyline points="2 12 12 17 22 12"></polyline>
+              </svg>
+            }
+            @case ('clock') {
+              <svg viewBox="0 0 24 24" fill="none" [attr.stroke]="card.iconColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+            }
+            @case ('users') {
+              <svg viewBox="0 0 24 24" fill="none" [attr.stroke]="card.iconColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
               </svg>
             }
             @case ('handshake') {
@@ -28,13 +51,6 @@
                 <path d="M11 15h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 17"></path>
                 <path d="m7 21 1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.7-2.9l-3.2 2.6"></path>
                 <path d="m2 13 4.4-4.4a2 2 0 0 1 2.8 0l1.8 1.8"></path>
-              </svg>
-            }
-            @case ('map') {
-              <svg viewBox="0 0 24 24" fill="none" [attr.stroke]="card.iconColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
-                <line x1="8" y1="2" x2="8" y2="18"></line>
-                <line x1="16" y1="6" x2="16" y2="22"></line>
               </svg>
             }
             @case ('calendar') {
@@ -51,150 +67,190 @@
     }
   </section>
 
-  <!-- 2. Middle Section: Chart & Contenus récents à valider -->
+  <!-- 2. Section Graphique & Widget Contenus les plus consultés -->
   <section class="grid-2-cols">
-    <!-- Chart: Activité du site -->
+    <!-- Graphique interactif SVG d'évolution des consultations -->
     <div class="card chart-card">
       <div class="card-header">
         <div class="card-title-group">
-          <h2 class="card-title">Activité du site</h2>
-          <span class="card-subtitle">(30 derniers jours)</span>
+          <h2 class="card-title">Évolution des consultations</h2>
+          <!-- Sélecteurs interactifs multi-périodes -->
+          <div class="period-pills-selector">
+            <button
+              type="button"
+              class="period-pill"
+              [class.active]="selectedPeriod === '7j'"
+              (click)="changerPeriode('7j')">
+              7 jours
+            </button>
+            <button
+              type="button"
+              class="period-pill"
+              [class.active]="selectedPeriod === '30j'"
+              (click)="changerPeriode('30j')">
+              30 jours
+            </button>
+            <button
+              type="button"
+              class="period-pill"
+              [class.active]="selectedPeriod === '12m'"
+              (click)="changerPeriode('12m')">
+              12 mois
+            </button>
+          </div>
         </div>
+
         <div class="chart-legend">
           <div class="legend-item">
             <span class="legend-dot dot-teal"></span>
-            <span class="legend-label">Visiteurs</span>
+            <span class="legend-label">Visiteurs uniques</span>
           </div>
           <div class="legend-item">
             <span class="legend-dot dot-yellow"></span>
-            <span class="legend-label">Pages vues</span>
+            <span class="legend-label">Pages & Interactions</span>
           </div>
         </div>
       </div>
 
       <div class="chart-wrapper">
-        <!-- Interactive Tooltip Overlay -->
-        @if (activeChartPoint) {
-          <div class="chart-tooltip-badge">
-            <span>{{ activeChartPoint.date }}</span> •
-            <strong style="color: #4ADE80;">{{ activeChartPoint.visitors }}</strong> •
-            <span style="color: #FDE047;">{{ activeChartPoint.pageViews }}</span>
+        <!-- Info-bulle flottante au survol -->
+        @if (activeTooltip) {
+          <div class="chart-tooltip-floating" [style.left.px]="activeTooltip.x - 70">
+            <div class="tooltip-header">{{ activeTooltip.date }}</div>
+            <div class="tooltip-values">
+              <span class="val-teal">● Visiteurs : <strong>{{ activeTooltip.visiteurs }}</strong></span>
+              <span class="val-yellow">● Pages vues : <strong>{{ activeTooltip.pagesVues }}</strong></span>
+            </div>
           </div>
         }
 
-        <!-- SVG Interactive Spline Curve Chart -->
+        <!-- Canevas SVG interactif avec courbes lissées Catmull-Rom -->
         <svg class="activity-chart" viewBox="0 0 600 240" preserveAspectRatio="none">
           <defs>
-            <linearGradient id="tealGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#0E8F76" stop-opacity="0.18"/>
+            <linearGradient id="tealGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#0E8F76" stop-opacity="0.24"/>
               <stop offset="100%" stop-color="#0E8F76" stop-opacity="0.0"/>
+            </linearGradient>
+            <linearGradient id="yellowGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#F2B544" stop-opacity="0.15"/>
+              <stop offset="100%" stop-color="#F2B544" stop-opacity="0.0"/>
             </linearGradient>
           </defs>
 
-          <!-- Horizontal Grid Lines -->
-          <line x1="40" y1="40" x2="580" y2="40" stroke="#F1F5F3" stroke-width="1.5" />
-          <line x1="40" y1="90" x2="580" y2="90" stroke="#F1F5F3" stroke-width="1.5" />
-          <line x1="40" y1="140" x2="580" y2="140" stroke="#F1F5F3" stroke-width="1.5" />
-          <line x1="40" y1="190" x2="580" y2="190" stroke="#E6EAE8" stroke-width="1.5" />
+          <!-- Grille horizontale -->
+          <line x1="45" y1="35" x2="575" y2="35" stroke="#F1F5F3" stroke-width="1.2" />
+          <line x1="45" y1="85" x2="575" y2="85" stroke="#F1F5F3" stroke-width="1.2" />
+          <line x1="45" y1="135" x2="575" y2="135" stroke="#F1F5F3" stroke-width="1.2" />
+          <line x1="45" y1="185" x2="575" y2="185" stroke="#E6EAE8" stroke-width="1.5" />
 
-          <!-- Yellow Line (Pages Vues) -->
-          <path
-            d="M 60 180 Q 90 80, 160 170 T 260 135 T 360 160 T 460 140 T 560 188"
-            fill="none"
-            stroke="#F2B544"
-            stroke-width="3"
-            stroke-linecap="round"
-          />
+          <!-- Aire sous la courbe Visiteurs -->
+          @if (tealAreaD) {
+            <path [attr.d]="tealAreaD" fill="url(#tealGrad)" />
+          }
 
-          <!-- Teal Area -->
-          <path
-            d="M 60 185 Q 90 70, 160 175 T 260 130 T 360 145 T 460 130 T 560 70 L 560 190 L 60 190 Z"
-            fill="url(#tealGradient)"
-          />
+          <!-- Tracé Pages Vues (Jaune / Or) -->
+          @if (yellowPathD) {
+            <path
+              [attr.d]="yellowPathD"
+              fill="none"
+              stroke="#F2B544"
+              stroke-width="3"
+              stroke-linecap="round"
+            />
+          }
 
-          <!-- Teal Line (Visiteurs) -->
-          <path
-            d="M 60 185 Q 90 70, 160 175 T 260 130 T 360 145 T 460 130 T 560 70"
-            fill="none"
-            stroke="#0E8F76"
-            stroke-width="3.5"
-            stroke-linecap="round"
-          />
+          <!-- Tracé Visiteurs (Teal Émeraude) -->
+          @if (tealPathD) {
+            <path
+              [attr.d]="tealPathD"
+              fill="none"
+              stroke="#0E8F76"
+              stroke-width="3.5"
+              stroke-linecap="round"
+            />
+          }
 
-          <!-- Interactive Hover Points on Curves -->
-          @for (pt of chartPoints; track pt.date) {
+          <!-- Points interactifs avec écouteurs d'info-bulle -->
+          @for (pt of chartPoints; track pt.label) {
+            <!-- Cercle Visiteurs -->
             <circle
-              class="chart-interactive-point"
+              class="interactive-dot dot-visiteur"
               [attr.cx]="pt.x"
-              [attr.cy]="pt.yTeal"
+              [attr.cy]="pt.yVisiteurs"
               r="4.5"
               fill="#FFFFFF"
               stroke="#0E8F76"
               stroke-width="2.5"
-              (mouseenter)="setChartPoint(pt)"
-              (mouseleave)="setChartPoint(null)"
+              (mouseenter)="onPointHover(pt)"
+              (mouseleave)="onPointLeave()"
             />
+            <!-- Cercle Pages vues -->
             <circle
-              class="chart-interactive-point"
+              class="interactive-dot dot-page"
               [attr.cx]="pt.x"
-              [attr.cy]="pt.yYellow"
+              [attr.cy]="pt.yPagesVues"
               r="4"
               fill="#FFFFFF"
               stroke="#F2B544"
               stroke-width="2.5"
-              (mouseenter)="setChartPoint(pt)"
-              (mouseleave)="setChartPoint(null)"
+              (mouseenter)="onPointHover(pt)"
+              (mouseleave)="onPointLeave()"
             />
           }
         </svg>
 
-        <!-- Chart Dates X-Axis -->
+        <!-- Axe X Temporel -->
         <div class="chart-x-axis">
-          @for (pt of chartPoints; track pt.date) {
+          @for (pt of chartPoints; track pt.label) {
             <span
-              style="cursor: pointer; transition: color 0.15s ease;"
-              [style.color]="activeChartPoint?.date === pt.date ? '#0E8F76' : '#94A3B8'"
-              (mouseenter)="setChartPoint(pt)"
-              (mouseleave)="setChartPoint(null)"
-            >{{ pt.date }}</span>
+              class="x-label"
+              [class.active-label]="activeTooltip?.label === pt.label"
+              (mouseenter)="onPointHover(pt)"
+              (mouseleave)="onPointLeave()">
+              {{ pt.label }}
+            </span>
           }
         </div>
       </div>
     </div>
 
-    <!-- Contenus récents à valider -->
-    <div class="card contents-card">
+    <!-- Widget « Contenus les plus consultés » (Jauges horizontales colorées) -->
+    <div class="card categories-card">
       <div class="card-header">
-        <h2 class="card-title">Contenus récents à valider</h2>
-        <a href="javascript:void(0)" class="view-all-link" (click)="navigateToAllContents()">Voir tout</a>
+        <div class="card-title-group">
+          <h2 class="card-title">Contenus les plus consultés</h2>
+          <span class="card-subtitle">Répartition patrimoniale</span>
+        </div>
       </div>
 
-      <div class="contents-list">
-        @if (recentContents.length === 0) {
-          <div class="empty-state-card-content">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.8">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="16" y1="2" x2="16" y2="6"></line>
-              <line x1="8" y1="2" x2="8" y2="6"></line>
-              <line x1="3" y1="10" x2="21" y2="10"></line>
-            </svg>
-            <p>Aucun événement en attente ou récent en base de données.</p>
+      <div class="categories-list">
+        @if (contenusCategories.length === 0) {
+          <div class="empty-state-small">
+            <p>Calcul des proportions en cours...</p>
           </div>
         } @else {
-          @for (item of recentContents; track item.id ?? item.title) {
-            <div class="content-item" (click)="navigateToContent(item)" title="Examiner et modérer cet événement">
-              <img [src]="item.imageUrl" [alt]="item.title" class="content-thumb" (error)="$any($event.target).src = '/assets/MaliExplorer.png'" />
-              <div class="content-info">
-                <h4 class="content-title">{{ item.title }}</h4>
-                <span class="content-meta">
-                  <span class="meta-tag">{{ item.category }}</span> • {{ item.timeAgo }}
-                </span>
+          @for (cat of contenusCategories; track cat.categorie) {
+            <div class="category-item">
+              <div class="category-info-row">
+                <div class="category-name-wrap">
+                  <span class="category-dot" [style.background-color]="cat.couleur"></span>
+                  <span class="category-name">{{ cat.categorie }}</span>
+                </div>
+                <div class="category-stats-wrap">
+                  <strong class="category-total">{{ cat.total }} fiches</strong>
+                  <span class="category-percent-badge" [style.background-color]="cat.couleur + '18'" [style.color]="cat.couleur">
+                    {{ cat.pourcentage }}%
+                  </span>
+                </div>
               </div>
-              <div class="content-status-group">
-                <span class="status-badge badge-pending">{{ item.status }}</span>
-                <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="9 18 15 12 9 6"></polyline>
-                </svg>
+
+              <!-- Barre de progression colorée -->
+              <div class="progress-track">
+                <div
+                  class="progress-fill"
+                  [style.width.%]="cat.pourcentage"
+                  [style.background-color]="cat.couleur">
+                </div>
               </div>
             </div>
           }
@@ -203,7 +259,289 @@
     </div>
   </section>
 
-  <!-- 3. Section Gestion rapide -->
+  <!-- 3. Section Activité par Région (Carte Vectorielle SVG Interactive du Mali) -->
+  <section class="card region-map-card">
+    <div class="card-header">
+      <div class="card-title-group">
+        <h2 class="card-title">Activité par région</h2>
+        <span class="card-subtitle">Cartographie interactive du patrimoine malien</span>
+      </div>
+
+      <!-- 3 Indicateurs territoriaux institutionnels -->
+      <div class="territory-indicators">
+        <div class="indicator-pill">
+          <span class="ind-label">Total Régions</span>
+          <strong class="ind-val">{{ statistiquesTerritoriales.totalRegions }}</strong>
+        </div>
+        <div class="indicator-pill ind-active">
+          <span class="ind-label">Régions Actives</span>
+          <strong class="ind-val">{{ statistiquesTerritoriales.regionsActives }}</strong>
+        </div>
+        <div class="indicator-pill ind-rate">
+          <span class="ind-label">Taux d'activité</span>
+          <strong class="ind-val">{{ statistiquesTerritoriales.tauxActivite }}%</strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="map-and-details-grid">
+      <!-- Canevas SVG officiel de la République du Mali -->
+      <div class="mali-map-wrapper">
+        <svg class="mali-svg" viewBox="0 0 600 480">
+          <defs>
+            <!-- Ombre portée douce de la carte -->
+            <filter id="mapShadow" x="-5%" y="-5%" width="115%" height="115%">
+              <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#0E8F76" flood-opacity="0.08" />
+            </filter>
+          </defs>
+
+          <!-- Tracé vectoriel officiel du contour de la République du Mali -->
+          <path
+            class="mali-boundary-path"
+            filter="url(#mapShadow)"
+            d="M 120 220
+               L 160 210
+               L 180 230
+               L 260 220
+               L 310 180
+               L 350 70
+               L 410 80
+               L 460 140
+               L 550 140
+               L 560 230
+               L 490 280
+               L 440 260
+               L 360 280
+               L 310 290
+               L 260 360
+               L 230 450
+               L 170 390
+               L 140 370
+               L 70 330
+               L 60 270
+               Z"
+          />
+
+          <!-- Pôles régionaux interactifs -->
+          @for (reg of regionsMali; track reg.code) {
+            <g
+              class="region-pole-group"
+              [class.pole-selected]="selectedRegion?.code === reg.code"
+              [class.pole-active]="reg.actif"
+              (click)="selectRegion(reg)"
+              (mouseenter)="hoverRegion(reg)"
+              (mouseleave)="leaveRegion()">
+
+              <!-- Halo pulsant si région active -->
+              @if (reg.actif) {
+                <circle
+                  class="pole-pulse"
+                  [attr.cx]="reg.x"
+                  [attr.cy]="reg.y"
+                  r="12"
+                />
+              }
+
+              <!-- Cercle de pôle principal -->
+              <circle
+                class="pole-circle"
+                [attr.cx]="reg.x"
+                [attr.cy]="reg.y"
+                [attr.r]="selectedRegion?.code === reg.code ? 7.5 : (reg.actif ? 6 : 4.5)"
+              />
+
+              <!-- Libellé du chef-lieu -->
+              <text
+                class="pole-label"
+                [attr.x]="reg.x + 9"
+                [attr.y]="reg.y + 4">
+                {{ reg.chefLieu }}
+              </text>
+            </g>
+          }
+        </svg>
+
+        <div class="map-legend">
+          <span class="legend-tag active">● Pôle actif</span>
+          <span class="legend-tag inactive">○ En développement</span>
+        </div>
+      </div>
+
+      <!-- Panneau d'informations du pôle sélectionné -->
+      <div class="region-detail-panel">
+        @if (selectedRegion || hoveredRegion) {
+          @let current = hoveredRegion || selectedRegion;
+          <div class="pole-detail-card">
+            <div class="pole-header">
+              <span class="pole-code-badge">{{ current?.code }}</span>
+              <div class="pole-title-wrap">
+                <h3 class="pole-name">{{ current?.nom }}</h3>
+                <span class="pole-cheflieu">Chef-lieu : <strong>{{ current?.chefLieu }}</strong></span>
+              </div>
+              <span class="pole-status-pill" [class.status-actif]="current?.actif">
+                {{ current?.actif ? 'Région Active' : 'En développement' }}
+              </span>
+            </div>
+
+            <div class="pole-metrics-grid">
+              <div class="metric-box">
+                <span class="metric-label">Entités culturelles</span>
+                <strong class="metric-val">{{ current?.totalEntites }}</strong>
+              </div>
+              <div class="metric-box">
+                <span class="metric-label">Lieux historiques</span>
+                <strong class="metric-val">{{ current?.nombreLieux ?? '—' }}</strong>
+              </div>
+              <div class="metric-box">
+                <span class="metric-label">Villes répertoriées</span>
+                <strong class="metric-val">{{ current?.nombreVilles ?? '—' }}</strong>
+              </div>
+              <div class="metric-box">
+                <span class="metric-label">Événements</span>
+                <strong class="metric-val">{{ current?.nombreEvenements ?? '—' }}</strong>
+              </div>
+            </div>
+
+            <div class="pole-actions">
+              <a routerLink="/regions" class="btn-pole-action">Consulter les régions</a>
+              <a routerLink="/villes" class="btn-pole-action secondary">Voir les villes</a>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. Section Modération « À valider » & Fil « Activité récente » -->
+  <section class="grid-2-cols">
+    <!-- Tableau de modération « À valider » -->
+    <div class="card moderation-card">
+      <div class="card-header">
+        <div class="card-title-group">
+          <h2 class="card-title">Fiches et demandes à valider</h2>
+          <span class="card-subtitle">Modération urgente</span>
+        </div>
+        <a routerLink="/demandes-partenariat" class="view-all-link">Gérer les demandes</a>
+      </div>
+
+      <div class="table-responsive">
+        @if (elementsAValider.length === 0) {
+          <div class="empty-moderation">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#0E8F76" stroke-width="2" width="36" height="36">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+            <h4>Tous les contenus sont à jour !</h4>
+            <p>Aucune fiche en attente de validation administrative.</p>
+          </div>
+        } @else {
+          <table class="moderation-mini-table">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Titre / Demandeur</th>
+                <th>Date</th>
+                <th>Statut</th>
+                <th style="text-align: right;">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of elementsAValider; track item.id) {
+                <tr (click)="examinerFiche(item)" class="table-row-clickable">
+                  <td>
+                    <span
+                      class="type-pill"
+                      [class.type-partenaire]="item.type.toLowerCase().includes('partenaire')"
+                      [class.type-evenement]="item.type.toLowerCase().includes('événement')"
+                      [class.type-guide]="item.type.toLowerCase().includes('guide')">
+                      {{ item.type }}
+                    </span>
+                  </td>
+                  <td>
+                    <div class="title-demandeur-cell">
+                      <strong class="item-title">{{ item.titre }}</strong>
+                      <span class="item-author">{{ item.demandeur || 'Porteur de projet' }}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="item-date">{{ item.date }}</span>
+                  </td>
+                  <td>
+                    <span class="badge-pending-mini">En attente</span>
+                  </td>
+                  <td style="text-align: right;">
+                    <button type="button" class="btn-see-action" (click)="examinerFiche(item)">
+                      Voir
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      </div>
+    </div>
+
+    <!-- Fil « Activité récente » (Timeline chronologique réelle) -->
+    <div class="card timeline-card">
+      <div class="card-header">
+        <div class="card-title-group">
+          <h2 class="card-title">Activité récente</h2>
+          <span class="card-subtitle">Dernières actions réelles</span>
+        </div>
+      </div>
+
+      <div class="timeline-wrapper">
+        @if (activitesRecentes.length === 0) {
+          <div class="empty-state-small">
+            <p>Aucune action récente enregistrée.</p>
+          </div>
+        } @else {
+          <div class="timeline-list">
+            @for (act of activitesRecentes; track act.id) {
+              <div class="timeline-item">
+                <div class="timeline-icon-node" [style.background-color]="act.couleur || '#0E8F76'">
+                  @if (act.type === 'INSCRIPTION') {
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" width="14" height="14">
+                      <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="8.5" cy="7" r="4"></circle>
+                      <line x1="20" y1="8" x2="20" y2="14"></line>
+                      <line x1="23" y1="11" x2="17" y2="11"></line>
+                    </svg>
+                  } @else if (act.type === 'QUIZ') {
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" width="14" height="14">
+                      <circle cx="12" cy="8" r="6"></circle>
+                      <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
+                    </svg>
+                  } @else if (act.type === 'EVENEMENT') {
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" width="14" height="14">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                      <line x1="16" y1="2" x2="16" y2="6"></line>
+                      <line x1="8" y1="2" x2="8" y2="6"></line>
+                    </svg>
+                  } @else {
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" width="14" height="14">
+                      <path d="M11 15h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 17"></path>
+                    </svg>
+                  }
+                </div>
+
+                <div class="timeline-content">
+                  <div class="timeline-header-row">
+                    <strong class="timeline-action-title">{{ act.titre }}</strong>
+                    <span class="timeline-timestamp">{{ act.date }}</span>
+                  </div>
+                  <p class="timeline-desc">{{ act.description || act.auteur }}</p>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. Section Gestion Rapide -->
   <section class="card quick-actions-card">
     <div class="card-header no-border">
       <h2 class="card-title">Gestion rapide</h2>
@@ -215,33 +553,29 @@
           <div class="action-icon-circle" [style.background-color]="action.iconBg">
             @switch (action.icon) {
               @case ('map-pin') {
-                <svg viewBox="0 0 24 24" fill="none" [attr.stroke]="action.iconColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg viewBox="0 0 24 24" fill="none" [attr.stroke]="action.iconColor" stroke-width="2">
                   <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                   <circle cx="12" cy="10" r="3"></circle>
                 </svg>
               }
               @case ('calendar') {
-                <svg viewBox="0 0 24 24" fill="none" [attr.stroke]="action.iconColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg viewBox="0 0 24 24" fill="none" [attr.stroke]="action.iconColor" stroke-width="2">
                   <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                   <line x1="16" y1="2" x2="16" y2="6"></line>
                   <line x1="8" y1="2" x2="8" y2="6"></line>
-                  <line x1="3" y1="10" x2="21" y2="10"></line>
                 </svg>
               }
-              @case ('landmark') {
-                <svg viewBox="0 0 24 24" fill="none" [attr.stroke]="action.iconColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="3" y1="22" x2="21" y2="22"></line>
-                  <line x1="6" y1="18" x2="6" y2="11"></line>
-                  <line x1="10" y1="18" x2="10" y2="11"></line>
-                  <line x1="14" y1="18" x2="14" y2="11"></line>
-                  <line x1="18" y1="18" x2="18" y2="11"></line>
-                  <polygon points="12 2 20 7 4 7"></polygon>
+              @case ('handshake') {
+                <svg viewBox="0 0 24 24" fill="none" [attr.stroke]="action.iconColor" stroke-width="2">
+                  <path d="M11 15h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 17"></path>
+                  <path d="m7 21 1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.7-2.9l-3.2 2.6"></path>
                 </svg>
               }
-              @case ('book-open') {
-                <svg viewBox="0 0 24 24" fill="none" [attr.stroke]="action.iconColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
-                  <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+              @case ('clipboard') {
+                <svg viewBox="0 0 24 24" fill="none" [attr.stroke]="action.iconColor" stroke-width="2">
+                  <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                  <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                  <path d="M9 14l2 2 4-4"></path>
                 </svg>
               }
             }
@@ -256,133 +590,6 @@
           </div>
         </button>
       }
-    </div>
-  </section>
-
-  <!-- 4. Bottom Section: Derniers utilisateurs & Demandes de partenariat -->
-  <section class="grid-2-cols">
-    <!-- Derniers utilisateurs -->
-    <div class="card users-card">
-      <div class="card-header">
-        <h2 class="card-title">Derniers utilisateurs</h2>
-        <a href="javascript:void(0)" class="view-all-link" (click)="navigateToAllUsers()">Voir tout</a>
-      </div>
-
-      <div class="table-responsive">
-        <table class="users-table">
-          <thead>
-            <tr>
-              <th>Nom</th>
-              <th>Email</th>
-              <th>Rôle</th>
-              <th>Date d'inscription</th>
-            </tr>
-          </thead>
-          <tbody>
-            @if (recentUsers.length === 0) {
-              <tr>
-                <td colspan="4" style="text-align: center; padding: 28px 16px; color: #94A3B8; font-size: 13px;">
-                  Aucun utilisateur trouvé en base de données.
-                </td>
-              </tr>
-            } @else {
-              @for (user of recentUsers; track user.id ?? user.email) {
-                <tr style="cursor: pointer;" (click)="navigateToAllUsers()" title="Voir la fiche utilisateur">
-                  <td>
-                    <div class="user-cell">
-                      <div [style.background]="user.avatarBg || '#E8F5E9'"
-                           [style.color]="user.avatarColor || '#1B5E20'"
-                           class="table-avatar-initials">
-                        <img *ngIf="user.avatarUrl" [src]="user.avatarUrl" [alt]="user.name" class="table-avatar" />
-                        <span *ngIf="!user.avatarUrl">{{ user.avatarInitials }}</span>
-                      </div>
-                      <span class="user-name-cell">{{ user.name }}</span>
-                    </div>
-                  </td>
-                  <td class="email-cell">{{ user.email }}</td>
-                  <td>
-                    <span class="role-pill"
-                          [class.role-guide]="user.role.toLowerCase().includes('guide')"
-                          [class.role-artisan]="user.role.toLowerCase().includes('artisan')"
-                          [class.role-admin]="user.role.toLowerCase().includes('admin')"
-                          [class.role-explorateur]="user.role.toLowerCase().includes('explorateur')"
-                          [class.role-partenaire]="user.role.toLowerCase().includes('partenaire')">
-                      {{ user.role }}
-                    </span>
-                  </td>
-                  <td class="date-cell">{{ user.registrationDate }}</td>
-                </tr>
-              }
-            }
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Demandes de partenariat -->
-    <div class="card partnerships-card">
-      <div class="card-header">
-        <h2 class="card-title">Demandes de partenariat</h2>
-        <a href="javascript:void(0)" class="view-all-link" (click)="navigateToPartners()">Voir tout</a>
-      </div>
-
-      <div class="partnerships-list">
-        @if (partnershipRequests.length === 0) {
-          <div class="empty-state-card-content">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.8">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-              <circle cx="8.5" cy="7" r="4"></circle>
-              <line x1="20" y1="8" x2="20" y2="14"></line>
-              <line x1="23" y1="11" x2="17" y2="11"></line>
-            </svg>
-            <p>Aucune demande de partenariat enregistrée pour le moment.</p>
-          </div>
-        } @else {
-          @for (req of partnershipRequests; track req.id ?? req.title) {
-            <div class="partnership-item" (click)="navigateToPartners()" title="Examiner la demande de partenariat">
-              <div class="partnership-icon-wrapper" [style.background-color]="req.iconBg">
-                @switch (req.iconType) {
-                  @case ('leaf') {
-                    <svg viewBox="0 0 24 24" fill="none" [attr.stroke]="req.iconColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path>
-                      <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"></path>
-                    </svg>
-                  }
-                  @case ('building') {
-                    <svg viewBox="0 0 24 24" fill="none" [attr.stroke]="req.iconColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
-                      <line x1="9" y1="22" x2="9" y2="22.01"></line>
-                      <line x1="15" y1="22" x2="15" y2="22.01"></line>
-                      <line x1="9" y1="6" x2="9" y2="6.01"></line>
-                      <line x1="15" y1="6" x2="15" y2="6.01"></line>
-                      <line x1="9" y1="10" x2="9" y2="10.01"></line>
-                      <line x1="15" y1="10" x2="15" y2="10.01"></line>
-                    </svg>
-                  }
-                  @case ('compass') {
-                    <svg viewBox="0 0 24 24" fill="none" [attr.stroke]="req.iconColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
-                    </svg>
-                  }
-                }
-              </div>
-
-              <div class="partnership-info">
-                <h4 class="partnership-title">{{ req.title }}</h4>
-                <span class="partnership-subtitle">{{ req.subtitle }} • {{ req.timeAgo }}</span>
-              </div>
-
-              <div class="partnership-status-group">
-                <span class="status-badge badge-pending">{{ req.status }}</span>
-                <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="9 18 15 12 9 6"></polyline>
-                </svg>
-              </div>
-            </div>
-          }
-        }
-      </div>
     </div>
   </section>
 </div>

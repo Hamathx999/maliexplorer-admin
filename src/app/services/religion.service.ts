@@ -12,11 +12,11 @@ export class ReligionService {
   private readonly apiUrl = `${environment.apiUrl}/religions`;
 
   getAllReligions(): Observable<Religion[]> {
-    return this.http.get<Religion[]>(this.apiUrl);
+    return this.http.get<Religion[]>(`${this.apiUrl}/all`);
   }
 
   getPublishedReligions(): Observable<Religion[]> {
-    return this.http.get<Religion[]>(`${this.apiUrl}/publiees`);
+    return this.http.get<Religion[]>(this.apiUrl);
   }
 
   getReligionById(id: number): Observable<Religion> {

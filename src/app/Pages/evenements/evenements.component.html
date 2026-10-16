@@ -223,9 +223,9 @@
     </div>
 
     <div class="figma-form-actions">
-      <button type="button" class="figma-btn-cancel" (click)="cancelEdit()">Annuler</button>
-      <button type="button" class="figma-btn-primary" (click)="saveEvenement()" [disabled]="isUploadingAffiche">
-        {{ editingEvenement ? 'Modifier l\'événement' : 'Ajouter l\'événement' }}
+      <button type="button" class="figma-btn-cancel" (click)="cancelEdit()" [disabled]="isSubmitting">Annuler</button>
+      <button type="button" class="figma-btn-primary" (click)="saveEvenement()" [disabled]="isSubmitting || isUploadingAffiche">
+        {{ isSubmitting ? 'Enregistrement...' : (editingEvenement ? 'Modifier l\'événement' : 'Ajouter l\'événement') }}
       </button>
     </div>
   }

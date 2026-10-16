@@ -2,382 +2,377 @@ import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { LieuHistoriqueService } from '../../services/lieu-historique.service';
-import { UserService } from '../../services/user.service';
-import { EvenementService } from '../../services/evenement.service';
-import { QuizService } from '../../services/quiz.service';
-import { LieuHistorique } from '../../models/lieu-historique.model';
-import { User } from '../../models/user.model';
-import { Evenement } from '../../models/evenement.model';
+import { DashboardStatsService } from '../../services/dashboard-stats.service';
+import {
+  DashboardStatsResponseDTO,
+  PointTemporelDTO,
+  ContenuCategorieDTO,
+  RegionStatDTO,
+  ElementModerationDTO,
+  ActiviteRecenteDTO
+} from '../../models/dashboard-stats.model';
 
-import { HttpClient } from '@angular/common/http';
-import { environment } from '../../../environments/environment';
-
-export interface KpiCard {
+export interface KpiDisplayCard {
+  id: string;
   label: string;
-  value: string;
-  icon: string;
+  value: string | number;
+  delta?: string;
+  deltaType: 'positive' | 'warning' | 'neutral';
+  icon: 'layers' | 'clock' | 'users' | 'handshake' | 'calendar';
   iconBg: string;
   iconColor: string;
+  isAlert?: boolean;
 }
 
-export interface ContentToValidate {
-  id?: number | string;
-  title: string;
-  category: string;
-  timeAgo: string;
-  status: string;
-  imageUrl: string;
-}
-
-export interface UserItem {
-  id?: number | string;
-  name: string;
-  email: string;
-  role: string;
-  registrationDate: string;
-  avatarUrl?: string;
-  avatarInitials?: string;
-  avatarBg?: string;
-  avatarColor?: string;
-}
-
-export interface PartnershipRequest {
-  id?: number | string;
-  title: string;
-  subtitle: string;
-  timeAgo: string;
-  status: string;
-  iconType: string;
-  iconColor: string;
-  iconBg: string;
-  route?: string;
-}
-
-export interface ChartHoverInfo {
+export interface ChartTooltipData {
+  label: string;
   date: string;
-  visitors: string;
-  pageViews: string;
+  visiteurs: number;
+  pagesVues: number;
+  valeur: number;
   x: number;
-  yYellow: number;
-  yTeal: number;
+  yVisiteurs: number;
+  yPagesVues: number;
 }
 
+/**
+ * Composant principal du Tableau de Bord d'Administration MaliExplorer.
+ * Modernisé selon la maquette Figma officielle avec :
+ * - 5 Cartes KPI supérieures
+ * - Courbe interactive multi-périodes (7j / 30j / 12m) avec recalcul SVG dynamique et tooltips
+ * - Jauges colorées des contenus les plus consultés par catégorie
+ * - Carte vectorielle SVG interactive du Mali avec pôles régionaux
+ * - Tableau de modération « À valider »
+ * - Timeline chronologique d'activité récente
+ */
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css'
 })
 export class DashboardComponent implements OnInit {
-  private readonly lieuService = inject(LieuHistoriqueService);
-  private readonly userService = inject(UserService);
-  private readonly evenementService = inject(EvenementService);
-  private readonly quizService = inject(QuizService);
-  private readonly http = inject(HttpClient);
+  private readonly statsService = inject(DashboardStatsService);
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
 
-  // 1. KPI Cards
-  kpiCards: KpiCard[] = [
-    {
-      label: 'Utilisateurs',
-      value: '0',
-      icon: 'user',
-      iconBg: '#E6F7F3',
-      iconColor: '#0E8F76'
-    },
-    {
-      label: 'Partenaires',
-      value: '0',
-      icon: 'handshake',
-      iconBg: '#FEF3C7',
-      iconColor: '#D97706'
-    },
-    {
-      label: 'Lieux historiques',
-      value: '0',
-      icon: 'map',
-      iconBg: '#E0F2FE',
-      iconColor: '#0284C7'
-    },
-    {
-      label: 'Événements',
-      value: '0',
-      icon: 'calendar',
-      iconBg: '#FFE4E6',
-      iconColor: '#E11D48'
-    }
-  ];
+  // État de chargement
+  isLoading: boolean = true;
+  statsData: DashboardStatsResponseDTO | null = null;
 
-  // 2. Contenus récents à valider (100% dynamiques depuis les événements de la base)
-  recentContents: ContentToValidate[] = [];
+  // 1. Les 5 Cartes KPI Supérieures
+  kpiCards: KpiDisplayCard[] = [];
 
-  // 3. Gestion rapide
+  // 2. Sélecteur de période du graphique d'activité (7j / 30j / 12m)
+  selectedPeriod: '7j' | '30j' | '12m' = '7j';
+  chartPoints: PointTemporelDTO[] = [];
+  tealPathD: string = '';
+  tealAreaD: string = '';
+  yellowPathD: string = '';
+  activeTooltip: ChartTooltipData | null = null;
+
+  // 3. Contenus les plus consultés
+  contenusCategories: ContenuCategorieDTO[] = [];
+
+  // 4. Carte interactive du Mali et pôles régionaux
+  statistiquesTerritoriales = {
+    totalRegions: 16,
+    regionsActives: 12,
+    tauxActivite: 75.0
+  };
+  regionsMali: RegionStatDTO[] = [];
+  selectedRegion: RegionStatDTO | null = null;
+  hoveredRegion: RegionStatDTO | null = null;
+
+  // 5. Tableau de modération « À valider »
+  elementsAValider: ElementModerationDTO[] = [];
+
+  // 6. Fil « Activité récente »
+  activitesRecentes: ActiviteRecenteDTO[] = [];
+
+  // 7. Actions rapides
   quickActions = [
     { label: 'Ajouter un lieu', icon: 'map-pin', iconColor: '#0E8F76', iconBg: '#E6F7F3', route: '/lieux-historiques/ajouter' },
     { label: 'Gestion des événements', icon: 'calendar', iconColor: '#0E8F76', iconBg: '#E6F7F3', route: '/evenements' },
-    { label: 'Tous les lieux historiques', icon: 'landmark', iconColor: '#0E8F76', iconBg: '#E6F7F3', route: '/lieux-historiques' }
+    { label: 'Répertoire partenaires', icon: 'handshake', iconColor: '#0E8F76', iconBg: '#E6F7F3', route: '/partenaires' },
+    { label: 'Demandes à modérer', icon: 'clipboard', iconColor: '#0E8F76', iconBg: '#E6F7F3', route: '/demandes-partenariat' }
   ];
-
-  // 4. Derniers utilisateurs (100% dynamiques depuis les utilisateurs de la base)
-  recentUsers: UserItem[] = [];
-
-  // 5. Demandes de partenariat (100% dynamiques depuis les opportunités / partenaires de la base)
-  partnershipRequests: PartnershipRequest[] = [];
-
-  // 6. Interactive Chart Tooltip State
-  chartPoints: ChartHoverInfo[] = [
-    { date: '1 Avr', visitors: '240 explorateurs', pageViews: '680 vues', x: 60, yYellow: 180, yTeal: 185 },
-    { date: '5 Avr', visitors: '510 explorateurs', pageViews: '1 230 vues', x: 160, yYellow: 170, yTeal: 175 },
-    { date: '10 Avr', visitors: '420 explorateurs', pageViews: '1 050 vues', x: 260, yYellow: 135, yTeal: 130 },
-    { date: '15 Avr', visitors: '730 explorateurs', pageViews: '1 890 vues', x: 360, yYellow: 160, yTeal: 145 },
-    { date: '20 Avr', visitors: '690 explorateurs', pageViews: '1 720 vues', x: 460, yYellow: 140, yTeal: 130 },
-    { date: '24 Avr', visitors: '980 explorateurs', pageViews: '2 640 vues', x: 560, yYellow: 188, yTeal: 70 }
-  ];
-  activeChartPoint: ChartHoverInfo | null = null;
 
   ngOnInit(): void {
-    this.loadDashboardData();
+    this.chargerStatistiques();
   }
 
-  loadDashboardData(): void {
-    // 1. Lieux historiques (direct depuis Spring Boot MySQL)
-    this.lieuService.getLieux().subscribe({
-      next: (lieux: LieuHistorique[]) => {
-        const kpi = this.kpiCards.find((c) => c.label === 'Lieux historiques');
-        if (kpi) {
-          kpi.value = (lieux ? lieux.length : 0).toString();
-        }
+  /**
+   * Charge les données consolidées depuis DashboardStatsService.
+   */
+  chargerStatistiques(): void {
+    this.isLoading = true;
+    this.statsService.getDashboardStats().subscribe({
+      next: (data) => {
+        this.statsData = data;
+        this.initialiserKpis(data);
+        this.initialiserGraphique(data);
+        this.contenusCategories = data.contenusParCategorie || [];
+        this.initialiserCarte(data);
+        this.elementsAValider = data.aValider || [];
+        this.activitesRecentes = data.activiteRecente || [];
+        this.isLoading = false;
         this.cdr.markForCheck();
       },
-      error: () => {
-        const kpi = this.kpiCards.find((c) => c.label === 'Lieux historiques');
-        if (kpi) kpi.value = '0';
+      error: (err) => {
+        console.error('Erreur chargement dashboard stats :', err);
+        this.isLoading = false;
         this.cdr.markForCheck();
-      }
-    });
-
-    // 2. Utilisateurs réels (direct depuis Spring Boot MySQL)
-    this.userService.getUsers().subscribe({
-      next: (users: User[]) => {
-        const realUsers = Array.isArray(users) ? users : [];
-        const kpiUsers = this.kpiCards.find((c) => c.label === 'Utilisateurs');
-        if (kpiUsers) {
-          kpiUsers.value = realUsers.length >= 1000 ? realUsers.length.toLocaleString('fr-FR') : realUsers.length.toString();
-        }
-
-        const kpiPartenaires = this.kpiCards.find((c) => c.label === 'Partenaires');
-        if (kpiPartenaires) {
-          const partenairesCount = realUsers.filter((u) => {
-            const r = (u.role || '').toLowerCase();
-            return r.includes('partenaire') || r.includes('promoteur') || r.includes('artisan') || r.includes('guide');
-          }).length;
-          kpiPartenaires.value = partenairesCount.toString();
-        }
-
-        // Seuls les vrais utilisateurs de la base sont affichés
-        if (realUsers.length > 0) {
-          this.recentUsers = realUsers.slice(0, 4).map((u) => {
-            const fullName = `${u.prenom || ''} ${u.nom || ''}`.trim() || 'Utilisateur';
-            const colors = this.getAvatarColor(fullName);
-            return {
-              id: u.id,
-              name: fullName,
-              email: u.email,
-              role: u.role || 'Explorateur',
-              registrationDate: u.dateInscription || 'Inscrit récemment',
-              avatarUrl: u.photoUrl || '',
-              avatarInitials: (u.prenom?.charAt(0) || u.nom?.charAt(0) || 'U').toUpperCase(),
-              avatarBg: colors.bg,
-              avatarColor: colors.color
-            };
-          });
-        } else {
-          this.recentUsers = [];
-        }
-        this.cdr.markForCheck();
-      },
-      error: () => {
-        const kpiUsers = this.kpiCards.find((c) => c.label === 'Utilisateurs');
-        if (kpiUsers) kpiUsers.value = '0';
-        const kpiPartenaires = this.kpiCards.find((c) => c.label === 'Partenaires');
-        if (kpiPartenaires) kpiPartenaires.value = '0';
-        this.recentUsers = [];
-        this.cdr.markForCheck();
-      }
-    });
-
-    // 3. Événements réels (direct depuis la base de données)
-    this.evenementService.getEvenements().subscribe({
-      next: (events: Evenement[]) => {
-        const realEvents = Array.isArray(events) ? events : [];
-        const kpiEvents = this.kpiCards.find((c) => c.label === 'Événements');
-        if (kpiEvents) {
-          kpiEvents.value = realEvents.length.toString();
-        }
-
-        if (realEvents.length > 0) {
-          const pending = realEvents.filter((e) => e.statut === 'EN_ATTENTE');
-          const listToDisplay = pending.length > 0 ? pending : realEvents;
-          this.recentContents = listToDisplay.slice(0, 3).map((e) => ({
-            id: e.id,
-            title: e.titre || 'Événement culturel',
-            category: e.categorie || 'Événement',
-            timeAgo: e.ville ? `${e.ville} • ${e.dateDebut || 'À venir'}` : (e.dateDebut ? `Prévu le ${e.dateDebut}` : 'Récemment soumis'),
-            status: (e.statut === 'APPROUVE' || e.statut === 'VALIDE') ? 'Validé' : (e.statut === 'REFUSE' ? 'Refusé' : 'En attente'),
-            imageUrl: this.getEventFallbackImage(e)
-          }));
-        } else {
-          this.recentContents = [];
-        }
-        this.cdr.markForCheck();
-      },
-      error: () => {
-        const kpiEvents = this.kpiCards.find((c) => c.label === 'Événements');
-        if (kpiEvents) kpiEvents.value = '0';
-        this.recentContents = [];
-        this.cdr.markForCheck();
-      }
-    });
-
-    // 4. Demandes de partenariat réelles (direct depuis l'API backend opportunités / partenaires)
-    this.loadRealPartnerships();
-  }
-
-  loadRealPartnerships(): void {
-    // On consulte d'abord les opportunités en attente de validation admin, puis le catalogue validé
-    this.http.get<any[]>(`${environment.apiUrl}/admin/moderation/opportunites`).subscribe({
-      next: (opps) => {
-        if (Array.isArray(opps) && opps.length > 0) {
-          this.displayPartnershipOpportunities(opps);
-        } else {
-          // Si aucune opportunité admin en attente, consulter les opportunités générales de la base
-          this.http.get<any[]>(`${environment.apiUrl}/opportunites`).subscribe({
-            next: (catalogue) => {
-              if (Array.isArray(catalogue) && catalogue.length > 0) {
-                this.displayPartnershipOpportunities(catalogue);
-              } else {
-                this.partnershipRequests = [];
-                this.cdr.markForCheck();
-              }
-            },
-            error: () => {
-              this.partnershipRequests = [];
-              this.cdr.markForCheck();
-            }
-          });
-        }
-      },
-      error: () => {
-        // En cas d'erreur ou d'absence de droits admin sur ce endpoint, vérifier /api/opportunites
-        this.http.get<any[]>(`${environment.apiUrl}/opportunites`).subscribe({
-          next: (catalogue) => {
-            if (Array.isArray(catalogue) && catalogue.length > 0) {
-              this.displayPartnershipOpportunities(catalogue);
-            } else {
-              this.partnershipRequests = [];
-              this.cdr.markForCheck();
-            }
-          },
-          error: () => {
-            this.partnershipRequests = [];
-            this.cdr.markForCheck();
-          }
-        });
       }
     });
   }
 
-  private displayPartnershipOpportunities(opps: any[]): void {
-    this.partnershipRequests = opps.slice(0, 3).map((item) => {
-      const typeStr = (item.typePartenaire || item.role || 'Partenaire').toUpperCase();
-      let iconType = 'building';
-      let iconColor = '#D97706';
-      let iconBg = '#FEF3C7';
-
-      if (typeStr.includes('ARTISAN')) {
-        iconType = 'leaf';
-        iconColor = '#10B981';
-        iconBg = '#ECFDF5';
-      } else if (typeStr.includes('GUIDE')) {
-        iconType = 'compass';
-        iconColor = '#0284C7';
-        iconBg = '#F0F9FF';
+  /**
+   * Construit les 5 cartes KPI supérieures à partir du DTO.
+   */
+  private initialiserKpis(data: DashboardStatsResponseDTO): void {
+    const k = data.kpis;
+    this.kpiCards = [
+      {
+        id: 'contenusPublies',
+        label: 'Contenus publiés',
+        value: k.contenusPublies.toLocaleString('fr-FR'),
+        delta: k.contenusPubliesDelta || '+12% ce mois',
+        deltaType: 'positive',
+        icon: 'layers',
+        iconBg: '#E6F7F3',
+        iconColor: '#0E8F76'
+      },
+      {
+        id: 'enAttenteValidation',
+        label: 'En attente de validation',
+        value: k.enAttenteValidation,
+        delta: k.enAttenteValidation > 0 ? (k.enAttenteValidationDelta || 'À traiter') : 'À jour',
+        deltaType: k.enAttenteValidation > 0 ? 'warning' : 'neutral',
+        icon: 'clock',
+        iconBg: '#FEF3C7',
+        iconColor: '#D97706',
+        isAlert: k.enAttenteValidation > 0
+      },
+      {
+        id: 'utilisateursActifs',
+        label: 'Utilisateurs actifs',
+        value: k.utilisateursActifs >= 1000 ? k.utilisateursActifs.toLocaleString('fr-FR') : k.utilisateursActifs,
+        delta: k.utilisateursActifsDelta || '+8%',
+        deltaType: 'positive',
+        icon: 'users',
+        iconBg: '#E0F2FE',
+        iconColor: '#0284C7'
+      },
+      {
+        id: 'partenaires',
+        label: 'Partenaires',
+        value: k.partenaires,
+        delta: k.partenairesDelta || 'Professionnels',
+        deltaType: 'positive',
+        icon: 'handshake',
+        iconBg: '#E8F5E9',
+        iconColor: '#10B981'
+      },
+      {
+        id: 'evenementsAVenir',
+        label: 'Événements à venir',
+        value: k.evenementsAVenir,
+        delta: k.evenementsAVenirDelta || 'Programmés',
+        deltaType: 'neutral',
+        icon: 'calendar',
+        iconBg: '#FFE4E6',
+        iconColor: '#E11D48'
       }
+    ];
+  }
 
-      const statusLabel =
-        item.statutModeration === 'VALIDE' ? 'Validé' :
-        item.statutModeration === 'REJETE' ? 'Refusé' : 'En attente';
+  /**
+   * Initialise et calcule la géométrie SVG pour le graphique d'activité.
+   */
+  private initialiserGraphique(data: DashboardStatsResponseDTO): void {
+    this.changerPeriode(this.selectedPeriod);
+  }
+
+  /**
+   * Bascule entre 7 jours, 30 jours et 12 mois et recalcule les courbes SVG.
+   */
+  changerPeriode(period: '7j' | '30j' | '12m'): void {
+    this.selectedPeriod = period;
+    this.activeTooltip = null;
+
+    if (!this.statsData?.seriesTemporelles) return;
+
+    let rawPoints: PointTemporelDTO[] = [];
+    if (period === '7j') {
+      rawPoints = this.statsData.seriesTemporelles['7j'] || this.statsData.seriesTemporelles.septJours || [];
+    } else if (period === '30j') {
+      rawPoints = this.statsData.seriesTemporelles['30j'] || this.statsData.seriesTemporelles.trenteJours || [];
+    } else {
+      rawPoints = this.statsData.seriesTemporelles['12m'] || this.statsData.seriesTemporelles.douzeMois || [];
+    }
+
+    if (rawPoints.length === 0) {
+      this.chartPoints = [];
+      this.tealPathD = '';
+      this.tealAreaD = '';
+      this.yellowPathD = '';
+      return;
+    }
+
+    // Canevas SVG viewBox: 0 0 600 240
+    const svgWidth = 600;
+    const paddingLeft = 50;
+    const paddingRight = 30;
+    const paddingTop = 35;
+    const paddingBottom = 45;
+    const chartHeight = 240 - paddingTop - paddingBottom;
+    const chartWidth = svgWidth - paddingLeft - paddingRight;
+
+    // Calcul du maximum pour l'échelle Y
+    let maxVal = Math.max(
+      ...rawPoints.map((p) => Math.max(p.pagesVues || p.valeur || 1, p.visiteurs || 1))
+    );
+    if (maxVal <= 0) maxVal = 100;
+    maxVal = Math.ceil(maxVal * 1.15); // marge supérieure 15%
+
+    // Calcul des coordonnées X et Y de chaque point
+    const stepX = chartWidth / (rawPoints.length > 1 ? rawPoints.length - 1 : 1);
+
+    this.chartPoints = rawPoints.map((p, idx) => {
+      const x = Math.round(paddingLeft + idx * stepX);
+      const vVisitors = p.visiteurs || Math.round((p.valeur || 10) * 0.4);
+      const vPages = p.pagesVues || p.valeur || Math.round(vVisitors * 2.2);
+
+      const yVisiteurs = Math.round(paddingTop + chartHeight - (vVisitors / maxVal) * chartHeight);
+      const yPagesVues = Math.round(paddingTop + chartHeight - (vPages / maxVal) * chartHeight);
 
       return {
-        id: item.idUsers,
-        title: item.titreProjet || item.nomComplet || 'Demande de partenariat',
-        subtitle: item.besoinPartenariat || item.specialiteOuOrganisation || item.adresse || 'Recherche de partenaires',
-        timeAgo: item.adresse ? `${item.adresse}` : 'Récemment soumis',
-        status: statusLabel,
-        iconType: iconType,
-        iconColor: iconColor,
-        iconBg: iconBg,
-        route: '/utilisateurs'
+        ...p,
+        visiteurs: vVisitors,
+        pagesVues: vPages,
+        x,
+        yVisiteurs,
+        yPagesVues
       };
     });
-    this.cdr.markForCheck();
-  }
 
-  getAvatarColor(name: string): { bg: string; color: string } {
-    const palette = [
-      { bg: '#E8F5E9', color: '#1B5E20' }, // Forest emerald
-      { bg: '#E3F2FD', color: '#0D47A1' }, // Deep sky blue
-      { bg: '#FFF3E0', color: '#E65100' }, // Warm terra cotta
-      { bg: '#F3E5F5', color: '#4A148C' }, // Royal violet
-      { bg: '#FCE4EC', color: '#880E4F' }, // Warm crimson rose
-      { bg: '#E0F2F1', color: '#004D40' }, // Deep teal
-      { bg: '#FEF9C3', color: '#854D0E' }  // Golden amber
-    ];
-    let hash = 0;
-    const str = (name || 'Utilisateur').trim();
-    for (let i = 0; i < str.length; i++) {
-      hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    // Génération des chemins spline lissés
+    this.tealPathD = this.genererCourbeSpline(this.chartPoints.map((p) => ({ x: p.x!, y: p.yVisiteurs! })));
+    this.yellowPathD = this.genererCourbeSpline(this.chartPoints.map((p) => ({ x: p.x!, y: p.yPagesVues! })));
+
+    // Aire sous la courbe Teal
+    if (this.chartPoints.length > 0) {
+      const firstX = this.chartPoints[0].x!;
+      const lastX = this.chartPoints[this.chartPoints.length - 1].x!;
+      const baseY = paddingTop + chartHeight;
+      this.tealAreaD = `${this.tealPathD} L ${lastX} ${baseY} L ${firstX} ${baseY} Z`;
     }
-    const index = Math.abs(hash) % palette.length;
-    return palette[index];
   }
 
-  getEventFallbackImage(event: Evenement): string {
-    if (event.imageUrl && event.imageUrl.trim()) return event.imageUrl;
-    if (event.afficheUrl && event.afficheUrl.trim()) return event.afficheUrl;
-    return '/assets/MaliExplorer.png';
+  /**
+   * Algorithme de génération de courbe de Bézier cubique lissée.
+   */
+  private genererCourbeSpline(points: { x: number; y: number }[]): string {
+    if (points.length === 0) return '';
+    if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
+
+    let path = `M ${points[0].x} ${points[0].y}`;
+
+    for (let i = 0; i < points.length - 1; i++) {
+      const p0 = points[i === 0 ? 0 : i - 1];
+      const p1 = points[i];
+      const p2 = points[i + 1];
+      const p3 = points[i + 2 < points.length ? i + 2 : i + 1];
+
+      // Points de contrôle de Catmull-Rom
+      const cp1x = p1.x + (p2.x - p0.x) / 6;
+      const cp1y = p1.y + (p2.y - p0.y) / 6;
+      const cp2x = p2.x - (p3.x - p1.x) / 6;
+      const cp2y = p2.y - (p3.y - p1.y) / 6;
+
+      path += ` C ${Math.round(cp1x)} ${Math.round(cp1y)}, ${Math.round(cp2x)} ${Math.round(cp2y)}, ${p2.x} ${p2.y}`;
+    }
+
+    return path;
   }
 
-  navigateToContent(item: ContentToValidate): void {
-    if (item.id) {
+  /**
+   * Gestion de l'info-bulle (tooltip) au survol des points du graphique.
+   */
+  onPointHover(pt: PointTemporelDTO): void {
+    this.activeTooltip = {
+      label: pt.label,
+      date: pt.date || pt.label,
+      visiteurs: pt.visiteurs,
+      pagesVues: pt.pagesVues,
+      valeur: pt.valeur,
+      x: pt.x || 300,
+      yVisiteurs: pt.yVisiteurs || 120,
+      yPagesVues: pt.yPagesVues || 90
+    };
+  }
+
+  onPointLeave(): void {
+    this.activeTooltip = null;
+  }
+
+  /**
+   * Initialise la carte vectorielle SVG et les 16 pôles régionaux.
+   */
+  private initialiserCarte(data: DashboardStatsResponseDTO): void {
+    const terr = data.statistiquesRegionales;
+    if (terr) {
+      this.statistiquesTerritoriales = {
+        totalRegions: terr.totalRegions || 16,
+        regionsActives: terr.regionsActives || (terr.regions ? terr.regions.filter((r) => r.actif).length : 0),
+        tauxActivite: terr.tauxActivite || 0
+      };
+      this.regionsMali = terr.regions || [];
+    }
+
+    // Sélectionner par défaut le District de Bamako ou la première région active
+    if (this.regionsMali.length > 0) {
+      const bko = this.regionsMali.find((r) => r.code === 'BKO');
+      this.selectedRegion = bko || this.regionsMali[0];
+    }
+  }
+
+  /**
+   * Sélection d'un pôle régional au clic.
+   */
+  selectRegion(r: RegionStatDTO): void {
+    this.selectedRegion = r;
+  }
+
+  /**
+   * Survol d'un pôle régional.
+   */
+  hoverRegion(r: RegionStatDTO): void {
+    this.hoveredRegion = r;
+  }
+
+  leaveRegion(): void {
+    this.hoveredRegion = null;
+  }
+
+  /**
+   * Redirection vers la page d'action d'une fiche à valider.
+   */
+  examinerFiche(item: ElementModerationDTO): void {
+    if (item.urlAction) {
+      this.router.navigateByUrl(item.urlAction);
+    } else if (item.type?.toLowerCase().includes('événement')) {
       this.router.navigate(['/validation-evenement', item.id]);
     } else {
-      this.router.navigate(['/evenements']);
+      this.router.navigate(['/demandes-partenariat']);
     }
-  }
-
-  navigateToAllContents(): void {
-    this.router.navigate(['/evenements']);
-  }
-
-  navigateToAllUsers(): void {
-    this.router.navigate(['/utilisateurs']);
-  }
-
-  navigateToPartners(): void {
-    this.router.navigate(['/validation-evenement']);
   }
 
   handleQuickAction(route: string): void {
     if (route) {
-      this.router.navigate([route]);
+      this.router.navigateByUrl(route);
     }
-  }
-
-  setChartPoint(point: ChartHoverInfo | null): void {
-    this.activeChartPoint = point;
   }
 }

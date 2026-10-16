@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of, catchError } from 'rxjs';
+import { Observable, of, catchError, tap, throwError } from 'rxjs';
 import { Ville } from '../models/ville.model';
 import { environment } from '../../environments/environment';
 
@@ -13,19 +13,6 @@ export class VilleService {
 
   private readonly STORAGE_KEY = 'maliexplorer_villes_custom';
 
-  private fallbackVilles: Ville[] = [
-    // { id: 1, nom: 'Bamako', region: 'Bamako (District)', population: '2 800 000 hab', description: 'Capitale politique, économique et carrefour culturel du Mali sur le fleuve Niger.' },
-    // { id: 2, nom: 'Djenné', region: 'Mopti', population: '35 000 hab', description: 'Cité millénaire réputée pour sa Grande Mosquée en terre crue inscrite au patrimoine mondial.' },
-    // { id: 3, nom: 'Tombouctou', region: 'Tombouctou', population: '55 000 hab', description: 'La cité aux 333 saints, haut lieu historique du commerce transsaharien et des manuscrits anciens.' },
-    // { id: 4, nom: 'Mopti', region: 'Mopti', population: '150 000 hab', description: 'La « Venise malienne », confluence majeure du Niger et du Bani et carrefour fluvial.' },
-    // { id: 5, nom: 'Ségou', region: 'Ségou', population: '135 000 hab', description: 'Cité des balanzans, ancienne capitale du grand Royaume bambara de Ségou.' },
-    // { id: 6, nom: 'Sikasso', region: 'Sikasso', population: '225 000 hab', description: 'Capitale du Kénédougou, poumon agricole et carrefour transfrontalier verdoyant.' },
-    // { id: 7, nom: 'Gao', region: 'Gao', population: '90 000 hab', description: 'Ancienne capitale de l’Empire Songhaï, abritant le tombeau des Askia.' },
-    // { id: 8, nom: 'Kayes', region: 'Kayes', population: '130 000 hab', description: 'La cité du rail et des chutes du Félou, porte d’entrée occidentale du Mali.' },
-    // { id: 9, nom: 'Koulikoro', region: 'Koulikoro', population: '45 000 hab', description: 'Terminus ferroviaire et port fluvial de départ vers le nord.' },
-    // { id: 10, nom: 'Kidal', region: 'Kidal', population: '25 000 hab', description: 'Cité de l’Adrar des Ifoghas et berceau de la culture touarègue.' }
-  ];
-
   private getLocalVilles(): Ville[] {
     try {
       const stored = localStorage.getItem(this.STORAGE_KEY);
@@ -36,7 +23,7 @@ export class VilleService {
     } catch (e) {
       console.warn('Erreur lecture localStorage villes', e);
     }
-    return [...this.fallbackVilles];
+    return [];
   }
 
   private saveLocalVilles(villes: Ville[]): void {
@@ -49,6 +36,11 @@ export class VilleService {
 
   getVilles(): Observable<Ville[]> {
     return this.http.get<Ville[]>(this.apiUrl).pipe(
+      tap((villes) => {
+        if (Array.isArray(villes) && villes.length > 0) {
+          this.saveLocalVilles(villes);
+        }
+      }),
       catchError((error) => {
         console.warn('API Spring Boot non disponible pour les villes, utilisation du stockage local :', error);
         return of(this.getLocalVilles());
@@ -84,42 +76,44 @@ export class VilleService {
 
   createVille(ville: Ville): Observable<Ville> {
     return this.http.post<Ville>(this.apiUrl, ville).pipe(
-      catchError((error) => {
-        console.warn('API Spring Boot non joignable, enregistrement local de la ville :', error);
-        const newVille: Ville = {
-          ...ville,
-          id: Date.now()
-        };
+      tap((created) => {
         const current = this.getLocalVilles();
-        current.unshift(newVille);
+        current.unshift(created);
         this.saveLocalVilles(current);
-        return of(newVille);
+      }),
+      catchError((error) => {
+        console.error('Erreur API Spring Boot lors de la création de la ville :', error);
+        return throwError(() => error);
       })
     );
   }
 
   updateVille(id: number | string, ville: Ville): Observable<Ville> {
     return this.http.put<Ville>(`${this.apiUrl}/${id}`, ville).pipe(
-      catchError((error) => {
-        console.warn('API Spring Boot non joignable, mise à jour locale de la ville :', error);
+      tap((updated) => {
         const current = this.getLocalVilles();
         const index = current.findIndex((v) => String(v.id) === String(id));
         if (index !== -1) {
-          current[index] = { ...current[index], ...ville, id };
+          current[index] = { ...current[index], ...updated };
           this.saveLocalVilles(current);
         }
-        return of({ ...ville, id });
+      }),
+      catchError((error) => {
+        console.error('Erreur API Spring Boot lors de la mise à jour de la ville :', error);
+        return throwError(() => error);
       })
     );
   }
 
   deleteVille(id: number | string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`).pipe(
-      catchError((error) => {
-        console.warn('API Spring Boot non joignable, suppression locale de la ville :', error);
+      tap(() => {
         const current = this.getLocalVilles().filter((v) => String(v.id) !== String(id));
         this.saveLocalVilles(current);
-        return of(void 0);
+      }),
+      catchError((error) => {
+        console.error('Erreur API Spring Boot lors de la suppression de la ville :', error);
+        return throwError(() => error);
       })
     );
   }

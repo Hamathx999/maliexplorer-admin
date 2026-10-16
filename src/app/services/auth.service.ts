@@ -40,6 +40,18 @@ export class AuthService {
   private readonly token = signal<string | null>(this.read(AuthService.TOKEN_KEY));
   readonly currentUser = signal<AuthUser | null>(this.readUser());
   readonly isAuthenticated = computed(() => !!this.token() && !!this.currentUser());
+  readonly isSuperAdmin = computed(() => {
+    const user = this.currentUser();
+    if (!user) return false;
+    const r = (user.role || '').toLowerCase();
+    return r.includes('super') || (user.email === 'famoryjosuesissoko@gmail.com') || (user.email === 'hamath.o.diallo18@gmail.com');
+  });
+  readonly isAdmin = computed(() => {
+    const user = this.currentUser();
+    if (!user) return false;
+    const r = (user.role || '').toLowerCase();
+    return r.includes('admin') || this.isSuperAdmin();
+  });
 
   private refresh$: Observable<string> | null = null;
 

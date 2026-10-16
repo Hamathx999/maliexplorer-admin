@@ -32,6 +32,8 @@ export class SidebarComponent {
     { label: 'Tableau de bord', route: '/dashboard', icon: 'dashboard' },
     { label: 'Gestion diaporama', route: '/home-slides', icon: 'image' },
     { label: 'Événements', route: '/evenements', icon: 'calendar' },
+    { label: 'Partenaires', route: '/partenaires', icon: 'handshake' },
+    { label: 'Demandes de partenariat', route: '/demandes-partenariat', icon: 'clipboard' },
     { label: 'Les régions', route: '/regions', icon: 'map' },
     { label: 'Les villes', route: '/villes', icon: 'building' },
     { label: 'Lieux historiques', route: '/lieux-historiques', icon: 'landmark' },
@@ -43,6 +45,7 @@ export class SidebarComponent {
     { label: 'Les questions', route: '/questions', icon: 'lightbulb' },
     { label: 'Les presidents', route: '/presidents', icon: 'award' },
     { label: 'Utilisateurs', route: '/utilisateurs', icon: 'user' },
+    { label: 'Administrateurs', route: '/administrateurs', icon: 'shield' },
   ];
 
   logout(): void {

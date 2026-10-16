@@ -1,0 +1,384 @@
+<div class="demandes-container">
+  <!-- Notification Toast Flottante -->
+  @if (toastMessage) {
+    <div class="toast-banner" [class.toast-success]="toastType === 'success'" [class.toast-danger]="toastType === 'danger'" [class.toast-info]="toastType === 'info'">
+      <div class="toast-icon">
+        @if (toastType === 'success') {
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        } @else {
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        }
+      </div>
+      <span class="toast-text">{{ toastMessage }}</span>
+      <button type="button" class="toast-close" (click)="toastMessage = null">✕</button>
+    </div>
+  }
+
+  <!-- En-tête de section -->
+  <header class="section-header">
+    <div class="header-titles">
+      <h2 class="main-title">Modération des Opportunités de Partenariat</h2>
+      <p class="main-subtitle">Examinez, validez et supervisez les propositions de projets culturels et touristiques.</p>
+    </div>
+    <div class="header-actions">
+      <a routerLink="/partenaires" class="btn-all-partners">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+        </svg>
+        Consulter l'annuaire des partenaires
+      </a>
+    </div>
+  </header>
+
+  <!-- Onglets de modération & Recherche -->
+  <section class="tabs-and-search-card">
+    <div class="moderation-tabs">
+      <button
+        type="button"
+        class="tab-btn"
+        [class.active]="activeTab === 'EN_ATTENTE'"
+        (click)="switchTab('EN_ATTENTE')">
+        <span class="tab-label">En attente de validation</span>
+        <span class="badge-count" [class.has-pending]="demandesEnAttente.length > 0">
+          {{ demandesEnAttente.length }}
+        </span>
+      </button>
+
+      <button
+        type="button"
+        class="tab-btn"
+        [class.active]="activeTab === 'VALIDE'"
+        (click)="switchTab('VALIDE')">
+        <span class="tab-label">Dossiers approuvés</span>
+        <span class="badge-count">{{ demandesValidees.length }}</span>
+      </button>
+
+      <button
+        type="button"
+        class="tab-btn"
+        [class.active]="activeTab === 'REJETE'"
+        (click)="switchTab('REJETE')">
+        <span class="tab-label">Dossiers rejetés</span>
+        <span class="badge-count">{{ demandesRejetees.length }}</span>
+      </button>
+    </div>
+
+    <div class="search-box">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input
+        type="text"
+        class="search-input"
+        placeholder="Rechercher par demandeur, projet, organisation..."
+        [(ngModel)]="searchTerm"
+        (input)="appliquerFiltres()" />
+      @if (searchTerm) {
+        <button type="button" class="clear-search-btn" (click)="searchTerm = ''; appliquerFiltres()">✕</button>
+      }
+    </div>
+  </section>
+
+  <!-- Tableau des dossiers -->
+  <section class="table-card">
+    @if (isLoading) {
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <p>Chargement des dossiers de partenariat...</p>
+      </div>
+    } @else if (filteredDemandes.length === 0) {
+      <div class="empty-state">
+        <div class="empty-icon-circle">
+          @if (activeTab === 'EN_ATTENTE') {
+            <svg viewBox="0 0 24 24" fill="none" stroke="#0E8F76" stroke-width="2" width="44" height="44">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+          } @else {
+            <svg viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.8" width="44" height="44">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+          }
+        </div>
+        <h3>
+          @if (activeTab === 'EN_ATTENTE') {
+            Toutes les demandes ont été traitées !
+          } @else if (activeTab === 'VALIDE') {
+            Aucun dossier approuvé trouvé
+          } @else {
+            Aucun dossier rejeté
+          }
+        </h3>
+        <p>
+          @if (activeTab === 'EN_ATTENTE') {
+            La file de modération est vide pour le moment. Dès qu'un acteur culturel soumettra un projet de partenariat, il apparaîtra ici.
+          } @else {
+            Aucune opportunité ne correspond aux critères de filtre sélectionnés.
+          }
+        </p>
+      </div>
+    } @else {
+      <div class="table-responsive">
+        <table class="moderation-table">
+          <thead>
+            <tr>
+              <th>Demandeur</th>
+              <th>Projet & Organisation</th>
+              <th>Besoin formulé</th>
+              <th>Date de soumission</th>
+              <th>Statut</th>
+              <th style="text-align: right;">Modération</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (demande of filteredDemandes; track demande.idUsers) {
+              <tr (click)="examinerDossier(demande)" class="table-row-clickable">
+                <td>
+                  <div class="requester-cell">
+                    @if (demande.photoUrl && !imageErrors[demande.idUsers]) {
+                      <img
+                        [src]="demande.photoUrl"
+                        [alt]="demande.nomComplet"
+                        class="requester-avatar"
+                        (error)="onAvatarError(demande.idUsers)" />
+                    } @else {
+                      <div
+                        class="requester-avatar-initials"
+                        [style.background-color]="getAvatarColor(demande.nomComplet).bg"
+                        [style.color]="getAvatarColor(demande.nomComplet).color">
+                        {{ getInitial(demande.nomComplet) }}
+                      </div>
+                    }
+                    <div class="requester-text">
+                      <strong class="requester-name">{{ demande.nomComplet }}</strong>
+                      <span class="requester-email">{{ demande.email }}</span>
+                      @if (demande.typePartenaire || demande.role) {
+                        <span class="requester-role">{{ demande.typePartenaire || demande.role }}</span>
+                      }
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="project-cell">
+                    <strong class="project-title">{{ demande.titreProjet || 'Projet de partenariat' }}</strong>
+                    <span class="project-org">{{ demande.specialiteOuOrganisation || demande.adresse || 'Organisation non spécifiée' }}</span>
+                  </div>
+                </td>
+                <td>
+                  <p class="need-text" [title]="demande.besoinPartenariat">
+                    {{ demande.besoinPartenariat || 'Recherche de partenaires et investisseurs pour développement culturel.' }}
+                  </p>
+                </td>
+                <td>
+                  <span class="date-text">{{ demande.dateCreation || 'Récemment' }}</span>
+                </td>
+                <td>
+                  @if (demande.statutModeration === 'VALIDE') {
+                    <span class="status-badge badge-valid">✓ Validé</span>
+                  } @else if (demande.statutModeration === 'REJETE') {
+                    <span class="status-badge badge-rejected" [title]="demande.motifRejet || 'Rejeté'">✕ Rejeté</span>
+                  } @else {
+                    <span class="status-badge badge-pending">⏳ En attente</span>
+                  }
+                </td>
+                <td>
+                  <div class="actions-group" (click)="$event.stopPropagation()">
+                    <button
+                      type="button"
+                      class="btn-action-view"
+                      (click)="examinerDossier(demande)"
+                      title="Examiner le dossier complet">
+                      Examiner
+                    </button>
+
+                    @if (activeTab === 'EN_ATTENTE') {
+                      <button
+                        type="button"
+                        class="btn-action-approve"
+                        [disabled]="isSubmittingAction"
+                        (click)="validerDossier(demande, $event)"
+                        title="Valider ce dossier de partenariat">
+                        Approuver
+                      </button>
+
+                      <button
+                        type="button"
+                        class="btn-action-reject"
+                        [disabled]="isSubmittingAction"
+                        (click)="ouvrirModaleRejet(demande, $event)"
+                        title="Rejeter avec motif">
+                        Rejeter
+                      </button>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+
+  <!-- Modale d'examen complet du dossier -->
+  @if (isDetailsModalOpen && selectedDemande) {
+    <div class="modal-backdrop" (click)="fermerModalDetails()">
+      <div class="modal-dialog" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <h3 class="modal-title">Dossier de Partenariat</h3>
+            <span class="modal-subtitle">Examen approfondi des informations du demandeur</span>
+          </div>
+          <button type="button" class="modal-close-btn" (click)="fermerModalDetails()">✕</button>
+        </div>
+
+        <div class="modal-body">
+          <!-- Carte profil du demandeur -->
+          <div class="applicant-hero">
+            @if (selectedDemande.photoUrl && !imageErrors[selectedDemande.idUsers]) {
+              <img
+                [src]="selectedDemande.photoUrl"
+                [alt]="selectedDemande.nomComplet"
+                class="applicant-avatar"
+                (error)="onAvatarError(selectedDemande.idUsers)" />
+            } @else {
+              <div
+                class="applicant-avatar-initials"
+                [style.background-color]="getAvatarColor(selectedDemande.nomComplet).bg"
+                [style.color]="getAvatarColor(selectedDemande.nomComplet).color">
+                {{ getInitial(selectedDemande.nomComplet) }}
+              </div>
+            }
+            <div class="applicant-details">
+              <h4 class="applicant-name">{{ selectedDemande.nomComplet }}</h4>
+              <p class="applicant-meta">
+                <span>{{ selectedDemande.email }}</span>
+                @if (selectedDemande.adresse) {
+                  • <span>{{ selectedDemande.adresse }}</span>
+                }
+              </p>
+              <div class="applicant-tags">
+                <span class="tag-badge">{{ selectedDemande.typePartenaire || selectedDemande.role || 'Partenaire' }}</span>
+                @if (selectedDemande.statutModeration === 'VALIDE') {
+                  <span class="status-badge badge-valid">✓ Validé</span>
+                } @else if (selectedDemande.statutModeration === 'REJETE') {
+                  <span class="status-badge badge-rejected">✕ Rejeté</span>
+                } @else {
+                  <span class="status-badge badge-pending">⏳ En attente de validation</span>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- Section Projet -->
+          <div class="detail-block">
+            <h5 class="block-title">Projet & Demande de Partenariat</h5>
+            <div class="highlight-card">
+              <h6 class="highlight-title">{{ selectedDemande.titreProjet || 'Proposition de partenariat culturel' }}</h6>
+              <p class="highlight-desc">{{ selectedDemande.besoinPartenariat || 'Ce partenaire souhaite développer des initiatives touristiques et patrimoniales avec la plateforme.' }}</p>
+            </div>
+          </div>
+
+          <!-- Section Informations professionnelles -->
+          <div class="detail-block">
+            <h5 class="block-title">Informations structurelles</h5>
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="info-label">Organisation / Métier</span>
+                <strong class="info-value">{{ selectedDemande.specialiteOuOrganisation || 'Non renseigné' }}</strong>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Date de soumission</span>
+                <strong class="info-value">{{ selectedDemande.dateCreation || 'Récemment' }}</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section Motif de rejet si applicable -->
+          @if (selectedDemande.motifRejet) {
+            <div class="detail-block reject-reason-block">
+              <h5 class="block-title" style="color: #E11D48;">Motif du rejet notifié</h5>
+              <p class="reject-reason-text">{{ selectedDemande.motifRejet }}</p>
+            </div>
+          }
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" (click)="fermerModalDetails()">Fermer</button>
+
+          @if (selectedDemande.statutModeration === 'EN_ATTENTE_VALIDATION' || !selectedDemande.statutModeration || selectedDemande.statutModeration === 'EN_ATTENTE') {
+            <button
+              type="button"
+              class="btn-reject-modal"
+              [disabled]="isSubmittingAction"
+              (click)="ouvrirModaleRejet(selectedDemande)">
+              Rejeter avec motif
+            </button>
+            <button
+              type="button"
+              class="btn-approve-modal"
+              [disabled]="isSubmittingAction"
+              (click)="validerDossier(selectedDemande)">
+              Approuver la demande
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Modale de saisie du motif de rejet -->
+  @if (isRejectModalOpen && demandeToReject) {
+    <div class="modal-backdrop" (click)="fermerModaleRejet()">
+      <div class="modal-dialog modal-dialog-sm" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <h3 class="modal-title" style="color: #E11D48;">Rejeter la demande</h3>
+            <span class="modal-subtitle">Indiquez au partenaire les motifs du refus</span>
+          </div>
+          <button type="button" class="modal-close-btn" (click)="fermerModaleRejet()">✕</button>
+        </div>
+
+        <div class="modal-body">
+          <p class="reject-dialog-intro">
+            Vous vous apprêtez à rejeter la demande de <strong>{{ demandeToReject.nomComplet }}</strong>.
+            Veuillez saisir un motif explicatif qui lui sera transmis :
+          </p>
+
+          <div class="form-group">
+            <label class="form-label" for="motifRejet">Motif du rejet (obligatoire ou conseillé)</label>
+            <textarea
+              id="motifRejet"
+              class="form-textarea"
+              rows="4"
+              placeholder="Ex : Les pièces justificatives fournies sont illisibles ou le descriptif du projet ne correspond pas aux critères touristiques MaliExplorer..."
+              [(ngModel)]="motifRejet"></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" (click)="fermerModaleRejet()">Annuler</button>
+          <button
+            type="button"
+            class="btn-confirm-reject"
+            [disabled]="isSubmittingAction"
+            (click)="confirmerRejet()">
+            Confirmer le rejet
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

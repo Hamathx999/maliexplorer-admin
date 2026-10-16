@@ -1,0 +1,369 @@
+<div class="page-container">
+
+  <!-- Notification Toast -->
+  @if (notificationMessage) {
+    <div class="notification-toast" [class.success]="notificationType === 'success'" [class.error]="notificationType === 'error'">
+      <span>{{ notificationMessage }}</span>
+      <button type="button" class="close-btn" (click)="notificationMessage = ''">&times;</button>
+    </div>
+  }
+
+  <!-- Entête de page -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#075E4D" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="title-svg">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        Gestion des Administrateurs
+      </h1>
+      <p class="page-subtitle">
+        Gestion sécurisée de l'équipe d'administration MaliExplorer, contrôle des rôles et des privilèges.
+      </p>
+    </div>
+
+    @if (authService.isSuperAdmin()) {
+      <button type="button" class="btn-primary-admin" (click)="openAddModal()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        Nouvel Administrateur
+      </button>
+    }
+  </div>
+
+  <!-- Barre de recherche et Filtres par rôle -->
+  <div class="admin-toolbar">
+    <div class="filter-pills">
+      <button
+        type="button"
+        class="filter-pill"
+        [class.active]="roleFilter === 'TOUS'"
+        (click)="setRoleFilter('TOUS')">
+        Tous ({{ administrateurs.length }})
+      </button>
+      <button
+        type="button"
+        class="filter-pill pill-super"
+        [class.active]="roleFilter === 'superAdmin'"
+        (click)="setRoleFilter('superAdmin')">
+        Super Admins ({{ countSuperAdmins }})
+      </button>
+      <button
+        type="button"
+        class="filter-pill pill-admin"
+        [class.active]="roleFilter === 'admin'"
+        (click)="setRoleFilter('admin')">
+        Administrateurs ({{ countAdmins }})
+      </button>
+    </div>
+
+    <div class="search-box">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input
+        type="text"
+        placeholder="Rechercher par nom, email, téléphone..."
+        [(ngModel)]="searchTerm"
+        (ngModelChange)="onSearchChange()" />
+      @if (searchTerm) {
+        <button type="button" class="clear-search" (click)="searchTerm = ''; onSearchChange()">&times;</button>
+      }
+    </div>
+  </div>
+
+  <!-- Tableau des Administrateurs -->
+  <div class="admin-card">
+    <div class="table-responsive">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Membre de l'équipe</th>
+            <th>Coordonnées</th>
+            <th>Rôle & Privilèges</th>
+            <th>Statut</th>
+            <th>Date d'ajout</th>
+            <th class="text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (isLoading) {
+            <tr>
+              <td colspan="6" class="loading-state">
+                <div class="spinner"></div>
+                <span>Chargement des administrateurs...</span>
+              </td>
+            </tr>
+          } @else if (filteredAdmins.length === 0) {
+            <tr>
+              <td colspan="6" class="empty-state">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 8px;">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                <p>Aucun administrateur ne correspond aux critères.</p>
+              </td>
+            </tr>
+          } @else {
+            @for (admin of filteredAdmins; track admin.idUsers ?? admin.email) {
+              <tr [class.row-super]="admin.role === 'superAdmin'">
+                <!-- Profil & Nom -->
+                <td>
+                  <div class="user-cell">
+                    <div class="avatar-wrapper">
+                      @if (admin.photoUrl && !imageLoadErrors[admin.idUsers ?? admin.email]) {
+                        <img
+                          [src]="admin.photoUrl"
+                          [alt]="admin.prenom + ' ' + admin.nom"
+                          (error)="onAvatarError(admin.idUsers ?? admin.email)"
+                          class="admin-avatar"
+                          [class.avatar-border-super]="admin.role === 'superAdmin'" />
+                      } @else {
+                        <div
+                          class="admin-avatar-initials"
+                          [class.initials-super]="admin.role === 'superAdmin'"
+                          [style.background]="getAvatarColor(admin.prenom + ' ' + admin.nom).bg"
+                          [style.color]="getAvatarColor(admin.prenom + ' ' + admin.nom).color">
+                          {{ admin.prenom.charAt(0) || admin.nom.charAt(0) || 'A' }}
+                        </div>
+                      }
+                    </div>
+                    <div>
+                      <div class="admin-name">{{ admin.prenom }} {{ admin.nom }}</div>
+                      @if (authService.currentUser()?.email === admin.email) {
+                        <span class="badge-you">(Vous)</span>
+                      }
+                    </div>
+                  </div>
+                </td>
+
+                <!-- Coordonnées -->
+                <td>
+                  <div class="contact-email">{{ admin.email }}</div>
+                  @if (admin.telephone) {
+                    <div class="contact-phone">{{ admin.telephone }}</div>
+                  }
+                </td>
+
+                <!-- Rôle & Privilèges -->
+                <td>
+                  @if (admin.role === 'superAdmin') {
+                    <span class="role-pill role-super">
+                      <span class="role-dot dot-super"></span>
+                      Super Admin
+                    </span>
+                  } @else {
+                    <span class="role-pill role-admin">
+                      <span class="role-dot dot-admin"></span>
+                      Administrateur
+                    </span>
+                  }
+                </td>
+
+                <!-- Statut -->
+                <td>
+                  @if (admin.statut === 'ACTIF' || !admin.statut) {
+                    <span class="status-badge status-active">Actif</span>
+                  } @else {
+                    <span class="status-badge status-blocked">Bloqué</span>
+                  }
+                </td>
+
+                <!-- Date -->
+                <td class="date-cell">
+                  {{ admin.dateCreation || 'N/A' }}
+                </td>
+
+                <!-- Actions -->
+                <td class="text-right">
+                  <div class="action-buttons">
+                    <!-- Modifier -->
+                    @if (authService.isSuperAdmin() || authService.currentUser()?.email === admin.email) {
+                      <button
+                        type="button"
+                        class="btn-action btn-edit"
+                        title="Modifier les informations"
+                        (click)="openEditModal(admin)">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                      </button>
+                    }
+
+                    <!-- Bloquer / Débloquer (seul Super Admin peut bloquer un autre) -->
+                    @if (authService.isSuperAdmin() && authService.currentUser()?.email !== admin.email) {
+                      <button
+                        type="button"
+                        class="btn-action"
+                        [class.btn-unblock]="admin.statut === 'BLOQUE'"
+                        [class.btn-block]="admin.statut === 'ACTIF' || !admin.statut"
+                        [title]="admin.statut === 'BLOQUE' ? 'Activer le compte' : 'Bloquer le compte'"
+                        (click)="toggleBlock(admin)">
+                        @if (admin.statut === 'BLOQUE') {
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+                          </svg>
+                        } @else {
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                          </svg>
+                        }
+                      </button>
+
+                      <!-- Révoquer / Supprimer (Super Admin uniquement, pas sur soi-même) -->
+                      <button
+                        type="button"
+                        class="btn-action btn-delete"
+                        title="Révoquer ce compte administrateur"
+                        (click)="deleteAdmin(admin)">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <polyline points="3 6 5 6 21 6"></polyline>
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                      </button>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- MODAL AJOUT / ÉDITION ADMINISTRATEUR -->
+  @if (showModal) {
+    <div class="modal-backdrop" (click)="closeModal()">
+      <div class="modal-card" (click)="$event.stopPropagation()">
+        <!-- Entête Modal -->
+        <div class="modal-header">
+          <div class="modal-title">
+            <span>{{ isEditing ? 'Modifier l\'administrateur' : 'Nouvel administrateur' }}</span>
+          </div>
+          <button type="button" class="modal-close-btn" (click)="closeModal()">&times;</button>
+        </div>
+
+        <!-- Corps Modal -->
+        <div class="modal-body">
+          <!-- Photo de profil -->
+          <div class="avatar-upload-section">
+            <div class="avatar-preview-box">
+              @if (formData.photoUrl) {
+                <img [src]="formData.photoUrl" alt="Aperçu photo" class="preview-avatar-img" />
+              } @else {
+                <div class="preview-avatar-placeholder">
+                  {{ formData.prenom?.charAt(0) || formData.nom?.charAt(0) || 'A' }}
+                </div>
+              }
+            </div>
+            <div>
+              <label class="btn-upload-avatar">
+                <input type="file" accept="image/*" (change)="onPhotoSelected($event)" style="display: none;" />
+                {{ isUploadingPhoto ? 'Téléversement en cours...' : 'Choisir une photo' }}
+              </label>
+              <p class="upload-hint">Format JPG, PNG ou WebP. Supabase Storage.</p>
+            </div>
+          </div>
+
+          <!-- Choix du Rôle (Super Admin vs Admin) -->
+          <div class="form-group">
+            <label class="form-label">Rôle et niveau d'habilitation *</label>
+            <div class="role-selector-grid">
+              <!-- Carte Administrateur Standard -->
+              <div
+                class="role-card"
+                [class.selected]="formData.role === 'admin'"
+                (click)="formData.role = 'admin'">
+                <div class="role-card-header">
+                  <span class="role-card-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                  </span>
+                  <div class="role-card-title">Administrateur</div>
+                  <input type="radio" name="roleChoice" [checked]="formData.role === 'admin'" />
+                </div>
+                <p class="role-card-desc">
+                  Gestion du contenu (villes, événements, quiz, diaporamas) et modération des utilisateurs.
+                </p>
+              </div>
+
+              <!-- Carte Super Admin (accessible aux Super Admins) -->
+              <div
+                class="role-card super"
+                [class.selected]="formData.role === 'superAdmin'"
+                (click)="formData.role = 'superAdmin'">
+                <div class="role-card-header">
+                  <span class="role-card-icon super-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                    </svg>
+                  </span>
+                  <div class="role-card-title">Super Admin</div>
+                  <input type="radio" name="roleChoice" [checked]="formData.role === 'superAdmin'" />
+                </div>
+                <p class="role-card-desc">
+                  Habilitation maximale : création d'administrateurs, attribution de rôles et sécurité globale.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Informations Personnelles -->
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Prénom *</label>
+              <input type="text" class="form-input" [(ngModel)]="formData.prenom" placeholder="Ex: Famory Josué" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Nom *</label>
+              <input type="text" class="form-input" [(ngModel)]="formData.nom" placeholder="Ex: Sissoko" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Email professionnel *</label>
+              <input type="email" class="form-input" [(ngModel)]="formData.email" placeholder="admin@maliexplorer.ml" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Téléphone</label>
+              <input type="text" class="form-input" [(ngModel)]="formData.telephone" placeholder="+223 70 00 00 00" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Adresse / Localisation</label>
+            <input type="text" class="form-input" [(ngModel)]="formData.adresse" placeholder="Ex: Bamako, Mali" />
+          </div>
+
+          @if (!isEditing) {
+            <div class="form-group">
+              <label class="form-label">Mot de passe initial (optionnel)</label>
+              <input type="password" class="form-input" [(ngModel)]="formData.motDePasse" placeholder="Minimum 6 caractères" />
+              <small class="field-hint">Si vide, l'administrateur pourra s'authentifier via Firebase Auth.</small>
+            </div>
+          }
+        </div>
+
+        <!-- Pied de Modal -->
+        <div class="modal-footer">
+          <button type="button" class="btn-cancel" (click)="closeModal()" [disabled]="isSaving">Annuler</button>
+          <button type="button" class="btn-save" (click)="saveAdmin()" [disabled]="isSaving">
+            {{ isSaving ? 'Enregistrement...' : (isEditing ? 'Mettre à jour' : 'Créer l\'administrateur') }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+</div>

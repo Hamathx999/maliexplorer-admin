@@ -26,6 +26,7 @@ export class EvenementsComponent implements OnInit {
   selectedStatut: string = 'TOUS';
 
   isEditing: boolean = false;
+  isSubmitting: boolean = false;
   editingEvenement: Evenement | null = null;
   isUploadingAffiche: boolean = false;
   isDragging: boolean = false;
@@ -198,36 +199,83 @@ export class EvenementsComponent implements OnInit {
   }
 
   cancelEdit(): void {
-    this.isEditing = false;
-    this.editingEvenement = null;
-    this.selectedAfficheName = '';
+    this.resetForm();
     this.router.navigate(['/evenements']);
   }
 
+  resetForm(): void {
+    this.formData = {
+      titre: '',
+      nomOrganisateur: '',
+      emailOrganisateur: '',
+      telephoneOrganisateur: '',
+      dateDebut: '',
+      dateFin: '',
+      heureDebut: '09:00',
+      heureFin: '18:00',
+      lieu: '',
+      ville: 'Bamako',
+      region: 'Bamako',
+      categorie: 'Festival Culturel',
+      statut: 'APPROUVE',
+      description: '',
+      prix: 'Gratuit',
+      afficheUrl: '',
+      imageUrl: ''
+    };
+    this.editingEvenement = null;
+    this.selectedAfficheName = '';
+    this.isEditing = false;
+    this.isSubmitting = false;
+    this.isUploadingAffiche = false;
+    this.isDragging = false;
+  }
+
   saveEvenement(): void {
+    if (this.isSubmitting) return;
+
+    if (this.isUploadingAffiche) {
+      alert("Veuillez patienter pendant l'envoi de l'affiche...");
+      return;
+    }
+
     if (!this.formData.titre || !this.formData.dateDebut) {
       alert('Veuillez renseigner au minimum le titre et la date de début.');
       return;
     }
+
+    this.isSubmitting = true;
 
     const editingId = this.editingEvenement?.id ?? (this.editingEvenement as any)?.idEvenement ?? this.formData?.id ?? (this.formData as any)?.idEvenement;
 
     if (editingId) {
       this.evenementService.updateEvenement(editingId, this.formData as Evenement).subscribe({
         next: (updated) => {
+          this.isSubmitting = false;
           const updatedId = updated?.id ?? (updated as any)?.idEvenement ?? editingId;
           const idx = this.evenements.findIndex((e) => (e.id ?? (e as any).idEvenement) === updatedId);
           if (idx !== -1) this.evenements[idx] = updated;
           this.filterEvenements();
           this.cancelEdit();
+        },
+        error: (err) => {
+          this.isSubmitting = false;
+          console.error('Erreur mise à jour événement:', err);
+          alert("Erreur lors de la mise à jour de l'événement.");
         }
       });
     } else {
       this.evenementService.createEvenement(this.formData as Evenement).subscribe({
         next: (created) => {
+          this.isSubmitting = false;
           this.evenements.unshift(created);
           this.filterEvenements();
           this.cancelEdit();
+        },
+        error: (err) => {
+          this.isSubmitting = false;
+          console.error('Erreur création événement:', err);
+          alert("Erreur lors de la création de l'événement.");
         }
       });
     }

@@ -34,17 +34,7 @@
               @for (q of filteredQuiz; track q.id ?? q.nomQuiz) {
                 <tr>
                   <td>
-                    @if (q.imageUrl || q.imageQuiz || q.logoUrl) {
-                      <img [src]="q.imageUrl || q.imageQuiz || q.logoUrl" [alt]="q.nomQuiz" class="figma-thumb-small" />
-                    } @else {
-                      <div class="figma-thumb-small" style="display: flex; align-items: center; justify-content: center; color: #94A3B8;">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                          <circle cx="12" cy="12" r="10"></circle>
-                          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-                          <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                        </svg>
-                      </div>
-                    }
+                    <img [src]="getQuizImage(q)" [alt]="q.nomQuiz" class="figma-thumb-small" />
                   </td>
                   <td><strong>{{ q.nomQuiz }}</strong></td>
                   <td>
@@ -188,9 +178,9 @@
     </div>
 
     <div class="figma-form-actions">
-      <button type="button" class="figma-btn-cancel" (click)="cancelEdit()">Annuler</button>
-      <button type="button" class="figma-btn-primary" (click)="saveQuiz()" [disabled]="isUploadingImage">
-        {{ editingQuiz ? 'Modifier le quiz' : 'Ajouter le quiz' }}
+      <button type="button" class="figma-btn-cancel" (click)="cancelEdit()" [disabled]="isSubmitting">Annuler</button>
+      <button type="button" class="figma-btn-primary" (click)="saveQuiz()" [disabled]="isSubmitting || isUploadingImage">
+        {{ isSubmitting ? 'Enregistrement...' : (editingQuiz ? 'Modifier le quiz' : 'Ajouter le quiz') }}
       </button>
     </div>
   }

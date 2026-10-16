@@ -52,7 +52,11 @@
                           </span>
                         }
                       } @else {
-                        <span style="color: #94A3B8; font-size: 12px; font-style: italic;">Non spécifié</span>
+                        @for (ing of getPlatFallbackIngredients(plat.nom); track $index) {
+                          <span class="figma-pill-badge" style="background: #ECFDF5; color: #065F46; font-size: 11px;">
+                            {{ ing }}
+                          </span>
+                        }
                       }
                     </div>
                   </td>
@@ -215,9 +219,9 @@
     </div>
 
     <div class="figma-form-actions">
-      <button type="button" class="figma-btn-cancel" (click)="cancelEdit()">Annuler</button>
-      <button type="button" class="figma-btn-primary" (click)="savePlat()" [disabled]="isUploadingImage">
-        {{ editingPlat ? 'Modifier le plat' : 'Ajouter le plat' }}
+      <button type="button" class="figma-btn-cancel" (click)="cancelEdit()" [disabled]="isSubmitting">Annuler</button>
+      <button type="button" class="figma-btn-primary" (click)="savePlat()" [disabled]="isSubmitting || isUploadingImage">
+        {{ isSubmitting ? 'Enregistrement...' : (editingPlat ? 'Modifier le plat' : 'Ajouter le plat') }}
       </button>
     </div>
   }

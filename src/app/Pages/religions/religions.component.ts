@@ -20,6 +20,7 @@ export class ReligionsComponent implements OnInit {
   religions: Religion[] = [];
   isLoading: boolean = false;
   isEditing: boolean = false;
+  isSubmitting: boolean = false;
   isUploading: boolean = false;
   isDragging: boolean = false;
 
@@ -48,7 +49,8 @@ export class ReligionsComponent implements OnInit {
     this.isLoading = true;
     this.religionService.getAllReligions().subscribe({
       next: (data) => {
-        this.religions = (data || []).sort((a, b) => (a.ordreAffichage ?? 0) - (b.ordreAffichage ?? 0));
+        this.religions = (data || []).map(r => this.normalizeReligion(r))
+          .sort((a, b) => (a.ordreAffichage ?? 0) - (b.ordreAffichage ?? 0));
         this.isLoading = false;
         this.cdr.markForCheck();
       },
@@ -60,11 +62,73 @@ export class ReligionsComponent implements OnInit {
     });
   }
 
+  private normalizeReligion(r: Religion): Religion {
+    const desc = r.descriptionHistorique || r.description || r.histoire || '';
+    const branches = r.courantsOuBranches && r.courantsOuBranches.length > 0
+      ? r.courantsOuBranches
+      : (r.branches ? r.branches.split(/[\n•,;]+/).map(s => s.trim()).filter(Boolean) : []);
+    const pct = r.pourcentageEstime ?? (r.proportionPopulation ? parseFloat(r.proportionPopulation.replace('%', '').replace(',', '.')) : 0);
+    const ord = r.ordreAffichage ?? r.ordre ?? 1;
+    const pub = r.estPublie ?? r.publie ?? true;
+    const lieux = r.lieuxEmblematiques || r.lieuxDeCulte || '';
+    const prat = r.pratiquesEtFetes || r.pratiques || r.fetes || '';
+    const src = r.sourceStatistique || r.sourceStatistiques || '';
+    const annee = r.anneeStatistique ?? (r.anneeStatistiques ? parseInt(r.anneeStatistiques, 10) : 2022);
+
+    return {
+      ...r,
+      descriptionHistorique: desc,
+      description: desc,
+      histoire: desc,
+      courantsOuBranches: branches,
+      pourcentageEstime: isNaN(pct) ? 0 : pct,
+      ordreAffichage: ord,
+      ordre: ord,
+      estPublie: pub,
+      publie: pub,
+      lieuxEmblematiques: lieux,
+      lieuxDeCulte: lieux,
+      pratiquesEtFetes: prat,
+      sourceStatistique: src,
+      anneeStatistique: isNaN(annee) ? 2022 : annee
+    };
+  }
+
   startAdd(): void {
+    this.resetForm();
+    this.ordreAffichage = this.religions.length + 1;
+    this.isEditing = true;
+  }
+
+  onEdit(religion: Religion): void {
+    const normalized = this.normalizeReligion(religion);
+    this.editingReligionId = normalized.id ?? null;
+    this.nom = normalized.nom;
+    this.pourcentageEstime = normalized.pourcentageEstime;
+    this.sourceStatistique = normalized.sourceStatistique || '';
+    this.anneeStatistique = normalized.anneeStatistique || 2022;
+    this.descriptionHistorique = normalized.descriptionHistorique || '';
+    this.courantsInput = (normalized.courantsOuBranches || []).join(', ');
+    this.pratiquesEtFetes = normalized.pratiquesEtFetes || '';
+    this.lieuxEmblematiques = normalized.lieuxEmblematiques || '';
+    this.imageUrl = normalized.imageUrl || '';
+    this.ordreAffichage = normalized.ordreAffichage;
+    this.estPublie = normalized.estPublie;
+    this.isEditing = true;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  cancelEdit(): void {
+    this.resetForm();
+  }
+
+  resetForm(): void {
+    this.isEditing = false;
+    this.isSubmitting = false;
     this.editingReligionId = null;
     this.nom = '';
     this.pourcentageEstime = 0;
-    this.sourceStatistique = 'Recensement Général (INSTAT / RGPH-5 / US State Dept IRF Report)';
+    this.sourceStatistique = 'Recensement Général de la Population et de l’Habitat (RGPH-5 / INSTAT 2022)';
     this.anneeStatistique = 2022;
     this.descriptionHistorique = '';
     this.courantsInput = '';
@@ -73,29 +137,6 @@ export class ReligionsComponent implements OnInit {
     this.imageUrl = '';
     this.ordreAffichage = this.religions.length + 1;
     this.estPublie = true;
-    this.isEditing = true;
-  }
-
-  onEdit(religion: Religion): void {
-    this.editingReligionId = religion.id ?? null;
-    this.nom = religion.nom;
-    this.pourcentageEstime = religion.pourcentageEstime;
-    this.sourceStatistique = religion.sourceStatistique || '';
-    this.anneeStatistique = religion.anneeStatistique || 2022;
-    this.descriptionHistorique = religion.descriptionHistorique || '';
-    this.courantsInput = (religion.courantsOuBranches || []).join(', ');
-    this.pratiquesEtFetes = religion.pratiquesEtFetes || '';
-    this.lieuxEmblematiques = religion.lieuxEmblematiques || '';
-    this.imageUrl = religion.imageUrl || '';
-    this.ordreAffichage = religion.ordreAffichage;
-    this.estPublie = religion.estPublie;
-    this.isEditing = true;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  cancelEdit(): void {
-    this.isEditing = false;
-    this.editingReligionId = null;
   }
 
   onFilePicked(event: Event): void {
@@ -142,51 +183,82 @@ export class ReligionsComponent implements OnInit {
   }
 
   onSubmit(): void {
+    if (this.isSubmitting) return;
+
+    if (this.isUploading) {
+      this.showNotification("Veuillez patienter pendant le téléversement de l'image...", true);
+      return;
+    }
+
     const nomTrim = (this.nom || '').trim();
     if (!nomTrim) {
       this.showNotification('Veuillez saisir le nom de la religion ou du culte.', true);
       return;
     }
-    if (!this.descriptionHistorique.trim()) {
+    const desc = (this.descriptionHistorique || '').trim();
+    if (!desc) {
       this.showNotification('Veuillez renseigner une description historique documentée.', true);
       return;
     }
 
-    const branches = this.courantsInput
+    this.isSubmitting = true;
+
+    const branchesList = this.courantsInput
       ? this.courantsInput.split(',').map(c => c.trim()).filter(Boolean)
       : [];
+    const branchesText = branchesList.length > 0 ? '• ' + branchesList.join('\n• ') : '';
 
     const payload: Partial<Religion> = {
       nom: nomTrim,
+      categorie: 'Religion',
       pourcentageEstime: Number(this.pourcentageEstime) || 0,
+      proportionPopulation: String(this.pourcentageEstime) + '%',
       sourceStatistique: (this.sourceStatistique || '').trim(),
+      sourceStatistiques: (this.sourceStatistique || '').trim(),
       anneeStatistique: Number(this.anneeStatistique) || 2022,
-      descriptionHistorique: this.descriptionHistorique.trim(),
-      courantsOuBranches: branches,
+      anneeStatistiques: String(this.anneeStatistique || 2022),
+      descriptionHistorique: desc,
+      description: desc,
+      histoire: desc,
+      courantsOuBranches: branchesList,
+      branches: branchesText,
       pratiquesEtFetes: (this.pratiquesEtFetes || '').trim(),
+      pratiques: (this.pratiquesEtFetes || '').trim(),
+      fetes: (this.pratiquesEtFetes || '').trim(),
       lieuxEmblematiques: (this.lieuxEmblematiques || '').trim(),
+      lieuxDeCulte: (this.lieuxEmblematiques || '').trim(),
       imageUrl: (this.imageUrl || '').trim(),
       ordreAffichage: Number(this.ordreAffichage) || 1,
-      estPublie: Boolean(this.estPublie)
+      ordre: Number(this.ordreAffichage) || 1,
+      estPublie: Boolean(this.estPublie),
+      publie: Boolean(this.estPublie)
     };
 
     if (this.editingReligionId !== null) {
       this.religionService.updateReligion(this.editingReligionId, payload).subscribe({
         next: () => {
+          this.isSubmitting = false;
           this.showNotification(`Religion "${nomTrim}" mise à jour.`);
-          this.isEditing = false;
+          this.resetForm();
           this.loadReligions();
         },
-        error: () => this.showNotification('Erreur de modification.', true)
+        error: (err) => {
+          this.isSubmitting = false;
+          this.showNotification(err?.error?.message || 'Erreur de modification.', true);
+        }
       });
     } else {
       this.religionService.createReligion(payload).subscribe({
         next: () => {
+          this.isSubmitting = false;
           this.showNotification(`Religion "${nomTrim}" enregistrée.`);
-          this.isEditing = false;
+          this.resetForm();
           this.loadReligions();
         },
-        error: () => this.showNotification("Erreur lors de l'enregistrement.", true)
+        error: (err) => {
+          this.isSubmitting = false;
+          this.showNotification(err?.error?.message || "Erreur lors de l'enregistrement.", true);
+        }
       });
     }
   }
@@ -194,8 +266,10 @@ export class ReligionsComponent implements OnInit {
   togglePublication(rel: Religion): void {
     if (!rel.id) return;
     this.religionService.togglePublication(rel.id).subscribe({
-      next: (res) => {
-        rel.estPublie = res.estPublie;
+      next: (res: any) => {
+        const newPub = res.estPublie ?? res.publie;
+        rel.estPublie = Boolean(newPub);
+        rel.publie = Boolean(newPub);
         this.showNotification(`Statut mis à jour : ${rel.estPublie ? 'Publié' : 'Brouillon'}.`);
         this.cdr.markForCheck();
       },
