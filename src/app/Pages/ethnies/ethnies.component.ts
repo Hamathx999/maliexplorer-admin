@@ -34,6 +34,7 @@ export class EthniesComponent implements OnInit {
   selectedFileSize: string = '';
   editingEthnieId: number | string | null = null;
   isEditing: boolean = false;
+  isSubmitting: boolean = false;
   isLoading: boolean = false;
   successMessage: string = '';
   errorMessage: string = '';
@@ -178,6 +179,8 @@ export class EthniesComponent implements OnInit {
   }
 
   onSubmit(): void {
+    if (this.isSubmitting) return;
+
     if (this.isUploadingImage) {
       this.showNotification("Veuillez patienter pendant le téléversement de l'image...", true);
       return;
@@ -188,6 +191,8 @@ export class EthniesComponent implements OnInit {
       this.showNotification("Veuillez saisir le nom de l'ethnie.", true);
       return;
     }
+
+    this.isSubmitting = true;
 
     const defaultEthnieImage = 'https://dzhqwkpwaljqsjwoqvso.supabase.co/storage/v1/object/public/maliexplorer-media/ethnies/db279909-85b5-4af8-844c-b6bc74ce4337_A_Visit_to_the_Dogon_Tribe_High_in_the_Bandiagara___Travel_Photographs_By_Rosemary_Sheel.jpg';
     let primaryUrl = this.images.length > 0 ? this.images[0] : (this.imageUrl || '').trim();
@@ -208,20 +213,28 @@ export class EthniesComponent implements OnInit {
     if (this.editingEthnieId !== null) {
       this.ethnieService.updateEthnie(this.editingEthnieId, payload).subscribe({
         next: () => {
+          this.isSubmitting = false;
           this.showNotification(`Ethnie "${payload.nom}" mise à jour.`);
           this.resetForm();
           this.loadEthnies();
         },
-        error: () => this.showNotification('Erreur de mise à jour.', true)
+        error: () => {
+          this.isSubmitting = false;
+          this.showNotification('Erreur de mise à jour.', true);
+        }
       });
     } else {
       this.ethnieService.createEthnie(payload).subscribe({
         next: () => {
+          this.isSubmitting = false;
           this.showNotification(`Ethnie "${payload.nom}" ajoutée.`);
           this.resetForm();
           this.loadEthnies();
         },
-        error: () => this.showNotification("Erreur lors de l'ajout.", true)
+        error: () => {
+          this.isSubmitting = false;
+          this.showNotification("Erreur lors de l'ajout.", true);
+        }
       });
     }
   }
@@ -273,6 +286,7 @@ export class EthniesComponent implements OnInit {
     this.description = '';
     this.editingEthnieId = null;
     this.isEditing = false;
+    this.isSubmitting = false;
     this.router.navigate(['/ethnies']);
   }
 

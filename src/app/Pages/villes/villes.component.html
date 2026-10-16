@@ -229,9 +229,9 @@
     </div>
 
     <div class="figma-form-actions">
-      <button type="button" class="figma-btn-cancel" (click)="resetForm()">Annuler</button>
-      <button type="button" class="figma-btn-primary" (click)="onSubmit()" [disabled]="isUploadingImage">
-        {{ editingVilleId ? 'Modifier la ville' : 'Ajouter la ville' }}
+      <button type="button" class="figma-btn-cancel" (click)="resetForm()" [disabled]="isSubmitting">Annuler</button>
+      <button type="button" class="figma-btn-primary" (click)="onSubmit()" [disabled]="isSubmitting || isUploadingImage">
+        {{ isSubmitting ? 'Enregistrement...' : (editingVilleId ? 'Modifier la ville' : 'Ajouter la ville') }}
       </button>
     </div>
   }

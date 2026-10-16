@@ -13,63 +13,6 @@ export class PlatService {
 
   private readonly STORAGE_KEY = 'maliexplorer_plats_custom';
 
-  private fallbackPlats: Plat[] = [
-    {
-      id: 1,
-      nom: 'Tigadèguè Na',
-      ingredientPrincipal: 'Pâte d\'arachide (Tiga)',
-      description: "La fameuse sauce d'arachide malienne, traditionnellement servie avec du riz ou du tô.",
-      region: 'Ségou, Koulikoro',
-      tempsPreparation: '60 min',
-      difficulte: 'Facile'
-    },
-    {
-      id: 2,
-      nom: 'Fakoye',
-      ingredientPrincipal: 'Feuilles de Corète séchées (Fakoye)',
-      description: 'Sauce noire emblématique de Tombouctou et Gao à base de corète potagère séchée.',
-      region: 'Tombouctou, Gao',
-      tempsPreparation: '90 min',
-      difficulte: 'Moyenne'
-    },
-    {
-      id: 3,
-      nom: 'Widjila',
-      ingredientPrincipal: 'Farine de blé & levure',
-      description: 'Pains traditionnels cuits à la vapeur sur les rives du fleuve Niger.',
-      region: 'Mopti, Tombouctou',
-      tempsPreparation: '45 min',
-      difficulte: 'Facile'
-    },
-    {
-      id: 4,
-      nom: 'Djouka',
-      ingredientPrincipal: 'Fonio & poudre d\'arachides',
-      description: "Mets raffiné à base de fonio précuit et de poudre d'arachides grillées au goût fumé.",
-      region: 'Sikasso, Ségou',
-      tempsPreparation: '40 min',
-      difficulte: 'Facile'
-    },
-    {
-      id: 5,
-      nom: 'Mafé',
-      ingredientPrincipal: 'Viande de bœuf & légumes frais',
-      description: "Ragoût onctueux mijoté avec viande de bœuf tendre, carottes, manioc et chou.",
-      region: 'Toutes régions',
-      tempsPreparation: '70 min',
-      difficulte: 'Moyenne'
-    },
-    {
-      id: 6,
-      nom: 'Saga Saga',
-      ingredientPrincipal: 'Feuilles de patate douce',
-      description: 'Sauce verte aux jeunes pousses de patate douce, relevée au poisson fumé.',
-      region: 'Koulikoro, Bamako',
-      tempsPreparation: '50 min',
-      difficulte: 'Facile'
-    }
-  ];
-
   private getLocalPlats(): Plat[] {
     try {
       const stored = localStorage.getItem(this.STORAGE_KEY);
@@ -80,7 +23,7 @@ export class PlatService {
     } catch (e) {
       console.warn('Erreur lecture localStorage plats', e);
     }
-    return [...this.fallbackPlats];
+    return [];
   }
 
   private saveLocalPlats(plats: Plat[]): void {
@@ -162,8 +105,8 @@ export class PlatService {
     return this.http.get<any[]>(this.apiUrl).pipe(
       map((plats) => (Array.isArray(plats) ? plats.map((p) => this.mapPlat(p)) : [])),
       catchError((error) => {
-        console.warn('API Spring Boot non disponible pour les plats, utilisation du stockage local :', error);
-        return of(this.getLocalPlats().map((p) => this.mapPlat(p)));
+        console.warn('API Spring Boot non disponible pour les plats :', error);
+        return of([]);
       })
     );
   }

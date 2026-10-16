@@ -28,6 +28,7 @@ export class PresidentsComponent implements OnInit {
   photoUrl: string = '';
   editingPresidentId: number | string | null = null;
   isEditing: boolean = false;
+  isSubmitting: boolean = false;
   isLoading: boolean = false;
   isUploadingPhoto: boolean = false;
   isDragging: boolean = false;
@@ -167,6 +168,13 @@ export class PresidentsComponent implements OnInit {
   }
 
   onSubmit(): void {
+    if (this.isSubmitting) return;
+
+    if (this.isUploadingPhoto) {
+      this.showNotification('Veuillez patienter pendant le téléversement de la photo...', true);
+      return;
+    }
+
     const nom = (this.nom || '').trim();
     const prenom = (this.prenom || '').trim();
     const periode = (this.periode || '').trim();
@@ -175,6 +183,8 @@ export class PresidentsComponent implements OnInit {
       this.showNotification('Veuillez renseigner le nom et la période du chef d’État.', true);
       return;
     }
+
+    this.isSubmitting = true;
 
     const payload: President = {
       nom: nom,
@@ -189,20 +199,28 @@ export class PresidentsComponent implements OnInit {
     if (this.editingPresidentId !== null) {
       this.presidentService.updatePresident(this.editingPresidentId, payload).subscribe({
         next: () => {
+          this.isSubmitting = false;
           this.showNotification(`Chef d'État "${payload.nom}" mis à jour.`);
           this.resetForm();
           this.loadPresidents();
         },
-        error: () => this.showNotification('Erreur de mise à jour.', true)
+        error: () => {
+          this.isSubmitting = false;
+          this.showNotification('Erreur de mise à jour.', true);
+        }
       });
     } else {
       this.presidentService.createPresident(payload).subscribe({
         next: () => {
+          this.isSubmitting = false;
           this.showNotification(`Chef d'État "${payload.nom}" ajouté.`);
           this.resetForm();
           this.loadPresidents();
         },
-        error: () => this.showNotification("Erreur lors de l'ajout.", true)
+        error: () => {
+          this.isSubmitting = false;
+          this.showNotification("Erreur lors de l'ajout.", true);
+        }
       });
     }
   }
@@ -245,6 +263,7 @@ export class PresidentsComponent implements OnInit {
     this.isDragging = false;
     this.editingPresidentId = null;
     this.isEditing = false;
+    this.isSubmitting = false;
     this.router.navigate(['/presidents']);
   }
 

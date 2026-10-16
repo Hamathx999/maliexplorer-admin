@@ -1,0 +1,422 @@
+<div class="partenaires-container">
+  <!-- 1. En-tête & Cartes KPI Partenaires -->
+  <section class="kpi-grid">
+    <div class="kpi-card" (click)="selectRoleFilter('TOUS')" [class.active-kpi]="selectedRole === 'TOUS'">
+      <div class="kpi-info">
+        <span class="kpi-label">Total Partenaires</span>
+        <h3 class="kpi-value">{{ totalCount }}</h3>
+        <span class="kpi-sub">Acteurs répertoriés</span>
+      </div>
+      <div class="kpi-icon-circle icon-forest">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M11 15h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 17"></path>
+          <path d="m7 21 1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.7-2.9l-3.2 2.6"></path>
+          <path d="m2 13 4.4-4.4a2 2 0 0 1 2.8 0l1.8 1.8"></path>
+        </svg>
+      </div>
+    </div>
+
+    <div class="kpi-card" (click)="selectRoleFilter('PROMOTEUR')" [class.active-kpi]="selectedRole === 'PROMOTEUR'">
+      <div class="kpi-info">
+        <span class="kpi-label">Promoteurs culturels</span>
+        <h3 class="kpi-value">{{ promoteursCount }}</h3>
+        <span class="kpi-sub">Événements & festivals</span>
+      </div>
+      <div class="kpi-icon-circle icon-purple">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+          <line x1="3" y1="10" x2="21" y2="10"></line>
+        </svg>
+      </div>
+    </div>
+
+    <div class="kpi-card" (click)="selectRoleFilter('GUIDE')" [class.active-kpi]="selectedRole === 'GUIDE'">
+      <div class="kpi-info">
+        <span class="kpi-label">Guides certifiés</span>
+        <h3 class="kpi-value">{{ guidesCount }}</h3>
+        <span class="kpi-sub">Visites & patrimoine</span>
+      </div>
+      <div class="kpi-icon-circle icon-blue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
+        </svg>
+      </div>
+    </div>
+
+    <div class="kpi-card" (click)="selectRoleFilter('INVESTISSEUR')" [class.active-kpi]="selectedRole === 'INVESTISSEUR'">
+      <div class="kpi-info">
+        <span class="kpi-label">Investisseurs B2B</span>
+        <h3 class="kpi-value">{{ investisseursCount }}</h3>
+        <span class="kpi-sub">Mécénat & sponsoring</span>
+      </div>
+      <div class="kpi-icon-circle icon-gold">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="8" r="6"></circle>
+          <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. Barre d'outils de filtrage & Recherche -->
+  <section class="toolbar-card">
+    <div class="filter-pills-group">
+      <button
+        type="button"
+        class="filter-pill"
+        [class.active]="selectedRole === 'TOUS'"
+        (click)="selectRoleFilter('TOUS')">
+        Tous ({{ totalCount }})
+      </button>
+      <button
+        type="button"
+        class="filter-pill"
+        [class.active]="selectedRole === 'PROMOTEUR'"
+        (click)="selectRoleFilter('PROMOTEUR')">
+        Promoteurs ({{ promoteursCount }})
+      </button>
+      <button
+        type="button"
+        class="filter-pill"
+        [class.active]="selectedRole === 'GUIDE'"
+        (click)="selectRoleFilter('GUIDE')">
+        Guides ({{ guidesCount }})
+      </button>
+      <button
+        type="button"
+        class="filter-pill"
+        [class.active]="selectedRole === 'INVESTISSEUR'"
+        (click)="selectRoleFilter('INVESTISSEUR')">
+        Investisseurs ({{ investisseursCount }})
+      </button>
+    </div>
+
+    <div class="search-and-status">
+      <div class="search-box">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input
+          type="text"
+          class="search-input"
+          placeholder="Rechercher par nom, email, organisation, ville..."
+          [(ngModel)]="searchTerm"
+          (input)="appliquerFiltres()" />
+        @if (searchTerm) {
+          <button type="button" class="clear-search-btn" (click)="searchTerm = ''; appliquerFiltres()">✕</button>
+        }
+      </div>
+
+      <div class="status-select-wrapper">
+        <select class="status-select" [(ngModel)]="selectedStatus" (change)="appliquerFiltres()">
+          <option value="TOUS">Tous les statuts</option>
+          <option value="ACTIF">Comptes Actifs</option>
+          <option value="BLOQUE">Comptes Bloqués</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Tableau principal des partenaires -->
+  <section class="table-card">
+    <div class="card-header">
+      <div class="card-title-group">
+        <h2 class="card-title">Répertoire des partenaires professionnels</h2>
+        <span class="card-subtitle">({{ filteredPartenaires.length }} partenaire{{ filteredPartenaires.length > 1 ? 's' : '' }} affiché{{ filteredPartenaires.length > 1 ? 's' : '' }})</span>
+      </div>
+      <a routerLink="/demandes-partenariat" class="link-moderation">
+        <span>Examiner les demandes en attente</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+          <polyline points="12 5 19 12 12 19"></polyline>
+        </svg>
+      </a>
+    </div>
+
+    @if (isLoading) {
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <p>Chargement des partenaires en cours...</p>
+      </div>
+    } @else if (filteredPartenaires.length === 0) {
+      <div class="empty-state">
+        <div class="empty-icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.8" width="44" height="44">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+        </div>
+        <h3>Aucun partenaire trouvé</h3>
+        <p>Aucun professionnel ne correspond à vos critères de recherche actuels.</p>
+        @if (searchTerm || selectedRole !== 'TOUS' || selectedStatus !== 'TOUS') {
+          <button type="button" class="reset-filter-btn" (click)="searchTerm = ''; selectedRole = 'TOUS'; selectedStatus = 'TOUS'; appliquerFiltres()">
+            Réinitialiser les filtres
+          </button>
+        }
+      </div>
+    } @else {
+      <div class="table-responsive">
+        <table class="partenaires-table">
+          <thead>
+            <tr>
+              <th>Partenaire</th>
+              <th>Rôle</th>
+              <th>Organisation / Spécialité</th>
+              <th>Localisation</th>
+              <th>Partenariat</th>
+              <th>Statut</th>
+              <th style="text-align: right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of filteredPartenaires; track p.id) {
+              <tr (click)="ouvrirFichePartenaire(p)" class="table-row-clickable">
+                <td>
+                  <div class="partner-cell">
+                    @if (p.photoUrl && !imageErrors[p.id]) {
+                      <img
+                        [src]="p.photoUrl"
+                        [alt]="p.nomComplet"
+                        class="partner-avatar"
+                        (error)="onAvatarError(p.id)" />
+                    } @else {
+                      <div
+                        class="partner-avatar-initials"
+                        [style.background-color]="getAvatarColor(p.nomComplet).bg"
+                        [style.color]="getAvatarColor(p.nomComplet).color">
+                        {{ getInitial(p.nomComplet) }}
+                      </div>
+                    }
+                    <div class="partner-text">
+                      <strong class="partner-name">{{ p.nomComplet }}</strong>
+                      <span class="partner-email">{{ p.email }}</span>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <span
+                    class="role-badge"
+                    [class.role-promoteur]="p.role === 'Promoteur'"
+                    [class.role-guide]="p.role === 'Guide'"
+                    [class.role-investisseur]="p.role === 'Investisseur'"
+                    [class.role-partenaire]="p.role === 'Partenaire'">
+                    {{ p.role }}
+                  </span>
+                </td>
+                <td>
+                  <div class="org-cell">
+                    <span class="org-name">{{ p.organisation || p.specialite || 'Indépendant' }}</span>
+                    @if (p.specialite && p.organisation) {
+                      <span class="org-sub">{{ p.specialite }}</span>
+                    }
+                  </div>
+                </td>
+                <td>
+                  <span class="location-text">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                      <circle cx="12" cy="10" r="3"></circle>
+                    </svg>
+                    {{ p.adresse || 'Mali' }}
+                  </span>
+                </td>
+                <td>
+                  @if (p.recherchePartenariat) {
+                    <span class="partnership-pill active">
+                      <span class="pill-dot"></span>
+                      Projet actif
+                    </span>
+                  } @else {
+                    <span class="partnership-pill inactive">—</span>
+                  }
+                </td>
+                <td>
+                  <span
+                    class="status-pill"
+                    [class.status-actif]="p.statutCompte === 'ACTIF'"
+                    [class.status-bloque]="p.statutCompte === 'BLOQUE'">
+                    {{ p.statutCompte === 'ACTIF' ? 'Actif' : 'Bloqué' }}
+                  </span>
+                </td>
+                <td>
+                  <div class="actions-group" (click)="$event.stopPropagation()">
+                    <button
+                      type="button"
+                      class="action-btn-view"
+                      (click)="ouvrirFichePartenaire(p)"
+                      title="Consulter la fiche détaillée">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                      Voir
+                    </button>
+                    <button
+                      type="button"
+                      class="action-btn-toggle"
+                      [class.btn-block]="p.statutCompte === 'ACTIF'"
+                      [class.btn-unblock]="p.statutCompte === 'BLOQUE'"
+                      (click)="basculerStatut(p, $event)"
+                      [title]="p.statutCompte === 'ACTIF' ? 'Bloquer ce partenaire' : 'Débloquer ce partenaire'">
+                      {{ p.statutCompte === 'ACTIF' ? 'Bloquer' : 'Activer' }}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+
+  <!-- 4. Modale d'examen de la fiche complète du partenaire -->
+  @if (isDetailsModalOpen && selectedPartenaire) {
+    <div class="modal-backdrop" (click)="fermerModale()">
+      <div class="modal-dialog" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <h3 class="modal-title">Fiche Partenaire</h3>
+            <span class="modal-subtitle">Détails officiels du compte professionnel</span>
+          </div>
+          <button type="button" class="modal-close-btn" (click)="fermerModale()">✕</button>
+        </div>
+
+        <div class="modal-body">
+          <!-- Carte d'identité du partenaire -->
+          <div class="profile-hero">
+            @if (selectedPartenaire.photoUrl && !imageErrors[selectedPartenaire.id]) {
+              <img
+                [src]="selectedPartenaire.photoUrl"
+                [alt]="selectedPartenaire.nomComplet"
+                class="hero-avatar"
+                (error)="onAvatarError(selectedPartenaire.id)" />
+            } @else {
+              <div
+                class="hero-avatar-initials"
+                [style.background-color]="getAvatarColor(selectedPartenaire.nomComplet).bg"
+                [style.color]="getAvatarColor(selectedPartenaire.nomComplet).color">
+                {{ getInitial(selectedPartenaire.nomComplet) }}
+              </div>
+            }
+            <div class="hero-info">
+              <div class="hero-name-row">
+                <h4 class="hero-name">{{ selectedPartenaire.nomComplet }}</h4>
+                <span
+                  class="role-badge"
+                  [class.role-promoteur]="selectedPartenaire.role === 'Promoteur'"
+                  [class.role-guide]="selectedPartenaire.role === 'Guide'"
+                  [class.role-investisseur]="selectedPartenaire.role === 'Investisseur'"
+                  [class.role-partenaire]="selectedPartenaire.role === 'Partenaire'">
+                  {{ selectedPartenaire.role }}
+                </span>
+                <span
+                  class="status-pill"
+                  [class.status-actif]="selectedPartenaire.statutCompte === 'ACTIF'"
+                  [class.status-bloque]="selectedPartenaire.statutCompte === 'BLOQUE'">
+                  {{ selectedPartenaire.statutCompte === 'ACTIF' ? 'Compte Actif' : 'Compte Bloqué' }}
+                </span>
+              </div>
+              <p class="hero-meta">
+                <span>{{ selectedPartenaire.email }}</span>
+                @if (selectedPartenaire.telephone) {
+                  • <span>{{ selectedPartenaire.telephone }}</span>
+                }
+                @if (selectedPartenaire.adresse) {
+                  • <span>{{ selectedPartenaire.adresse }}</span>
+                }
+              </p>
+            </div>
+          </div>
+
+          <!-- Section Détails professionnels -->
+          <div class="details-section">
+            <h5 class="section-heading">Informations professionnelles</h5>
+            <div class="details-grid">
+              <div class="detail-item">
+                <span class="detail-label">Organisation / Société</span>
+                <strong class="detail-value">{{ selectedPartenaire.organisation || 'Non renseigné' }}</strong>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Spécialité / Métier</span>
+                <strong class="detail-value">{{ selectedPartenaire.specialite || 'Acteur du patrimoine' }}</strong>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Date d'inscription</span>
+                <strong class="detail-value">{{ selectedPartenaire.dateCreation || 'Récemment' }}</strong>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Statut modération</span>
+                <strong class="detail-value">{{ selectedPartenaire.statutModeration || 'Validé' }}</strong>
+              </div>
+            </div>
+
+            @if (selectedPartenaire.description) {
+              <div class="description-box">
+                <span class="detail-label">Description ou biographie</span>
+                <p class="description-text">{{ selectedPartenaire.description }}</p>
+              </div>
+            }
+          </div>
+
+          <!-- Section Projet de Partenariat (si applicable) -->
+          @if (selectedPartenaire.recherchePartenariat || selectedPartenaire.titreProjet || selectedPartenaire.besoinPartenariat) {
+            <div class="details-section partnership-section">
+              <h5 class="section-heading">Dossier de Partenariat Déposé</h5>
+              <div class="project-card">
+                <h6 class="project-title">{{ selectedPartenaire.titreProjet || 'Recherche active de partenariats' }}</h6>
+                <p class="project-need">{{ selectedPartenaire.besoinPartenariat || 'Ce partenaire recherche des soutiens pour valoriser les initiatives culturelles et touristiques.' }}</p>
+              </div>
+            </div>
+          }
+
+          <!-- Section Pièces justificatives -->
+          @if (selectedPartenaire.pieceIdentite || selectedPartenaire.piecesJustificatifs) {
+            <div class="details-section">
+              <h5 class="section-heading">Pièces justificatives</h5>
+              <div class="attachments-list">
+                @if (selectedPartenaire.pieceIdentite) {
+                  <a [href]="selectedPartenaire.pieceIdentite" target="_blank" rel="noopener" class="attachment-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                      <line x1="16" y1="13" x2="8" y2="13"></line>
+                      <line x1="16" y1="17" x2="8" y2="17"></line>
+                    </svg>
+                    <span>Pièce d'identité officielle</span>
+                  </a>
+                }
+                @if (selectedPartenaire.piecesJustificatifs) {
+                  <a [href]="selectedPartenaire.piecesJustificatifs" target="_blank" rel="noopener" class="attachment-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                    <span>Agrément / Dossier d'organisation</span>
+                  </a>
+                }
+              </div>
+            </div>
+          }
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" (click)="fermerModale()">Fermer</button>
+          <button
+            type="button"
+            class="btn-toggle-action"
+            [class.btn-block]="selectedPartenaire.statutCompte === 'ACTIF'"
+            [class.btn-unblock]="selectedPartenaire.statutCompte === 'BLOQUE'"
+            (click)="basculerStatut(selectedPartenaire)">
+            {{ selectedPartenaire.statutCompte === 'ACTIF' ? 'Bloquer le compte' : 'Activer le compte' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

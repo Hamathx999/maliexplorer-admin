@@ -7,6 +7,7 @@ import { filter } from 'rxjs';
 import { LieuHistoriqueService } from '../../services/lieu-historique.service';
 import { VilleService } from '../../services/ville.service';
 import { AuthService } from '../../services/auth.service';
+import { UploadService } from '../../services/upload.service';
 import { LieuHistorique } from '../../models/lieu-historique.model';
 import { Ville } from '../../models/ville.model';
 
@@ -22,6 +23,7 @@ export class LieuxHistoriquesComponent implements OnInit {
   private readonly lieuService = inject(LieuHistoriqueService);
   private readonly villeService = inject(VilleService);
   private readonly authService = inject(AuthService);
+  private readonly uploadService = inject(UploadService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
@@ -32,11 +34,14 @@ export class LieuxHistoriquesComponent implements OnInit {
   searchTerm: string = '';
   selectedRegion: string = 'TOUTES';
 
-  // Toggle between list view and creation/edition view (matching Figma design)
+  // Bascule entre la vue liste et la vue création/édition (conforme à la maquette Figma)
   isEditing: boolean = false;
   editingLieu: LieuHistorique | null = null;
   isDragOver: boolean = false;
   isSaving: boolean = false;
+  isSubmitting: boolean = false;
+  isUploadingPanorama: boolean = false;
+  isUploadingPhotos: boolean = false;
 
   formData: Partial<LieuHistorique> = {
     nom: '',
@@ -168,7 +173,7 @@ export class LieuxHistoriquesComponent implements OnInit {
     }
   }
 
-  startAdd(navigate: boolean = true): void {
+  resetForm(): void {
     this.editingLieu = null;
     this.formData = {
       nom: '',
@@ -181,6 +186,16 @@ export class LieuxHistoriquesComponent implements OnInit {
       panorama360Url: '',
       images: []
     };
+    this.isEditing = false;
+    this.isSaving = false;
+    this.isSubmitting = false;
+    this.isUploadingPhotos = false;
+    this.isUploadingPanorama = false;
+    this.isDragOver = false;
+  }
+
+  startAdd(navigate: boolean = true): void {
+    this.resetForm();
     this.isEditing = true;
     if (navigate && !this.router.url.includes('/ajouter')) {
       this.router.navigate(['/lieux-historiques/ajouter']);
@@ -204,8 +219,7 @@ export class LieuxHistoriquesComponent implements OnInit {
   }
 
   cancelEdit(): void {
-    this.isEditing = false;
-    this.editingLieu = null;
+    this.resetForm();
     if (this.router.url.includes('/ajouter') || this.route.snapshot.queryParamMap.has('action')) {
       this.router.navigate(['/lieux-historiques']);
     }
@@ -246,6 +260,9 @@ export class LieuxHistoriquesComponent implements OnInit {
       this.formData.images = [];
     }
 
+    this.isUploadingPhotos = true;
+    this.cdr.markForCheck();
+
     Array.from(files).forEach((file: File) => {
       if (!file.type.startsWith('image/')) {
         alert(`Le fichier "${file.name}" n'est pas une image.`);
@@ -256,17 +273,24 @@ export class LieuxHistoriquesComponent implements OnInit {
       const formattedSize =
         sizeMo >= 1 ? `${sizeMo.toFixed(1)} MB` : `${(file.size / 1024).toFixed(0)} KB`;
 
-      const reader = new FileReader();
-      reader.onload = (e: ProgressEvent<FileReader>) => {
-        const previewUrl = e.target?.result as string;
-        this.formData.images?.push({
-          nom: file.name,
-          taille: formattedSize,
-          url: previewUrl
-        });
-        this.cdr.markForCheck();
-      };
-      reader.readAsDataURL(file);
+      // Téléversement sécurisé vers Supabase Storage (avec repli local automatique)
+      this.uploadService.uploadImage(file, 'lieux_historiques', 'LIEU_HISTORIQUE').subscribe({
+        next: (uploadedUrl: string) => {
+          this.formData.images?.push({
+            nom: file.name,
+            taille: formattedSize,
+            url: uploadedUrl
+          });
+          this.isUploadingPhotos = false;
+          this.cdr.markForCheck();
+        },
+        error: (err: Error) => {
+          console.error(`Échec upload Supabase/local pour ${file.name} :`, err);
+          alert(`Échec du téléversement de l'image "${file.name}" : ${err.message || 'Erreur réseau'}`);
+          this.isUploadingPhotos = false;
+          this.cdr.markForCheck();
+        }
+      });
     });
   }
 
@@ -277,10 +301,55 @@ export class LieuxHistoriquesComponent implements OnInit {
     }
   }
 
+  onPanoramaSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+
+    const file = input.files[0];
+    if (!file.type.startsWith('image/')) {
+      alert('Veuillez sélectionner un fichier image valide pour le panorama 360° (JPG, PNG, WebP).');
+      return;
+    }
+
+    this.isUploadingPanorama = true;
+    this.cdr.markForCheck();
+
+    this.uploadService.uploadImage(file, 'panoramas_360', 'LIEU_HISTORIQUE').subscribe({
+      next: (url: string) => {
+        this.formData.panorama360Url = url;
+        this.isUploadingPanorama = false;
+        this.cdr.markForCheck();
+      },
+      error: (err: Error) => {
+        console.error('Erreur téléversement panorama 360° :', err);
+        alert(`Échec du téléversement du panorama 360° : ${err.message}`);
+        this.isUploadingPanorama = false;
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  removePanorama(): void {
+    this.formData.panorama360Url = '';
+    this.cdr.markForCheck();
+  }
+
   saveLieu(): void {
+    if (this.isSaving || this.isSubmitting) return;
+
+    if (this.isUploadingPhotos || this.isUploadingPanorama) {
+      alert("Veuillez patienter pendant la fin des téléversements d'images...");
+      return;
+    }
+
     if (!this.formData.nom || !this.formData.epoque || !this.formData.ville) {
       alert('Veuillez renseigner le nom, l’époque et la ville.');
       return;
+    }
+
+    // Nettoyer toute image résiduelle Base64 pour ne pas corrompre la BDD MySQL
+    if (this.formData.images) {
+      this.formData.images = this.formData.images.filter((img) => img.url && !img.url.startsWith('data:'));
     }
 
     // Résolution automatique de la ville pour Spring Boot (villeId)
@@ -298,6 +367,7 @@ export class LieuxHistoriquesComponent implements OnInit {
     }
 
     this.isSaving = true;
+    this.isSubmitting = true;
     this.cdr.markForCheck();
 
     if (this.editingLieu && (this.editingLieu.id || this.editingLieu.idLieu)) {
@@ -305,6 +375,7 @@ export class LieuxHistoriquesComponent implements OnInit {
       this.lieuService.updateLieu(id, this.formData as LieuHistorique).subscribe({
         next: (updated: LieuHistorique) => {
           this.isSaving = false;
+          this.isSubmitting = false;
           const idx = this.lieux.findIndex((l) => l.id === updated.id || l.idLieu === updated.idLieu);
           if (idx !== -1) {
             this.lieux[idx] = updated;
@@ -312,13 +383,13 @@ export class LieuxHistoriquesComponent implements OnInit {
             this.lieux.unshift(updated);
           }
           this.filterLieux();
-          this.isEditing = false;
-          this.editingLieu = null;
+          this.resetForm();
           this.router.navigate(['/lieux-historiques']);
           this.cdr.markForCheck();
         },
         error: (err: HttpErrorResponse) => {
           this.isSaving = false;
+          this.isSubmitting = false;
           this.cdr.markForCheck();
           this.handleHttpError(err, 'mise à jour');
         }
@@ -327,16 +398,17 @@ export class LieuxHistoriquesComponent implements OnInit {
       this.lieuService.createLieu(this.formData as LieuHistorique).subscribe({
         next: (created: LieuHistorique) => {
           this.isSaving = false;
+          this.isSubmitting = false;
           alert(`Lieu historique "${created.nom || created.nomLieuHisto}" enregistré avec succès dans MySQL !`);
           this.lieux.unshift(created);
           this.filterLieux();
-          this.isEditing = false;
-          this.editingLieu = null;
+          this.resetForm();
           this.router.navigate(['/lieux-historiques']);
           this.cdr.markForCheck();
         },
         error: (err: HttpErrorResponse) => {
           this.isSaving = false;
+          this.isSubmitting = false;
           this.cdr.markForCheck();
           this.handleHttpError(err, 'création');
         }

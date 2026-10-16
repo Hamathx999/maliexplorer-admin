@@ -203,9 +203,9 @@
     </div>
 
     <div class="figma-form-actions">
-      <button type="button" class="figma-btn-cancel" (click)="resetForm()">Annuler</button>
-      <button type="button" class="figma-btn-primary" (click)="onSubmit()" [disabled]="isUploadingImage">
-        {{ editingEthnieId ? 'Modifier l\'ethnie' : 'Ajouter l\'ethnie' }}
+      <button type="button" class="figma-btn-cancel" (click)="resetForm()" [disabled]="isSubmitting">Annuler</button>
+      <button type="button" class="figma-btn-primary" (click)="onSubmit()" [disabled]="isSubmitting || isUploadingImage">
+        {{ isSubmitting ? 'Enregistrement...' : (editingEthnieId ? 'Modifier l\'ethnie' : 'Ajouter l\'ethnie') }}
       </button>
     </div>
   }

@@ -191,9 +191,9 @@
     </div>
 
     <div class="figma-form-actions">
-      <button type="button" class="figma-btn-cancel" (click)="resetForm()">Annuler</button>
-      <button type="button" class="figma-btn-primary" (click)="onSubmit()" [disabled]="isUploadingPhoto">
-        {{ editingPresidentId ? 'Modifier le président' : 'Ajouter le président' }}
+      <button type="button" class="figma-btn-cancel" (click)="resetForm()" [disabled]="isSubmitting">Annuler</button>
+      <button type="button" class="figma-btn-primary" (click)="onSubmit()" [disabled]="isSubmitting || isUploadingPhoto">
+        {{ isSubmitting ? 'Enregistrement...' : (editingPresidentId ? 'Modifier le président' : 'Ajouter le président') }}
       </button>
     </div>
   }

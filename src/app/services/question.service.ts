@@ -13,65 +13,6 @@ export class QuestionService {
 
   private readonly STORAGE_KEY = 'maliexplorer_questions_custom';
 
-  private fallbackQuestions: Question[] = [
-    {
-      id: 1,
-      theme: 'Culture générale',
-      question: 'Quel est la capitale du Mali ?',
-      reponse: 'Bamako',
-      duree: '30s'
-    },
-    {
-      id: 2,
-      theme: 'Histoire',
-      question: 'Qui a fondé l\'Empire du Mali ?',
-      reponse: 'Soundiata Keïta',
-      duree: '45s'
-    },
-    {
-      id: 3,
-      theme: 'Géographie',
-      question: 'Quel est le plus long fleuve du Mali ?',
-      reponse: 'Le Niger',
-      duree: '30s'
-    },
-    {
-      id: 4,
-      theme: 'Monuments',
-      question: 'Dans quelle ville se trouve la Grande Mosquée ?',
-      reponse: 'Djenné',
-      duree: '30s'
-    },
-    {
-      id: 5,
-      theme: 'Musique',
-      question: 'Quel instrument est typique du Mali ?',
-      reponse: 'La kora',
-      duree: '45s'
-    },
-    {
-      id: 6,
-      theme: 'Gastronomie',
-      question: 'Quel est le plat national du Mali ?',
-      reponse: 'Le tô',
-      duree: '30s'
-    },
-    {
-      id: 7,
-      theme: 'Ethnies',
-      question: 'Quel peuple vit dans les falaises de Bandiagara ?',
-      reponse: 'Les Dogons',
-      duree: '45s'
-    },
-    {
-      id: 8,
-      theme: 'Histoire',
-      question: 'En quelle année le Mali est-il devenu indépendant ?',
-      reponse: '1960',
-      duree: '30s'
-    }
-  ];
-
   private getLocalQuestions(): Question[] {
     try {
       const stored = localStorage.getItem(this.STORAGE_KEY);
@@ -82,7 +23,7 @@ export class QuestionService {
     } catch (e) {
       console.warn('Erreur lecture localStorage questions', e);
     }
-    return [...this.fallbackQuestions];
+    return [];
   }
 
   private saveLocalQuestions(questions: Question[]): void {
@@ -109,8 +50,8 @@ export class QuestionService {
         }))
       ),
       catchError((error) => {
-        console.warn('API Spring Boot non disponible pour les questions, utilisation du stockage local :', error);
-        return of(this.getLocalQuestions());
+        console.warn('API Spring Boot non disponible pour les questions :', error);
+        return of([]);
       })
     );
   }

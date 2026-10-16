@@ -38,6 +38,7 @@ export class PlatsComponent implements OnInit {
   selectedFileSize: string = '';
 
   isEditing: boolean = false;
+  isSubmitting: boolean = false;
   editingPlat: Plat | null = null;
   formData: Partial<Plat> = {
     nom: '',
@@ -307,26 +308,83 @@ export class PlatsComponent implements OnInit {
   }
 
   cancelEdit(): void {
-    this.isEditing = false;
+    this.resetForm();
+    this.router.navigate(['/plats']);
+  }
+
+  resetForm(): void {
+    this.formData = {
+      nom: '',
+      ingredientPrincipal: '',
+      ingredientIds: [],
+      region: 'Nationale',
+      tempsPreparation: '1h 30min',
+      difficulte: 'Moyen',
+      imageUrl: '',
+      description: ''
+    };
     this.editingPlat = null;
+    this.selectedIngredientIds = [];
     this.imageUrl = '';
     this.images = [];
     this.selectedFileName = '';
     this.selectedFileSize = '';
-    this.router.navigate(['/plats']);
+    this.isEditing = false;
+    this.isSubmitting = false;
+    this.isUploadingImage = false;
+    this.isDragging = false;
+  }
+
+  getPlatFallbackImage(nomPlat: string): string {
+    const lower = (nomPlat || '').toLowerCase();
+    if (lower.includes('tiga') || lower.includes('arachide')) {
+      return '/assets/images/plats/tiguadegue_na.jpeg';
+    } else if (lower.includes('saka')) {
+      return '/assets/images/plats/sakasaka.jpeg';
+    } else if (lower.includes('fakoye')) {
+      return '/assets/images/plats/fakoye.jpeg';
+    } else if (lower.includes('tô') || lower.includes('to ') || lower === 'to' || lower.includes('gombo')) {
+      return '/assets/images/plats/to.jpeg';
+    } else if (lower.includes('zaamin') || lower.includes('gras')) {
+      return '/assets/images/plats/zaamin.jpeg';
+    } else if (lower.includes('widjila')) {
+      return '/assets/images/plats/widjila.jpeg';
+    }
+    return '/assets/images/plats/tiguadegue_na.jpeg';
+  }
+
+  getPlatFallbackIngredients(nomPlat: string): string[] {
+    const lower = (nomPlat || '').toLowerCase();
+    if (lower.includes('tiga') || lower.includes('arachide')) {
+      return ['Pâte d\'arachide', 'Viande / Poulet', 'Tomates fraîches', 'Patates douces'];
+    } else if (lower.includes('fakoye')) {
+      return ['Feuilles de corète (Fakoye)', 'Viande de mouton', 'Épices de Tombouctou', 'Beurre de karité'];
+    } else if (lower.includes('tô') || lower.includes('to ') || lower === 'to' || lower.includes('gombo')) {
+      return ['Farine de mil / maïs', 'Gombo frais / séché', 'Potasse', 'Poisson séché'];
+    } else if (lower.includes('zaamin') || lower.includes('gras')) {
+      return ['Riz parfumé', 'Bouillon de viande', 'Légumes du potager', 'Oignons caramélisés'];
+    } else if (lower.includes('widjila')) {
+      return ['Pains vapeur traditionnels', 'Sauce tomate mijotée', 'Viande de mouton'];
+    } else if (lower.includes('saka')) {
+      return ['Feuilles de manioc pilées', 'Poisson fumé', 'Pâte d\'arachide', 'Huile de palme'];
+    }
+    return ['Épices traditionnelles', 'Légumes frais'];
   }
 
   getPlatImage(plat: Plat): string {
-    if (plat.imageUrl && plat.imageUrl.trim()) {
+    const archwayFallback = '1a4120a4-11f1-4850-833f-19bd89ea6639_ville_de_tombouctou.jpg';
+    if (plat.imageUrl && plat.imageUrl.trim() && !plat.imageUrl.includes(archwayFallback)) {
       return plat.imageUrl.split(',')[0].trim();
     }
-    if (plat.images && plat.images.length > 0 && plat.images[0]) {
+    if (plat.images && plat.images.length > 0 && plat.images[0] && !plat.images[0].includes(archwayFallback)) {
       return plat.images[0];
     }
-    return 'https://dzhqwkpwaljqsjwoqvso.supabase.co/storage/v1/object/public/maliexplorer-media/plats/1a4120a4-11f1-4850-833f-19bd89ea6639_ville_de_tombouctou.jpg';
+    return this.getPlatFallbackImage(plat.nom);
   }
 
   savePlat(): void {
+    if (this.isSubmitting) return;
+
     if (this.isUploadingImage) {
       alert('Veuillez patienter pendant le téléversement de l\'image vers Supabase...');
       return;
@@ -337,12 +395,13 @@ export class PlatsComponent implements OnInit {
       return;
     }
 
+    this.isSubmitting = true;
+
     this.syncIngredientPrincipal();
 
-    const defaultFallback = 'https://dzhqwkpwaljqsjwoqvso.supabase.co/storage/v1/object/public/maliexplorer-media/plats/1a4120a4-11f1-4850-833f-19bd89ea6639_ville_de_tombouctou.jpg';
     let primaryUrl = this.images.length > 0 ? this.images[0] : (this.imageUrl || this.formData.imageUrl || '').trim();
-    if (!primaryUrl) {
-      primaryUrl = defaultFallback;
+    if (!primaryUrl || primaryUrl.includes('1a4120a4-11f1-4850-833f-19bd89ea6639_ville_de_tombouctou.jpg')) {
+      primaryUrl = this.getPlatFallbackImage(this.formData.nom);
     }
 
     const imagesList = this.images.length > 0 ? this.images : [primaryUrl];
@@ -363,6 +422,7 @@ export class PlatsComponent implements OnInit {
     if (editingId) {
       this.platService.updatePlat(editingId, platToSave).subscribe({
         next: (updated) => {
+          this.isSubmitting = false;
           const updatedId = updated.id ?? (updated as any).idPlat ?? editingId;
           const idx = this.plats.findIndex((p) => String(p.id ?? (p as any).idPlat) === String(updatedId));
           if (idx !== -1) {
@@ -374,6 +434,7 @@ export class PlatsComponent implements OnInit {
           this.cancelEdit();
         },
         error: (err) => {
+          this.isSubmitting = false;
           console.error('Erreur modification plat', err);
           alert('Erreur lors de la modification du plat.');
         }
@@ -381,11 +442,13 @@ export class PlatsComponent implements OnInit {
     } else {
       this.platService.createPlat(platToSave).subscribe({
         next: (created) => {
+          this.isSubmitting = false;
           this.plats.unshift(created);
           this.filterPlats();
           this.cancelEdit();
         },
         error: (err) => {
+          this.isSubmitting = false;
           console.error('Erreur création plat', err);
           alert('Erreur lors de la création du plat.');
         }

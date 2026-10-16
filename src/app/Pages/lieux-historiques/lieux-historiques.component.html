@@ -22,13 +22,14 @@
               <th>Époque / Année de fondation</th>
               <th>Ville</th>
               <th>Région</th>
+              <th>Visite 360°</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             @if (filteredLieux.length === 0) {
               <tr>
-                <td colspan="5" style="text-align: center; padding: 24px; color: #64748B;">Aucun lieu historique trouvé.</td>
+                <td colspan="6" style="text-align: center; padding: 24px; color: #64748B;">Aucun lieu historique trouvé.</td>
               </tr>
             } @else {
               @for (lieu of filteredLieux; track lieu.id ?? lieu.nom) {
@@ -37,6 +38,20 @@
                   <td>{{ lieu.epoque || '—' }}</td>
                   <td>{{ lieu.ville || '—' }}</td>
                   <td>{{ lieu.region || '—' }}</td>
+                  <td>
+                    @if (lieu.panorama360Url) {
+                      <span class="badge-panorama" title="Panorama 360° disponible">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path>
+                          <path d="M2 12h20"></path>
+                        </svg>
+                        360° Actif
+                      </span>
+                    } @else {
+                      <span class="badge-no-panorama">—</span>
+                    }
+                  </td>
                   <td>
                     <div class="figma-action-cell">
                       <button type="button" class="figma-icon-btn edit" (click)="startEdit(lieu)" title="Modifier">
@@ -194,11 +209,95 @@
       }
     </div>
 
+    <!-- Card 4: Visite Virtuelle & Panorama 360° -->
+    <div class="figma-card">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
+        <div>
+          <h3 class="figma-section-title" style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#075E4D" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path>
+              <path d="M2 12h20"></path>
+            </svg>
+            Visite Virtuelle & Panorama 360°
+          </h3>
+          <p style="color: #64748B; font-size: 13px; margin: 0;">
+            Téléversez une image panoramique équirectangulaire à 360° pour alimenter l'expérience immersive dans l'application mobile et le visualiseur web.
+          </p>
+        </div>
+        @if (formData.panorama360Url) {
+          <span class="badge-panorama-success">
+            ✓ Panorama 360° configuré
+          </span>
+        }
+      </div>
+
+      <!-- Upload Panorama -->
+      <div class="panorama-section">
+        @if (formData.panorama360Url) {
+          <div class="panorama-preview-box">
+            <img [src]="formData.panorama360Url" alt="Aperçu Panorama 360" class="panorama-preview-img" />
+            <div class="panorama-preview-overlay">
+              <div class="panorama-info">
+                <span class="badge-360-preview">Visite 360°</span>
+                <span class="panorama-url-text">{{ formData.panorama360Url }}</span>
+              </div>
+              <button type="button" class="btn-remove-panorama" (click)="removePanorama()" title="Supprimer le panorama">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+                Supprimer
+              </button>
+            </div>
+          </div>
+        } @else {
+          <div class="panorama-dropzone" (click)="panoramaFileInput.click()">
+            <input
+              #panoramaFileInput
+              type="file"
+              accept="image/jpeg, image/jpg, image/png, image/webp"
+              (change)="onPanoramaSelected($event)"
+              style="display: none;"
+            />
+            <div class="panorama-dropzone-content">
+              @if (isUploadingPanorama) {
+                <div class="spinner"></div>
+                <p style="font-weight: 600; color: #075E4D; margin: 8px 0 0 0;">Téléversement du panorama 360° vers le stockage...</p>
+              } @else {
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#075E4D" stroke-width="1.8">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path>
+                  <path d="M2 12h20"></path>
+                </svg>
+                <p style="font-size: 14px; font-weight: 600; color: #1E293B; margin-top: 10px; margin-bottom: 4px;">
+                  Glissez-déposez le panorama 360° ici, ou <span style="color: #075E4D; text-decoration: underline; cursor: pointer;">parcourez vos fichiers</span>
+                </p>
+                <span style="font-size: 12px; color: #64748B;">Format recommandé : Image panoramique équirectangulaire 2:1 (ex: 4096x2048, 6000x3000), JPG ou WebP.</span>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Lien URL alternatif -->
+        <div style="margin-top: 14px;">
+          <label class="figma-label" style="font-size: 12px;">Ou renseignez directement l'URL d'hébergement du panorama 360° :</label>
+          <input
+            type="url"
+            class="figma-input"
+            style="font-size: 13px;"
+            [(ngModel)]="formData.panorama360Url"
+            placeholder="https://dzhqwkpwaljqsjwoqvso.supabase.co/storage/v1/object/public/.../panorama.jpg"
+          />
+        </div>
+      </div>
+    </div>
+
     <!-- Actions -->
     <div class="figma-form-actions">
-      <button type="button" class="figma-btn-cancel" (click)="cancelEdit()" [disabled]="isSaving">Annuler</button>
-      <button type="button" class="figma-btn-primary" (click)="saveLieu()" [disabled]="isSaving">
-        {{ isSaving ? 'Enregistrement...' : (editingLieu ? 'Modifier le lieu' : 'Ajouter le lieu') }}
+      <button type="button" class="figma-btn-cancel" (click)="cancelEdit()" [disabled]="isSaving || isSubmitting">Annuler</button>
+      <button type="button" class="figma-btn-primary" (click)="saveLieu()" [disabled]="isSaving || isSubmitting || isUploadingPhotos || isUploadingPanorama">
+        {{ isSaving || isSubmitting ? 'Enregistrement...' : (editingLieu ? 'Modifier le lieu' : 'Ajouter le lieu') }}
       </button>
     </div>
   }

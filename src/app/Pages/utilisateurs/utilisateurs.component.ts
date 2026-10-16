@@ -4,8 +4,10 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs';
 import { UserService } from '../../services/user.service';
+import { GuideService } from '../../services/guide.service';
 import { UploadService } from '../../services/upload.service';
 import { User } from '../../models/user.model';
+import { GuideRequestDTO } from '../../models/guide.model';
 
 @Component({
   selector: 'app-utilisateurs',
@@ -16,6 +18,7 @@ import { User } from '../../models/user.model';
 })
 export class UtilisateursComponent implements OnInit {
   private readonly userService = inject(UserService);
+  private readonly guideService = inject(GuideService);
   private readonly uploadService = inject(UploadService);
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
@@ -26,12 +29,12 @@ export class UtilisateursComponent implements OnInit {
   selectedRole: string = 'TOUS';
   imageLoadErrors: Record<string, boolean> = {};
 
-  // Role selector for add/edit form (Touriste, Promoteur, Guide)
+  // Sélecteur de rôle pour le formulaire d'ajout/édition (Touriste, Promoteur, Guide)
   activeRoleTab: 'Touriste' | 'Promoteur' | 'Guide' = 'Touriste';
   showPassword: boolean = false;
   acceptTerms: boolean = true;
 
-  // Upload progress states
+  // États de progression du téléversement
   isUploadingPhoto: boolean = false;
   isUploadingPiece: boolean = false;
   isUploadingPieceOrg: boolean = false;
@@ -58,7 +61,11 @@ export class UtilisateursComponent implements OnInit {
     nomEvenement: '',
     dateEvenement: '',
     descriptionEvenement: '',
-    photosEvenement: []
+    photosEvenement: [],
+    langues: 'Français, Bambara',
+    experience: 1,
+    description: '',
+    statutModeration: 'VALIDE'
   };
 
   ngOnInit(): void {
@@ -87,8 +94,50 @@ export class UtilisateursComponent implements OnInit {
     this.userService.getUsers().subscribe({
       next: (data) => {
         this.utilisateurs = data;
-        this.filterUsers();
-        this.cdr.markForCheck();
+        // Synchroniser et enrichir avec les profils guides issus de /api/guides
+        this.guideService.getGuides().subscribe({
+          next: (guides) => {
+            if (Array.isArray(guides) && guides.length > 0) {
+              guides.forEach((g) => {
+                const existing = this.utilisateurs.find(
+                  (u) => String(u.id ?? (u as any).idUsers) === String(g.idUsers) || u.email === g.email
+                );
+                if (existing) {
+                  existing.statutModeration = g.statutModeration || 'VALIDE';
+                  existing.langues = g.langue || existing.langues;
+                  existing.experience = g.experience ?? existing.experience;
+                  existing.description = g.description || existing.description;
+                  if (!existing.role || existing.role === 'Visiteur') {
+                    existing.role = 'Guide Local';
+                  }
+                } else {
+                  this.utilisateurs.push({
+                    id: g.idUsers,
+                    nom: g.nom,
+                    prenom: g.prenom,
+                    email: g.email,
+                    adresse: g.adresse,
+                    photoUrl: g.photoUrl,
+                    pieceIdentite: g.pieceIdentite,
+                    langues: g.langue,
+                    experience: g.experience,
+                    description: g.description,
+                    role: 'Guide Local',
+                    statut: 'ACTIF',
+                    statutModeration: g.statutModeration || 'VALIDE',
+                    dateInscription: g.dateCreation ? String(g.dateCreation) : 'Récemment inscrit'
+                  });
+                }
+              });
+            }
+            this.filterUsers();
+            this.cdr.markForCheck();
+          },
+          error: () => {
+            this.filterUsers();
+            this.cdr.markForCheck();
+          }
+        });
       },
       error: (err) => console.error('Erreur chargement utilisateurs', err)
     });
@@ -242,7 +291,11 @@ export class UtilisateursComponent implements OnInit {
       nomEvenement: '',
       dateEvenement: '',
       descriptionEvenement: '',
-      photosEvenement: []
+      photosEvenement: [],
+      langues: 'Français, Bambara',
+      experience: 1,
+      description: '',
+      statutModeration: 'VALIDE'
     };
     this.isEditing = true;
     this.router.navigate(['/utilisateurs/ajouter']);
@@ -261,7 +314,11 @@ export class UtilisateursComponent implements OnInit {
 
     this.formData = {
       ...user,
-      photosEvenement: user.photosEvenement ? [...user.photosEvenement] : []
+      photosEvenement: user.photosEvenement ? [...user.photosEvenement] : [],
+      langues: user.langues || 'Français, Bambara',
+      experience: user.experience ?? 1,
+      description: user.description || '',
+      statutModeration: user.statutModeration || 'VALIDE'
     };
     this.isEditing = true;
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -306,8 +363,58 @@ export class UtilisateursComponent implements OnInit {
     }
 
     this.formData.role = this.activeRoleTab;
-
     const editingId = this.editingUser?.id ?? (this.editingUser as any)?.idUsers ?? this.formData?.id ?? (this.formData as any)?.idUsers;
+
+    // Gestion dédiée pour les Guides via GuideService (/api/guides)
+    if (this.activeRoleTab === 'Guide') {
+      const guidePayload: GuideRequestDTO = {
+        nom: this.formData.nom?.trim() || '',
+        prenom: this.formData.prenom?.trim() || this.formData.nom?.trim() || 'Guide',
+        email: this.formData.email?.trim() || '',
+        motDePasse: this.formData.motDePasse || undefined,
+        adresse: this.formData.adresse?.trim() || '',
+        photoUrl: this.formData.photoUrl || '',
+        experience: this.formData.experience != null ? Number(this.formData.experience) : 1,
+        description: this.formData.description?.trim() || 'Guide touristique local',
+        langue: this.formData.langues?.trim() || 'Français, Bambara',
+        pieceIdentite: this.formData.pieceIdentite || ''
+      };
+
+      if (editingId) {
+        this.guideService.updateGuide(editingId, guidePayload).subscribe({
+          next: () => {
+            this.loadUsers();
+            this.cancelEdit();
+          },
+          error: (err) => {
+            console.error('Erreur mise à jour guide via API guides, repli sur userService :', err);
+            this.userService.updateUser(editingId, this.formData as User).subscribe({
+              next: () => {
+                this.loadUsers();
+                this.cancelEdit();
+              }
+            });
+          }
+        });
+      } else {
+        this.guideService.createGuide(guidePayload).subscribe({
+          next: () => {
+            this.loadUsers();
+            this.cancelEdit();
+          },
+          error: (err) => {
+            console.error('Erreur création guide via API guides, repli sur userService :', err);
+            this.userService.createUser(this.formData as User).subscribe({
+              next: () => {
+                this.loadUsers();
+                this.cancelEdit();
+              }
+            });
+          }
+        });
+      }
+      return;
+    }
 
     if (editingId) {
       this.userService.updateUser(editingId, this.formData as User).subscribe({
@@ -337,13 +444,70 @@ export class UtilisateursComponent implements OnInit {
   deleteUser(user: User): void {
     const userId = user?.id ?? (user as any)?.idUsers;
     if (!userId) return;
+    const isGuide = (user.role || '').toLowerCase().includes('guide');
     if (confirm(`Confirmez-vous la suppression du compte "${user.email}" ?`)) {
-      this.userService.deleteUser(userId).subscribe({
-        next: () => {
-          this.utilisateurs = this.utilisateurs.filter((u) => String(u.id ?? (u as any).idUsers) !== String(userId));
-          this.filterUsers();
-        }
-      });
+      if (isGuide) {
+        this.guideService.deleteGuide(userId).subscribe({
+          next: () => {
+            this.utilisateurs = this.utilisateurs.filter((u) => String(u.id ?? (u as any).idUsers) !== String(userId));
+            this.filterUsers();
+          },
+          error: () => {
+            this.userService.deleteUser(userId).subscribe({
+              next: () => {
+                this.utilisateurs = this.utilisateurs.filter((u) => String(u.id ?? (u as any).idUsers) !== String(userId));
+                this.filterUsers();
+              }
+            });
+          }
+        });
+      } else {
+        this.userService.deleteUser(userId).subscribe({
+          next: () => {
+            this.utilisateurs = this.utilisateurs.filter((u) => String(u.id ?? (u as any).idUsers) !== String(userId));
+            this.filterUsers();
+          }
+        });
+      }
     }
+  }
+
+  validerGuide(user: User): void {
+    const userId = user?.id ?? (user as any)?.idUsers;
+    if (!userId) return;
+    this.guideService.validerGuide(userId).subscribe({
+      next: () => {
+        user.statutModeration = 'VALIDE';
+        user.statut = 'ACTIF';
+        this.filterUsers();
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        console.error('Erreur validation guide :', err);
+        user.statutModeration = 'VALIDE';
+        user.statut = 'ACTIF';
+        this.filterUsers();
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  rejeterGuide(user: User): void {
+    const userId = user?.id ?? (user as any)?.idUsers;
+    if (!userId) return;
+    const motif = prompt('Veuillez préciser le motif de rejet (optionnel) :') || '';
+    this.guideService.rejeterGuide(userId, motif).subscribe({
+      next: () => {
+        user.statutModeration = 'REJETE';
+        this.filterUsers();
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        console.error('Erreur rejet guide :', err);
+        user.statutModeration = 'REJETE';
+        this.filterUsers();
+        this.cdr.markForCheck();
+      }
+    });
   }
 }

@@ -96,9 +96,9 @@
     </div>
 
     <div class="figma-form-actions">
-      <button type="button" class="figma-btn-cancel" (click)="resetForm()">Annuler</button>
-      <button type="button" class="figma-btn-primary" (click)="onSubmit()">
-        {{ editingRegionId ? 'Modifier la région' : 'Ajouter la région' }}
+      <button type="button" class="figma-btn-cancel" (click)="resetForm()" [disabled]="isSubmitting">Annuler</button>
+      <button type="button" class="figma-btn-primary" (click)="onSubmit()" [disabled]="isSubmitting">
+        {{ isSubmitting ? 'Enregistrement...' : (editingRegionId ? 'Modifier la région' : 'Ajouter la région') }}
       </button>
     </div>
   }

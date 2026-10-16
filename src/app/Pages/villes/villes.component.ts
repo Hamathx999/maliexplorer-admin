@@ -41,6 +41,7 @@ export class VillesComponent implements OnInit {
   selectedFileSize: string = '';
   editingVilleId: number | string | null = null;
   isEditing: boolean = false;
+  isSubmitting: boolean = false;
   isLoading: boolean = false;
   successMessage: string = '';
   errorMessage: string = '';
@@ -201,6 +202,8 @@ export class VillesComponent implements OnInit {
   }
 
   onSubmit(): void {
+    if (this.isSubmitting) return;
+
     if (this.isUploadingImage) {
       this.showNotification('Veuillez patienter pendant la fin du téléversement vers Supabase...', true);
       return;
@@ -211,6 +214,8 @@ export class VillesComponent implements OnInit {
       this.showNotification('Veuillez saisir le nom de la ville.', true);
       return;
     }
+
+    this.isSubmitting = true;
 
     const foundReg = this.regions.find((r) => r.nom === this.selectedRegion);
     const pop = (this.population || '').trim();
@@ -238,20 +243,28 @@ export class VillesComponent implements OnInit {
     if (this.editingVilleId !== null) {
       this.villeService.updateVille(this.editingVilleId, payload).subscribe({
         next: () => {
+          this.isSubmitting = false;
           this.showNotification(`Ville "${payload.nom}" mise à jour.`);
           this.resetForm();
           this.loadVilles();
         },
-        error: () => this.showNotification('Erreur de mise à jour.', true)
+        error: () => {
+          this.isSubmitting = false;
+          this.showNotification('Erreur de mise à jour.', true);
+        }
       });
     } else {
       this.villeService.createVille(payload).subscribe({
         next: () => {
+          this.isSubmitting = false;
           this.showNotification(`Ville "${payload.nom}" ajoutée.`);
           this.resetForm();
           this.loadVilles();
         },
-        error: () => this.showNotification("Erreur lors de l'ajout.", true)
+        error: () => {
+          this.isSubmitting = false;
+          this.showNotification("Erreur lors de l'ajout.", true);
+        }
       });
     }
   }
@@ -359,6 +372,7 @@ export class VillesComponent implements OnInit {
     this.selectedFileSize = '';
     this.description = '';
     this.isEditing = false;
+    this.isSubmitting = false;
     this.router.navigate(['/villes']);
   }
 
