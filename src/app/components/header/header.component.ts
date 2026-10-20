@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
+import { sanitizeImageUrl } from '../../utils/image-url.util';
 
 @Component({
   selector: 'app-header',
@@ -35,7 +36,7 @@ export class HeaderComponent implements OnInit {
 
   readonly currentUserPhoto = computed(() => {
     const user = this.authService.currentUser();
-    return user?.photoUrl || '/assets/MaliExplorer.png';
+    return sanitizeImageUrl(user?.photoUrl, '/assets/MaliExplorer.png');
   });
 
   ngOnInit(): void {
@@ -106,6 +107,12 @@ export class HeaderComponent implements OnInit {
     } else if (url.includes('/religions')) {
       this.title = 'Gestion des religions & spiritualités';
       this.subtitle = "Administration des croyances et du patrimoine spirituel malien.";
+    } else if (url.includes('/langues')) {
+      this.title = 'Gestion des langues nationales';
+      this.subtitle = "Valorisation de la diversité linguistique et culturelle du Mali.";
+    } else if (url.includes('/infos-pratiques')) {
+      this.title = 'Gestion des informations pratiques';
+      this.subtitle = "Conseils utiles, formalités et repères pratiques pour les visiteurs.";
     } else {
       this.title = 'Tableau de bord';
       this.subtitle = "Bienvenue dans l'administration de MaliExplorer !";

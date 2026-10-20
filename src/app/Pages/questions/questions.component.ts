@@ -137,6 +137,7 @@ export class QuestionsComponent implements OnInit {
     this.isEditing = false;
     this.editingQuestion = null;
     this.router.navigate(['/questions']);
+    this.cdr.detectChanges();
   }
 
   saveQuestion(): void {
@@ -165,10 +166,12 @@ export class QuestionsComponent implements OnInit {
         next: () => {
           this.loadQuestions();
           this.cancelEdit();
+          this.cdr.detectChanges();
         },
         error: (err) => {
           console.error('Erreur mise à jour question', err);
           alert('Erreur lors de la modification de la question.');
+          this.cdr.detectChanges();
         }
       });
     } else {
@@ -176,10 +179,12 @@ export class QuestionsComponent implements OnInit {
         next: () => {
           this.loadQuestions();
           this.cancelEdit();
+          this.cdr.detectChanges();
         },
         error: (err) => {
           console.error('Erreur création question', err);
           alert('Erreur lors de la création de la question.');
+          this.cdr.detectChanges();
         }
       });
     }
@@ -194,6 +199,10 @@ export class QuestionsComponent implements OnInit {
         next: () => {
           this.questions = this.questions.filter((item) => (item.id ?? item.idQuestion) !== targetId);
           this.filterQuestions();
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.cdr.detectChanges();
         }
       });
     }

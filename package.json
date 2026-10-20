@@ -3,11 +3,11 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
+    "start": "NODE_OPTIONS=--max-http-header-size=262144 ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "serve:ssr:maliexplorer-admin": "node dist/maliexplorer-admin/server/server.mjs"
+    "serve:ssr:maliexplorer-admin": "NODE_OPTIONS=--max-http-header-size=262144 node dist/maliexplorer-admin/server/server.mjs"
   },
   "private": true,
   "packageManager": "npm@12.0.1",

@@ -8,6 +8,7 @@ import { RegionService } from '../../services/region.service';
 import { UploadService } from '../../services/upload.service';
 import { Ville } from '../../models/ville.model';
 import { Region } from '../../models/region.model';
+import { sanitizeImageUrl, splitImageUrls } from '../../utils/image-url.util';
 
 @Component({
   selector: 'app-villes',
@@ -30,6 +31,8 @@ export class VillesComponent implements OnInit {
   population: string = '';
   description: string = '';
   cordonnees: string = '';
+  latitude: number | null = null;
+  longitude: number | null = null;
   imageUrl: string = '';
   images: string[] = [];
   misEnAvantHome: boolean = false;
@@ -75,6 +78,8 @@ export class VillesComponent implements OnInit {
     this.population = '';
     this.description = '';
     this.cordonnees = '';
+    this.latitude = null;
+    this.longitude = null;
     this.imageUrl = '';
     this.images = [];
     this.selectedFileName = '';
@@ -224,6 +229,10 @@ export class VillesComponent implements OnInit {
       primaryUrl = this.getCityFallbackImage(nomStr, this.selectedRegion);
     }
     const resolvedImages = this.images.length > 0 ? this.images : [primaryUrl];
+    let coords = (this.cordonnees || '').trim();
+    if (this.latitude != null && this.longitude != null) {
+      coords = `${this.latitude}, ${this.longitude}`;
+    }
     const payload: any = {
       nom: nomStr,
       region: this.selectedRegion || 'Mopti',
@@ -231,7 +240,9 @@ export class VillesComponent implements OnInit {
       nbreHbt: pop,
       idRegion: foundReg?.id,
       regionId: foundReg?.id,
-      cordonnees: (this.cordonnees || '').trim(),
+      cordonnees: coords,
+      latitude: this.latitude,
+      longitude: this.longitude,
       imageUrl: primaryUrl,
       images: resolvedImages,
       description: (this.description || '').trim(),
@@ -247,10 +258,12 @@ export class VillesComponent implements OnInit {
           this.showNotification(`Ville "${payload.nom}" mise à jour.`);
           this.resetForm();
           this.loadVilles();
+          this.cdr.detectChanges();
         },
         error: () => {
           this.isSubmitting = false;
           this.showNotification('Erreur de mise à jour.', true);
+          this.cdr.detectChanges();
         }
       });
     } else {
@@ -260,10 +273,12 @@ export class VillesComponent implements OnInit {
           this.showNotification(`Ville "${payload.nom}" ajoutée.`);
           this.resetForm();
           this.loadVilles();
+          this.cdr.detectChanges();
         },
         error: () => {
           this.isSubmitting = false;
           this.showNotification("Erreur lors de l'ajout.", true);
+          this.cdr.detectChanges();
         }
       });
     }
@@ -275,14 +290,23 @@ export class VillesComponent implements OnInit {
     this.selectedRegion = ville.region;
     this.population = String(ville.population || '');
     this.cordonnees = (ville as any).cordonnees || '';
-    this.imageUrl = (ville as any).imageUrl || '';
+    this.latitude = (ville as any).latitude ?? null;
+    this.longitude = (ville as any).longitude ?? null;
+    if ((this.latitude === null || this.longitude === null) && this.cordonnees && this.cordonnees.includes(',')) {
+      const parts = this.cordonnees.split(',');
+      const parsedLat = parseFloat(parts[0].trim());
+      const parsedLng = parseFloat(parts[1].trim());
+      if (!isNaN(parsedLat)) this.latitude = parsedLat;
+      if (!isNaN(parsedLng)) this.longitude = parsedLng;
+    }
+    this.imageUrl = sanitizeImageUrl((ville as any).imageUrl || '');
     this.misEnAvantHome = Boolean(ville.misEnAvantHome);
     this.ordreHome = Number(ville.ordreHome) || 0;
     this.legende = ville.legende || '';
     if (ville.images && ville.images.length > 0) {
-      this.images = [...ville.images];
+      this.images = ville.images.map((u) => sanitizeImageUrl(u)).filter(Boolean);
     } else if (this.imageUrl) {
-      this.images = this.imageUrl.split(',').map((u) => u.trim()).filter(Boolean);
+      this.images = splitImageUrls(this.imageUrl);
     } else {
       this.images = [];
     }
@@ -344,11 +368,11 @@ export class VillesComponent implements OnInit {
 
   getVilleImage(ville: Ville): string {
     if (ville.imageUrl && ville.imageUrl.trim()) {
-      const first = ville.imageUrl.split(',')[0].trim();
-      if (first) return first;
+      const list = splitImageUrls(ville.imageUrl);
+      if (list.length > 0) return list[0];
     }
     if (ville.images && ville.images.length > 0) {
-      const first = ville.images[0].trim();
+      const first = sanitizeImageUrl(ville.images[0]);
       if (first) return first;
     }
     return this.getCityFallbackImage(ville.nom, ville.region);
@@ -366,6 +390,8 @@ export class VillesComponent implements OnInit {
     this.nom = '';
     this.population = '';
     this.cordonnees = '';
+    this.latitude = null;
+    this.longitude = null;
     this.imageUrl = '';
     this.images = [];
     this.selectedFileName = '';
@@ -374,6 +400,7 @@ export class VillesComponent implements OnInit {
     this.isEditing = false;
     this.isSubmitting = false;
     this.router.navigate(['/villes']);
+    this.cdr.detectChanges();
   }
 
   private showNotification(msg: string, isError: boolean = false): void {

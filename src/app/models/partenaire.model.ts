@@ -18,6 +18,7 @@ export interface OpportuniteResponseDTO {
   statutModeration?: 'EN_ATTENTE_VALIDATION' | 'VALIDE' | 'REJETE' | string;
   motifRejet?: string;
   dateCreation?: string;
+  pieceIdentite?: string;
 }
 
 export interface PartenaireItem {

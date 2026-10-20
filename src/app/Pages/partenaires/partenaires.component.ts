@@ -143,6 +143,7 @@ export class PartenairesComponent implements OnInit {
   fermerModale(): void {
     this.isDetailsModalOpen = false;
     this.selectedPartenaire = null;
+    this.cdr.detectChanges();
   }
 
   /**
@@ -164,14 +165,14 @@ export class PartenairesComponent implements OnInit {
             this.selectedPartenaire.statutCompte = partenaire.statutCompte;
           }
           this.appliquerFiltres();
-          this.cdr.markForCheck();
+          this.cdr.detectChanges();
         },
         error: (err) => {
           console.error('Erreur lors du changement de statut :', err);
           // Basculement optimiste local
           partenaire.statutCompte = partenaire.statutCompte === 'ACTIF' ? 'BLOQUE' : 'ACTIF';
           this.appliquerFiltres();
-          this.cdr.markForCheck();
+          this.cdr.detectChanges();
         }
       });
     }

@@ -91,6 +91,7 @@ export class HomeSlidesComponent implements OnInit {
   cancelEdit(): void {
     this.isEditing = false;
     this.editingSlideId = null;
+    this.cdr.detectChanges();
   }
 
   onFilePicked(event: Event): void {
@@ -166,8 +167,12 @@ export class HomeSlidesComponent implements OnInit {
           this.showNotification(`Diapositive "${titreTrim}" mise à jour.`);
           this.isEditing = false;
           this.loadSlides();
+          this.cdr.detectChanges();
         },
-        error: () => this.showNotification('Erreur lors de la modification.', true)
+        error: () => {
+          this.showNotification('Erreur lors de la modification.', true);
+          this.cdr.detectChanges();
+        }
       });
     } else {
       this.slideService.createSlide(payload).subscribe({
@@ -175,8 +180,12 @@ export class HomeSlidesComponent implements OnInit {
           this.showNotification(`Diapositive "${titreTrim}" créée avec succès.`);
           this.isEditing = false;
           this.loadSlides();
+          this.cdr.detectChanges();
         },
-        error: () => this.showNotification("Erreur lors de l'enregistrement.", true)
+        error: () => {
+          this.showNotification("Erreur lors de l'enregistrement.", true);
+          this.cdr.detectChanges();
+        }
       });
     }
   }

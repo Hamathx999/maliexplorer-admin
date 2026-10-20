@@ -203,10 +203,12 @@ export class PresidentsComponent implements OnInit {
           this.showNotification(`Chef d'État "${payload.nom}" mis à jour.`);
           this.resetForm();
           this.loadPresidents();
+          this.cdr.detectChanges();
         },
         error: () => {
           this.isSubmitting = false;
           this.showNotification('Erreur de mise à jour.', true);
+          this.cdr.detectChanges();
         }
       });
     } else {
@@ -216,10 +218,12 @@ export class PresidentsComponent implements OnInit {
           this.showNotification(`Chef d'État "${payload.nom}" ajouté.`);
           this.resetForm();
           this.loadPresidents();
+          this.cdr.detectChanges();
         },
         error: () => {
           this.isSubmitting = false;
           this.showNotification("Erreur lors de l'ajout.", true);
+          this.cdr.detectChanges();
         }
       });
     }
@@ -235,6 +239,7 @@ export class PresidentsComponent implements OnInit {
     this.photoUrl = president.photoUrl || president.imageUrl || '';
     this.isEditing = true;
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    this.cdr.detectChanges();
   }
 
   onDelete(president: President): void {
@@ -245,8 +250,12 @@ export class PresidentsComponent implements OnInit {
         next: () => {
           this.showNotification(`Chef d'État "${president.nom}" supprimé.`);
           this.loadPresidents();
+          this.cdr.detectChanges();
         },
-        error: () => this.showNotification('Erreur de suppression.', true)
+        error: () => {
+          this.showNotification('Erreur de suppression.', true);
+          this.cdr.detectChanges();
+        }
       });
     }
   }
@@ -265,6 +274,7 @@ export class PresidentsComponent implements OnInit {
     this.isEditing = false;
     this.isSubmitting = false;
     this.router.navigate(['/presidents']);
+    this.cdr.detectChanges();
   }
 
   private showNotification(msg: string, isError: boolean = false): void {

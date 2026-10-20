@@ -34,21 +34,34 @@ export class QuestionService {
     }
   }
 
+  /**
+   * Normalise un objet Question provenant du backend Spring Boot
+   */
+  private mapQuestion(q: Question): Question {
+    const rawOpts = q.propositions && q.propositions.length > 0
+      ? q.propositions
+      : (q.options && q.options.length > 0 ? q.options : (q.reponse ? [q.reponse] : []));
+
+    return {
+      ...q,
+      id: q.idQuestion ?? q.id,
+      idQuestion: q.idQuestion ?? q.id,
+      question: q.nomQuestion || q.question || '',
+      nomQuestion: q.nomQuestion || q.question || '',
+      reponse: q.reponse || '',
+      theme: q.theme || 'Culture générale',
+      explication: q.explication || '',
+      points: q.points || 10,
+      quizId: q.quizId ?? (q as any).quiz?.idQuiz ?? (q as any).quiz?.id ?? undefined,
+      duree: typeof q.duree === 'number' ? `${q.duree}s` : (q.duree || '30s'),
+      options: rawOpts,
+      propositions: rawOpts
+    };
+  }
+
   getQuestions(): Observable<Question[]> {
     return this.http.get<Question[]>(this.apiUrl).pipe(
-      map((data: Question[]) =>
-        data.map((q) => ({
-          ...q,
-          id: q.idQuestion ?? q.id,
-          idQuestion: q.idQuestion ?? q.id,
-          question: q.nomQuestion || q.question || '',
-          nomQuestion: q.nomQuestion || q.question || '',
-          reponse: q.reponse || '',
-          theme: q.theme || 'Culture générale',
-          quizId: q.quizId ?? (q as any).quiz?.idQuiz ?? (q as any).quiz?.id ?? null,
-          duree: typeof q.duree === 'number' ? `${q.duree}s` : (q.duree || '30s')
-        }))
-      ),
+      map((data: Question[]) => (Array.isArray(data) ? data.map((q) => this.mapQuestion(q)) : [])),
       catchError((error) => {
         console.warn('API Spring Boot non disponible pour les questions :', error);
         return of([]);
@@ -56,19 +69,22 @@ export class QuestionService {
     );
   }
 
+  /**
+   * Récupère toutes les questions rattachées à un quiz spécifique
+   */
+  getQuestionsByQuiz(quizId: number | string): Observable<Question[]> {
+    return this.http.get<Question[]>(`${this.apiUrl}/quiz/${quizId}`).pipe(
+      map((data: Question[]) => (Array.isArray(data) ? data.map((q) => this.mapQuestion(q)) : [])),
+      catchError((error) => {
+        console.warn(`Erreur chargement questions du quiz ${quizId} :`, error);
+        return of([]);
+      })
+    );
+  }
+
   getQuestionById(id: number | string): Observable<Question> {
     return this.http.get<Question>(`${this.apiUrl}/${id}`).pipe(
-      map((q: Question) => ({
-        ...q,
-        id: q.idQuestion ?? q.id,
-        idQuestion: q.idQuestion ?? q.id,
-        question: q.nomQuestion || q.question || '',
-        nomQuestion: q.nomQuestion || q.question || '',
-        reponse: q.reponse || '',
-        theme: q.theme || 'Culture générale',
-        quizId: q.quizId ?? (q as any).quiz?.idQuiz ?? (q as any).quiz?.id ?? null,
-        duree: typeof q.duree === 'number' ? `${q.duree}s` : (q.duree || '30s')
-      })),
+      map((q: Question) => this.mapQuestion(q)),
       catchError(() => {
         const local = this.getLocalQuestions();
         const found = local.find((q) => String(q.id) === String(id));
@@ -77,39 +93,43 @@ export class QuestionService {
     );
   }
 
-  createQuestion(question: Question): Observable<Question> {
+  private buildPayload(question: Question) {
     const rawDuree = String(question.duree || 30);
     const numericDuree = parseInt(rawDuree.replace(/\D/g, ''), 10) || 30;
+    const rawOptions = question.options || question.propositions || [];
+    const cleanPropositions = rawOptions.map((o) => (o || '').trim()).filter((o) => o.length > 0);
+    const rep = (question.reponse || '').trim();
+    if (rep && !cleanPropositions.includes(rep)) {
+      cleanPropositions.unshift(rep);
+    }
 
-    const payload = {
-      nomQuestion: question.question || question.nomQuestion,
-      question: question.question || question.nomQuestion,
-      reponse: question.reponse,
-      theme: question.theme || 'Culture générale',
+    return {
+      nomQuestion: (question.question || question.nomQuestion || '').trim(),
+      question: (question.question || question.nomQuestion || '').trim(),
+      reponse: rep,
+      theme: (question.theme || 'Culture générale').trim(),
       duree: numericDuree,
-      points: question.points || 10,
+      points: Number(question.points) || 10,
+      explication: (question.explication || '').trim(),
       quizId: question.quizId ? Number(question.quizId) : null,
-      propositions: question.options && question.options.length > 0 ? question.options : [question.reponse]
+      propositions: cleanPropositions.length > 0 ? cleanPropositions : [rep]
     };
+  }
+
+  createQuestion(question: Question): Observable<Question> {
+    const payload = this.buildPayload(question);
 
     return this.http.post<Question>(this.apiUrl, payload).pipe(
-      map((created: Question) => ({
-        ...created,
-        id: created.idQuestion ?? created.id,
-        idQuestion: created.idQuestion ?? created.id,
-        question: created.nomQuestion || created.question || '',
-        nomQuestion: created.nomQuestion || created.question || '',
-        reponse: created.reponse || question.reponse,
-        theme: created.theme || question.theme || 'Culture générale',
-        duree: typeof created.duree === 'number' ? `${created.duree}s` : (created.duree || `${numericDuree}s`)
-      })),
+      map((created: Question) => this.mapQuestion(created)),
       catchError((error) => {
         console.warn('API Spring Boot non joignable, enregistrement local de la question :', error);
-        const newQ: Question = {
+        const newQ: Question = this.mapQuestion({
           ...question,
           id: Date.now(),
-          duree: `${numericDuree}s`
-        };
+          duree: `${payload.duree}s`,
+          options: payload.propositions,
+          propositions: payload.propositions
+        });
         const current = this.getLocalQuestions();
         current.unshift(newQ);
         this.saveLocalQuestions(current);
@@ -119,40 +139,20 @@ export class QuestionService {
   }
 
   updateQuestion(id: number | string, question: Question): Observable<Question> {
-    const rawDuree = String(question.duree || 30);
-    const numericDuree = parseInt(rawDuree.replace(/\D/g, ''), 10) || 30;
-
-    const payload = {
-      nomQuestion: question.question || question.nomQuestion,
-      question: question.question || question.nomQuestion,
-      reponse: question.reponse,
-      theme: question.theme || 'Culture générale',
-      duree: numericDuree,
-      points: question.points || 10,
-      quizId: question.quizId ? Number(question.quizId) : null,
-      propositions: question.options && question.options.length > 0 ? question.options : [question.reponse]
-    };
+    const payload = this.buildPayload(question);
 
     return this.http.put<Question>(`${this.apiUrl}/${id}`, payload).pipe(
-      map((updated: Question) => ({
-        ...updated,
-        id: updated.idQuestion ?? updated.id,
-        idQuestion: updated.idQuestion ?? updated.id,
-        question: updated.nomQuestion || updated.question || '',
-        nomQuestion: updated.nomQuestion || updated.question || '',
-        reponse: updated.reponse || question.reponse,
-        theme: updated.theme || question.theme || 'Culture générale',
-        duree: typeof updated.duree === 'number' ? `${updated.duree}s` : (updated.duree || `${numericDuree}s`)
-      })),
+      map((updated: Question) => this.mapQuestion(updated)),
       catchError((error) => {
         console.warn('API Spring Boot non joignable, mise à jour locale de la question :', error);
         const current = this.getLocalQuestions();
         const index = current.findIndex((q) => String(q.id) === String(id));
+        const fallback = this.mapQuestion({ ...question, id, options: payload.propositions, propositions: payload.propositions });
         if (index !== -1) {
-          current[index] = { ...current[index], ...question, id };
+          current[index] = fallback;
           this.saveLocalQuestions(current);
         }
-        return of({ ...question, id });
+        return of(fallback);
       })
     );
   }

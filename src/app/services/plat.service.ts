@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, of, catchError, map } from 'rxjs';
 import { Plat } from '../models/plat.model';
 import { environment } from '../../environments/environment';
+import { sanitizeImageUrl, splitImageUrls } from '../utils/image-url.util';
 
 @Injectable({
   providedIn: 'root'
@@ -72,19 +73,20 @@ export class PlatService {
     const rawImages: string[] = [];
     if (Array.isArray(dto.images)) {
       dto.images.forEach((x: any) => {
-        if (typeof x === 'string' && x.trim() && !rawImages.includes(x.trim())) {
-          rawImages.push(x.trim());
+        const cleaned = sanitizeImageUrl(x);
+        if (cleaned && !rawImages.includes(cleaned)) {
+          rawImages.push(cleaned);
         }
       });
     }
     const directImageUrl = dto.imageUrl || dto.image_url || dto.image || '';
     if (typeof directImageUrl === 'string' && directImageUrl.trim()) {
-      directImageUrl.split(',').map((s: string) => s.trim()).filter(Boolean).forEach((s) => {
+      splitImageUrls(directImageUrl).forEach((s) => {
         if (!rawImages.includes(s)) rawImages.push(s);
       });
     }
 
-    const primaryImage = rawImages.length > 0 ? rawImages[0] : (typeof directImageUrl === 'string' ? directImageUrl.trim() : '');
+    const primaryImage = rawImages.length > 0 ? rawImages[0] : sanitizeImageUrl(directImageUrl);
 
     return {
       id: dto.id ?? dto.idPlat,
@@ -127,17 +129,18 @@ export class PlatService {
     const imagesList: string[] = [];
     if (Array.isArray(plat.images)) {
       plat.images.forEach((img) => {
-        if (typeof img === 'string' && img.trim() && !imagesList.includes(img.trim())) {
-          imagesList.push(img.trim());
+        const cleaned = sanitizeImageUrl(img);
+        if (cleaned && !imagesList.includes(cleaned)) {
+          imagesList.push(cleaned);
         }
       });
     }
     if (plat.imageUrl && typeof plat.imageUrl === 'string' && plat.imageUrl.trim()) {
-      plat.imageUrl.split(',').map((s) => s.trim()).filter(Boolean).forEach((s) => {
+      splitImageUrls(plat.imageUrl).forEach((s) => {
         if (!imagesList.includes(s)) imagesList.push(s);
       });
     }
-    const primaryUrl = imagesList.length > 0 ? imagesList[0] : (plat.imageUrl?.trim() || '');
+    const primaryUrl = imagesList.length > 0 ? imagesList[0] : sanitizeImageUrl(plat.imageUrl);
 
     const payload = {
       nom: plat.nom,
@@ -179,17 +182,18 @@ export class PlatService {
     const imagesList: string[] = [];
     if (Array.isArray(plat.images)) {
       plat.images.forEach((img) => {
-        if (typeof img === 'string' && img.trim() && !imagesList.includes(img.trim())) {
-          imagesList.push(img.trim());
+        const cleaned = sanitizeImageUrl(img);
+        if (cleaned && !imagesList.includes(cleaned)) {
+          imagesList.push(cleaned);
         }
       });
     }
     if (plat.imageUrl && typeof plat.imageUrl === 'string' && plat.imageUrl.trim()) {
-      plat.imageUrl.split(',').map((s) => s.trim()).filter(Boolean).forEach((s) => {
+      splitImageUrls(plat.imageUrl).forEach((s) => {
         if (!imagesList.includes(s)) imagesList.push(s);
       });
     }
-    const primaryUrl = imagesList.length > 0 ? imagesList[0] : (plat.imageUrl?.trim() || '');
+    const primaryUrl = imagesList.length > 0 ? imagesList[0] : sanitizeImageUrl(plat.imageUrl);
 
     const payload = {
       nom: plat.nom,

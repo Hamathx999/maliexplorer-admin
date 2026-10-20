@@ -120,6 +120,7 @@ export class ReligionsComponent implements OnInit {
 
   cancelEdit(): void {
     this.resetForm();
+    this.cdr.detectChanges();
   }
 
   resetForm(): void {
@@ -137,6 +138,7 @@ export class ReligionsComponent implements OnInit {
     this.imageUrl = '';
     this.ordreAffichage = this.religions.length + 1;
     this.estPublie = true;
+    this.cdr.detectChanges();
   }
 
   onFilePicked(event: Event): void {
@@ -241,10 +243,12 @@ export class ReligionsComponent implements OnInit {
           this.showNotification(`Religion "${nomTrim}" mise à jour.`);
           this.resetForm();
           this.loadReligions();
+          this.cdr.detectChanges();
         },
         error: (err) => {
           this.isSubmitting = false;
           this.showNotification(err?.error?.message || 'Erreur de modification.', true);
+          this.cdr.detectChanges();
         }
       });
     } else {
@@ -254,10 +258,12 @@ export class ReligionsComponent implements OnInit {
           this.showNotification(`Religion "${nomTrim}" enregistrée.`);
           this.resetForm();
           this.loadReligions();
+          this.cdr.detectChanges();
         },
         error: (err) => {
           this.isSubmitting = false;
           this.showNotification(err?.error?.message || "Erreur lors de l'enregistrement.", true);
+          this.cdr.detectChanges();
         }
       });
     }

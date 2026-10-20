@@ -328,6 +328,7 @@ export class UtilisateursComponent implements OnInit {
     this.isEditing = false;
     this.editingUser = null;
     this.router.navigate(['/utilisateurs']);
+    this.cdr.detectChanges();
   }
 
   onAvatarError(key: number | string | undefined): void {
@@ -385,6 +386,7 @@ export class UtilisateursComponent implements OnInit {
           next: () => {
             this.loadUsers();
             this.cancelEdit();
+            this.cdr.detectChanges();
           },
           error: (err) => {
             console.error('Erreur mise à jour guide via API guides, repli sur userService :', err);
@@ -392,7 +394,9 @@ export class UtilisateursComponent implements OnInit {
               next: () => {
                 this.loadUsers();
                 this.cancelEdit();
-              }
+                this.cdr.detectChanges();
+              },
+              error: () => this.cdr.detectChanges()
             });
           }
         });
@@ -401,6 +405,7 @@ export class UtilisateursComponent implements OnInit {
           next: () => {
             this.loadUsers();
             this.cancelEdit();
+            this.cdr.detectChanges();
           },
           error: (err) => {
             console.error('Erreur création guide via API guides, repli sur userService :', err);
@@ -408,7 +413,9 @@ export class UtilisateursComponent implements OnInit {
               next: () => {
                 this.loadUsers();
                 this.cancelEdit();
-              }
+                this.cdr.detectChanges();
+              },
+              error: () => this.cdr.detectChanges()
             });
           }
         });
@@ -428,7 +435,9 @@ export class UtilisateursComponent implements OnInit {
           }
           this.filterUsers();
           this.cancelEdit();
-        }
+          this.cdr.detectChanges();
+        },
+        error: () => this.cdr.detectChanges()
       });
     } else {
       this.userService.createUser(this.formData as User).subscribe({
@@ -436,7 +445,9 @@ export class UtilisateursComponent implements OnInit {
           this.utilisateurs.unshift(created);
           this.filterUsers();
           this.cancelEdit();
-        }
+          this.cdr.detectChanges();
+        },
+        error: () => this.cdr.detectChanges()
       });
     }
   }
@@ -451,13 +462,16 @@ export class UtilisateursComponent implements OnInit {
           next: () => {
             this.utilisateurs = this.utilisateurs.filter((u) => String(u.id ?? (u as any).idUsers) !== String(userId));
             this.filterUsers();
+            this.cdr.detectChanges();
           },
           error: () => {
             this.userService.deleteUser(userId).subscribe({
               next: () => {
                 this.utilisateurs = this.utilisateurs.filter((u) => String(u.id ?? (u as any).idUsers) !== String(userId));
                 this.filterUsers();
-              }
+                this.cdr.detectChanges();
+              },
+              error: () => this.cdr.detectChanges()
             });
           }
         });
@@ -466,7 +480,9 @@ export class UtilisateursComponent implements OnInit {
           next: () => {
             this.utilisateurs = this.utilisateurs.filter((u) => String(u.id ?? (u as any).idUsers) !== String(userId));
             this.filterUsers();
-          }
+            this.cdr.detectChanges();
+          },
+          error: () => this.cdr.detectChanges()
         });
       }
     }

@@ -201,6 +201,7 @@ export class EvenementsComponent implements OnInit {
   cancelEdit(): void {
     this.resetForm();
     this.router.navigate(['/evenements']);
+    this.cdr.detectChanges();
   }
 
   resetForm(): void {
@@ -229,6 +230,7 @@ export class EvenementsComponent implements OnInit {
     this.isSubmitting = false;
     this.isUploadingAffiche = false;
     this.isDragging = false;
+    this.cdr.detectChanges();
   }
 
   saveEvenement(): void {
@@ -245,6 +247,7 @@ export class EvenementsComponent implements OnInit {
     }
 
     this.isSubmitting = true;
+    this.cdr.markForCheck();
 
     const editingId = this.editingEvenement?.id ?? (this.editingEvenement as any)?.idEvenement ?? this.formData?.id ?? (this.formData as any)?.idEvenement;
 
@@ -257,11 +260,13 @@ export class EvenementsComponent implements OnInit {
           if (idx !== -1) this.evenements[idx] = updated;
           this.filterEvenements();
           this.cancelEdit();
+          this.cdr.detectChanges();
         },
         error: (err) => {
           this.isSubmitting = false;
           console.error('Erreur mise à jour événement:', err);
           alert("Erreur lors de la mise à jour de l'événement.");
+          this.cdr.detectChanges();
         }
       });
     } else {
@@ -271,11 +276,13 @@ export class EvenementsComponent implements OnInit {
           this.evenements.unshift(created);
           this.filterEvenements();
           this.cancelEdit();
+          this.cdr.detectChanges();
         },
         error: (err) => {
           this.isSubmitting = false;
           console.error('Erreur création événement:', err);
           alert("Erreur lors de la création de l'événement.");
+          this.cdr.detectChanges();
         }
       });
     }
@@ -288,6 +295,10 @@ export class EvenementsComponent implements OnInit {
       next: () => {
         evt.statut = 'APPROUVE';
         this.filterEvenements();
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.cdr.detectChanges();
       }
     });
   }
@@ -300,6 +311,10 @@ export class EvenementsComponent implements OnInit {
       next: () => {
         evt.statut = 'REFUSE';
         this.filterEvenements();
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.cdr.detectChanges();
       }
     });
   }
@@ -317,6 +332,10 @@ export class EvenementsComponent implements OnInit {
         next: () => {
           this.evenements = this.evenements.filter((e) => (e.id ?? (e as any).idEvenement) !== evtId);
           this.filterEvenements();
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.cdr.detectChanges();
         }
       });
     }

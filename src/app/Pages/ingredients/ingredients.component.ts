@@ -103,6 +103,7 @@ export class IngredientsComponent implements OnInit {
     this.isEditing = false;
     this.editingIngredient = null;
     this.router.navigate(['/ingredients']);
+    this.cdr.detectChanges();
   }
 
   saveIngredient(): void {
@@ -137,8 +138,12 @@ export class IngredientsComponent implements OnInit {
           }
           this.filterIngredients();
           this.cancelEdit();
+          this.cdr.detectChanges();
         },
-        error: (err) => console.error('Erreur modification ingrédient :', err)
+        error: (err) => {
+          console.error('Erreur modification ingrédient :', err);
+          this.cdr.detectChanges();
+        }
       });
     } else {
       this.ingredientService.createIngredient(payload).subscribe({
@@ -152,8 +157,12 @@ export class IngredientsComponent implements OnInit {
           this.ingredients.unshift(normalizedCreated);
           this.filterIngredients();
           this.cancelEdit();
+          this.cdr.detectChanges();
         },
-        error: (err) => console.error('Erreur création ingrédient :', err)
+        error: (err) => {
+          console.error('Erreur création ingrédient :', err);
+          this.cdr.detectChanges();
+        }
       });
     }
   }
@@ -166,6 +175,10 @@ export class IngredientsComponent implements OnInit {
         next: () => {
           this.ingredients = this.ingredients.filter((i) => String(i.id ?? i.idIngredient) !== String(idToDelete));
           this.filterIngredients();
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.cdr.detectChanges();
         }
       });
     }
