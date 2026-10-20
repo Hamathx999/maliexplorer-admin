@@ -7,6 +7,8 @@ export interface Ville {
   description?: string;
   superficie?: string;
   cordonnees?: string;
+  latitude?: number;
+  longitude?: number;
   imageUrl?: string;
   images?: string[];
   misEnAvantHome?: boolean;

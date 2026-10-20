@@ -1,13 +1,13 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, catchError, map, of } from 'rxjs';
+import { BehaviorSubject, Observable, catchError, map, of, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { OpportuniteResponseDTO } from '../models/partenaire.model';
 
 /**
  * Service de modération des dossiers et demandes de partenariat.
  * Consomme les endpoints Spring Boot exposés par ModerationPartenaireController.java
- * et OpportuniteController.java.
+ * et OpportuniteController.java, et maintient un compteur réactif des demandes en attente.
  */
 @Injectable({
   providedIn: 'root'
@@ -20,7 +20,23 @@ export class ModerationPartenaireService {
   // Stockage local de secours si le backend est hors ligne en environnement dev
   private readonly STORAGE_KEY = 'maliexplorer_moderation_opportunites';
 
+  // Compteur réactif des demandes de partenariat en attente (pour le badge de la sidebar)
+  private readonly pendingCountSubject = new BehaviorSubject<number>(0);
+  readonly pendingCount$ = this.pendingCountSubject.asObservable();
+  readonly pendingCount = signal<number>(0);
+
+  private setPendingCount(count: number): void {
+    const safeCount = Math.max(0, count);
+    this.pendingCount.set(safeCount);
+    this.pendingCountSubject.next(safeCount);
+  }
+
+  private isBrowser(): boolean {
+    return typeof window !== 'undefined' && typeof localStorage !== 'undefined';
+  }
+
   private getLocalOpportunites(): OpportuniteResponseDTO[] {
+    if (!this.isBrowser()) return [];
     try {
       const stored = localStorage.getItem(this.STORAGE_KEY);
       if (stored) {
@@ -34,6 +50,7 @@ export class ModerationPartenaireService {
   }
 
   private saveLocalOpportunites(opps: OpportuniteResponseDTO[]): void {
+    if (!this.isBrowser()) return;
     try {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(opps));
     } catch (e) {
@@ -42,15 +59,31 @@ export class ModerationPartenaireService {
   }
 
   /**
+   * Rafraîchit silencieusement le compteur des demandes en attente depuis l'API
+   * (exécuté uniquement côté navigateur pour éviter les requêtes lors du build SSR).
+   */
+  refreshPendingCount(): void {
+    if (!this.isBrowser()) return;
+    this.getDemandesEnAttente().subscribe();
+  }
+
+  /**
    * Récupère la liste des demandes de partenariat en attente de modération administrative.
    * GET /api/admin/moderation/opportunites
    */
   getDemandesEnAttente(): Observable<OpportuniteResponseDTO[]> {
     return this.http.get<OpportuniteResponseDTO[]>(this.adminApiUrl).pipe(
+      tap((list) => {
+        const items = Array.isArray(list) ? list : [];
+        this.setPendingCount(items.length);
+      }),
       catchError((error) => {
         console.warn('API modération opportunités non joignable, utilisation des données locales :', error);
         const local = this.getLocalOpportunites();
-        const pending = local.filter((o) => o.statutModeration === 'EN_ATTENTE_VALIDATION');
+        const pending = local.filter(
+          (o) => o.statutModeration === 'EN_ATTENTE_VALIDATION' || o.statutModeration === 'EN_ATTENTE'
+        );
+        this.setPendingCount(pending.length);
         return of(pending);
       })
     );
@@ -64,11 +97,13 @@ export class ModerationPartenaireService {
     return this.http.patch<OpportuniteResponseDTO>(`${this.adminApiUrl}/${idUsers}/valider`, {}).pipe(
       map((res) => {
         this.updateLocalStatus(idUsers, 'VALIDE');
+        this.setPendingCount(this.pendingCount() - 1);
         return res;
       }),
       catchError((error) => {
         console.warn('API validation partenaire hors ligne, mise à jour locale :', error);
         this.updateLocalStatus(idUsers, 'VALIDE');
+        this.setPendingCount(this.pendingCount() - 1);
         return of({
           idUsers,
           nomComplet: 'Partenaire validé',
@@ -92,11 +127,13 @@ export class ModerationPartenaireService {
     return this.http.patch<OpportuniteResponseDTO>(`${this.adminApiUrl}/${idUsers}/rejeter`, {}, { params }).pipe(
       map((res) => {
         this.updateLocalStatus(idUsers, 'REJETE', motif);
+        this.setPendingCount(this.pendingCount() - 1);
         return res;
       }),
       catchError((error) => {
         console.warn('API rejet partenaire hors ligne, mise à jour locale :', error);
         this.updateLocalStatus(idUsers, 'REJETE', motif);
+        this.setPendingCount(this.pendingCount() - 1);
         return of({
           idUsers,
           nomComplet: 'Partenaire rejeté',

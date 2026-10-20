@@ -145,6 +145,7 @@ export class AdministrateursComponent implements OnInit {
     this.showModal = false;
     this.isEditing = false;
     this.editingAdminId = null;
+    this.cdr.detectChanges();
   }
 
   onPhotoSelected(event: Event): void {

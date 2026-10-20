@@ -6,6 +6,7 @@ import { filter } from 'rxjs';
 import { EthnieService } from '../../services/ethnie.service';
 import { UploadService } from '../../services/upload.service';
 import { Ethnie } from '../../models/ethnie.model';
+import { splitImageUrls } from '../../utils/image-url.util';
 
 @Component({
   selector: 'app-ethnies',
@@ -217,10 +218,12 @@ export class EthniesComponent implements OnInit {
           this.showNotification(`Ethnie "${payload.nom}" mise à jour.`);
           this.resetForm();
           this.loadEthnies();
+          this.cdr.detectChanges();
         },
         error: () => {
           this.isSubmitting = false;
           this.showNotification('Erreur de mise à jour.', true);
+          this.cdr.detectChanges();
         }
       });
     } else {
@@ -230,10 +233,12 @@ export class EthniesComponent implements OnInit {
           this.showNotification(`Ethnie "${payload.nom}" ajoutée.`);
           this.resetForm();
           this.loadEthnies();
+          this.cdr.detectChanges();
         },
         error: () => {
           this.isSubmitting = false;
           this.showNotification("Erreur lors de l'ajout.", true);
+          this.cdr.detectChanges();
         }
       });
     }
@@ -249,7 +254,7 @@ export class EthniesComponent implements OnInit {
     if (ethnie.images && ethnie.images.length > 0) {
       this.images = [...ethnie.images];
     } else if (this.imageUrl) {
-      this.images = this.imageUrl.split(',').map((u) => u.trim()).filter(Boolean);
+      this.images = splitImageUrls(this.imageUrl);
     } else {
       this.images = [];
     }
@@ -258,6 +263,7 @@ export class EthniesComponent implements OnInit {
     this.description = ethnie.description || '';
     this.isEditing = true;
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    this.cdr.detectChanges();
   }
 
   onDelete(ethnie: Ethnie): void {
@@ -268,8 +274,12 @@ export class EthniesComponent implements OnInit {
         next: () => {
           this.showNotification(`Ethnie "${ethnie.nom || (ethnie as any).nomEthnie}" supprimée.`);
           this.loadEthnies();
+          this.cdr.detectChanges();
         },
-        error: () => this.showNotification('Erreur de suppression.', true)
+        error: () => {
+          this.showNotification('Erreur de suppression.', true);
+          this.cdr.detectChanges();
+        }
       });
     }
   }
@@ -288,6 +298,7 @@ export class EthniesComponent implements OnInit {
     this.isEditing = false;
     this.isSubmitting = false;
     this.router.navigate(['/ethnies']);
+    this.cdr.detectChanges();
   }
 
   private showNotification(msg: string, isError: boolean = false): void {

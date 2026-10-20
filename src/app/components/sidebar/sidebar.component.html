@@ -1,175 +1,352 @@
-<aside class="sidebar">
-  <!-- Logo MaliExplorer -->
+<!-- Bouton d'ouverture mobile/tablette (visible uniquement sur petits écrans) -->
+<button
+  type="button"
+  class="mobile-menu-trigger"
+  (click)="toggleMobileMenu()"
+  aria-label="Ouvrir le menu de navigation"
+  title="Menu de navigation"
+>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="3" y1="6" x2="21" y2="6"></line>
+    <line x1="3" y1="12" x2="21" y2="12"></line>
+    <line x1="3" y1="18" x2="21" y2="18"></line>
+  </svg>
+  @if (pendingPartnershipCount() > 0) {
+    <span class="mobile-trigger-dot"></span>
+  }
+</button>
+
+<!-- Fond assombri en mode tiroir mobile -->
+@if (isMobileOpen()) {
+  <div class="sidebar-backdrop" (click)="closeMobileMenu()"></div>
+}
+
+<aside
+  class="sidebar"
+  [class.collapsed]="isCollapsed()"
+  [class.mobile-open]="isMobileOpen()"
+>
+  <!-- En-tête : Logo MaliExplorer + Bouton de réduction/dépliage -->
   <div class="sidebar-header">
-    <div class="logo-wrapper">
+    <a routerLink="/dashboard" class="logo-wrapper" [attr.title]="isCollapsed() ? 'MaliExplorer — Tableau de bord' : null">
       <div class="logo-icon">
-       <img src="/assets/MaliExplorer.png" style="width: 47px; height: 47px;" alt="">
+        <img src="/assets/MaliExplorer.png" alt="Logo MaliExplorer" class="brand-logo-img" />
       </div>
-      <span class="logo-text">MaliExplorer</span>
-    </div>
+      @if (!isCollapsed()) {
+        <div class="brand-titles">
+          <span class="logo-text">MaliExplorer</span>
+          <span class="logo-subtext">Administration</span>
+        </div>
+      }
+    </a>
+
+    <!-- Bouton de bascule Mode Développé / Mode Compact (Desktop) -->
+    <button
+      type="button"
+      class="collapse-toggle-btn"
+      (click)="toggleSidebar()"
+      [attr.aria-label]="isCollapsed() ? 'Déplier la barre latérale' : 'Réduire la barre latérale'"
+      [attr.title]="isCollapsed() ? 'Déplier le menu' : 'Réduire le menu en mode icônes'"
+    >
+      @if (isCollapsed()) {
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      } @else {
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      }
+    </button>
+
+    <!-- Bouton de fermeture sur mobile -->
+    <button
+      type="button"
+      class="mobile-close-btn"
+      (click)="closeMobileMenu()"
+      aria-label="Fermer le menu"
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </button>
   </div>
 
-  <!-- Éléments de navigation -->
-  <nav class="sidebar-nav">
-    <ul class="nav-list">
-      @for (item of navItems; track item.route) {
-        <li class="nav-item">
-          <a
-            [routerLink]="item.route"
-            [class.active]="isItemActive(item)"
-            class="nav-link"
-          >
-            <span class="nav-icon">
-              <!-- Sélecteur d'icônes -->
-              @switch (item.icon) {
-                @case ('dashboard') {
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
-                    <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
-                    <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
-                    <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
-                  </svg>
+  <!-- Navigation regroupée par grandes thématiques -->
+  <nav class="sidebar-nav" (scroll)="onItemMouseLeave()">
+    @for (group of navGroups; track group.id; let isFirst = $first) {
+      <div
+        class="nav-group"
+        [class.group-standalone]="group.standalone"
+        [class.group-active]="isGroupActive(group)"
+      >
+        <!-- Séparateur discret entre groupes en mode compact -->
+        @if (isCollapsed() && !isFirst) {
+          <div class="compact-group-divider" role="separator"></div>
+        }
+
+        <!-- En-tête de catégorie (affiché uniquement en mode développé) -->
+        @if (!isCollapsed()) {
+          @if (group.standalone) {
+            <div class="group-standalone-label">{{ group.title }}</div>
+          } @else {
+            <button
+              type="button"
+              class="group-header"
+              [class.open]="isGroupOpen(group.id)"
+              [class.active-category]="isGroupActive(group)"
+              [attr.aria-expanded]="isGroupOpen(group.id)"
+              (click)="toggleGroup(group.id)"
+            >
+              <span class="group-title">{{ group.title }}</span>
+              <span class="group-header-right">
+                @if (group.id === 'partenariats' && !isGroupOpen(group.id) && pendingPartnershipCount() > 0) {
+                  <span class="group-collapsed-badge" title="Demandes de partenariat en attente">
+                    {{ pendingPartnershipCount() > 99 ? '99+' : pendingPartnershipCount() }}
+                  </span>
                 }
-                @case ('image') {
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                    <polyline points="21 15 16 10 5 21"></polyline>
-                  </svg>
-                }
-                @case ('sun') {
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="5"></circle>
-                    <line x1="12" y1="1" x2="12" y2="3"></line>
-                    <line x1="12" y1="21" x2="12" y2="23"></line>
-                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-                    <line x1="1" y1="12" x2="3" y2="12"></line>
-                    <line x1="21" y1="12" x2="23" y2="12"></line>
-                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-                  </svg>
-                }
-                @case ('calendar') {
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                    <line x1="16" y1="2" x2="16" y2="6"></line>
-                    <line x1="8" y1="2" x2="8" y2="6"></line>
-                    <line x1="3" y1="10" x2="21" y2="10"></line>
-                  </svg>
-                }
-                @case ('handshake') {
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M11 15h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 17"></path>
-                    <path d="m7 21 1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.7-2.9l-3.2 2.6"></path>
-                    <path d="m2 13 4.4-4.4a2 2 0 0 1 2.8 0l1.8 1.8"></path>
-                  </svg>
-                }
-                @case ('clipboard') {
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
-                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
-                    <path d="M9 14l2 2 4-4"></path>
-                  </svg>
-                }
-                @case ('map') {
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
-                    <line x1="8" y1="2" x2="8" y2="18"></line>
-                    <line x1="16" y1="6" x2="16" y2="22"></line>
-                  </svg>
-                }
-                @case ('building') {
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="18" y1="20" x2="18" y2="10"></line>
-                    <line x1="12" y1="20" x2="12" y2="4"></line>
-                    <line x1="6" y1="20" x2="6" y2="14"></line>
-                    <line x1="2" y1="20" x2="22" y2="20"></line>
-                  </svg>
-                }
-                @case ('landmark') {
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="2" y1="22" x2="22" y2="22"></line>
-                    <line x1="6" y1="18" x2="6" y2="11"></line>
-                    <line x1="10" y1="18" x2="10" y2="11"></line>
-                    <line x1="14" y1="18" x2="14" y2="11"></line>
-                    <line x1="18" y1="18" x2="18" y2="11"></line>
-                    <polygon points="12 2 20 7 4 7"></polygon>
-                  </svg>
-                }
-                @case ('users') {
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="9" cy="7" r="4"></circle>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                  </svg>
-                }
-                @case ('utensils') {
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M18 2v6a3 3 0 0 1-3 3 3 3 0 0 1-3-3V2"></path>
-                    <path d="M15 11v11"></path>
-                    <path d="M5 2v4a3 3 0 0 0 3 3h0a3 3 0 0 0 3-3V2"></path>
-                    <path d="M8 9v13"></path>
-                  </svg>
-                }
-                @case ('carrot') {
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M14.5 3.5L20.5 9.5"></path>
-                    <path d="M18.5 5.5L13.5 10.5"></path>
-                    <path d="M4.5 19.5L12 12C13 11 15 11 16 12L12 16C11 17 11 19 12 20L4.5 19.5Z"></path>
-                    <path d="M2 22L7 17"></path>
-                  </svg>
-                }
-                @case ('help-circle') {
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                  </svg>
-                }
-                @case ('lightbulb') {
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M9 18h6"></path>
-                    <path d="M10 22h4"></path>
-                    <path d="M12 2a7 7 0 0 0-7 7c0 2.5 1.5 4.5 3 6h8c1.5-1.5 3-3.5 3-6a7 7 0 0 0-7-7z"></path>
-                  </svg>
-                }
-                @case ('award') {
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="8" r="6"></circle>
-                    <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
-                  </svg>
-                }
-                @case ('user') {
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="12" cy="7" r="4"></circle>
-                  </svg>
-                }
-                @case ('shield') {
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                  </svg>
-                }
-              }
-            </span>
-            <span class="nav-text">{{ item.label }}</span>
-          </a>
-        </li>
-      }
-    </ul>
+                <svg
+                  class="accordion-chevron"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </span>
+            </button>
+          }
+        }
+
+        <!-- Liste des rubriques de la catégorie -->
+        <div
+          class="group-items-wrapper"
+          [class.open]="group.standalone || isCollapsed() || isGroupOpen(group.id)"
+        >
+          <ul class="nav-list">
+            @for (item of group.items; track item.route) {
+              <li class="nav-item">
+                <a
+                  [routerLink]="item.route"
+                  [class.active]="isItemActive(item)"
+                  [attr.title]="isCollapsed() ? getItemTooltip(item) : null"
+                  (mouseenter)="onItemMouseEnter($event, item, group)"
+                  (mouseleave)="onItemMouseLeave()"
+                  class="nav-link"
+                >
+                  <span class="nav-icon">
+                    @switch (item.icon) {
+                      @case ('dashboard') {
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+                          <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+                          <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
+                          <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+                        </svg>
+                      }
+                      @case ('image') {
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                          <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                          <polyline points="21 15 16 10 5 21"></polyline>
+                        </svg>
+                      }
+                      @case ('sun') {
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <circle cx="12" cy="12" r="5"></circle>
+                          <line x1="12" y1="1" x2="12" y2="3"></line>
+                          <line x1="12" y1="21" x2="12" y2="23"></line>
+                          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                          <line x1="1" y1="12" x2="3" y2="12"></line>
+                          <line x1="21" y1="12" x2="23" y2="12"></line>
+                          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                        </svg>
+                      }
+                      @case ('calendar') {
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                          <line x1="16" y1="2" x2="16" y2="6"></line>
+                          <line x1="8" y1="2" x2="8" y2="6"></line>
+                          <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                      }
+                      @case ('handshake') {
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M11 15h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 17"></path>
+                          <path d="m7 21 1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.7-2.9l-3.2 2.6"></path>
+                          <path d="m2 13 4.4-4.4a2 2 0 0 1 2.8 0l1.8 1.8"></path>
+                        </svg>
+                      }
+                      @case ('clipboard') {
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                          <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                          <path d="M9 14l2 2 4-4"></path>
+                        </svg>
+                      }
+                      @case ('map') {
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
+                          <line x1="8" y1="2" x2="8" y2="18"></line>
+                          <line x1="16" y1="6" x2="16" y2="22"></line>
+                        </svg>
+                      }
+                      @case ('building') {
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <line x1="18" y1="20" x2="18" y2="10"></line>
+                          <line x1="12" y1="20" x2="12" y2="4"></line>
+                          <line x1="6" y1="20" x2="6" y2="14"></line>
+                          <line x1="2" y1="20" x2="22" y2="20"></line>
+                        </svg>
+                      }
+                      @case ('landmark') {
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <line x1="2" y1="22" x2="22" y2="22"></line>
+                          <line x1="6" y1="18" x2="6" y2="11"></line>
+                          <line x1="10" y1="18" x2="10" y2="11"></line>
+                          <line x1="14" y1="18" x2="14" y2="11"></line>
+                          <line x1="18" y1="18" x2="18" y2="11"></line>
+                          <polygon points="12 2 20 7 4 7"></polygon>
+                        </svg>
+                      }
+                      @case ('users') {
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                          <circle cx="9" cy="7" r="4"></circle>
+                          <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                      }
+                      @case ('utensils') {
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M18 2v6a3 3 0 0 1-3 3 3 3 0 0 1-3-3V2"></path>
+                          <path d="M15 11v11"></path>
+                          <path d="M5 2v4a3 3 0 0 0 3 3h0a3 3 0 0 0 3-3V2"></path>
+                          <path d="M8 9v13"></path>
+                        </svg>
+                      }
+                      @case ('carrot') {
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M14.5 3.5L20.5 9.5"></path>
+                          <path d="M18.5 5.5L13.5 10.5"></path>
+                          <path d="M4.5 19.5L12 12C13 11 15 11 16 12L12 16C11 17 11 19 12 20L4.5 19.5Z"></path>
+                          <path d="M2 22L7 17"></path>
+                        </svg>
+                      }
+                      @case ('help-circle') {
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
+                      }
+                      @case ('lightbulb') {
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M9 18h6"></path>
+                          <path d="M10 22h4"></path>
+                          <path d="M12 2a7 7 0 0 0-7 7c0 2.5 1.5 4.5 3 6h8c1.5-1.5 3-3.5 3-6a7 7 0 0 0-7-7z"></path>
+                        </svg>
+                      }
+                      @case ('award') {
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <circle cx="12" cy="8" r="6"></circle>
+                          <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
+                        </svg>
+                      }
+                      @case ('user') {
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                          <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                      }
+                      @case ('shield') {
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        </svg>
+                      }
+                      @case ('languages') {
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="m5 8 6 6"></path>
+                          <path d="m4 14 6-6 2-3"></path>
+                          <path d="M2 5h12"></path>
+                          <path d="M7 2h1"></path>
+                          <path d="m22 22-5-10-5 10"></path>
+                          <path d="M14 18h6"></path>
+                        </svg>
+                      }
+                      @case ('info') {
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <line x1="12" y1="16" x2="12" y2="12"></line>
+                          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        </svg>
+                      }
+                    }
+
+                    <!-- Pastille/badge compact sur l'icône en mode rétracté -->
+                    @if (isCollapsed() && item.hasPartnershipBadge && pendingPartnershipCount() > 0) {
+                      <span class="nav-badge-compact">
+                        {{ pendingPartnershipCount() > 9 ? '9+' : pendingPartnershipCount() }}
+                      </span>
+                    }
+                  </span>
+
+                  <!-- Libellé et badge complet en mode développé -->
+                  @if (!isCollapsed()) {
+                    <span class="nav-text">{{ item.label }}</span>
+                    @if (item.hasPartnershipBadge && pendingPartnershipCount() > 0) {
+                      <span
+                        class="nav-badge"
+                        [attr.title]="pendingPartnershipCount() + ' demande(s) de partenariat en attente'"
+                      >
+                        {{ pendingPartnershipCount() > 99 ? '99+' : pendingPartnershipCount() }}
+                      </span>
+                    }
+                  }
+                </a>
+              </li>
+            }
+          </ul>
+        </div>
+      </div>
+    }
   </nav>
+
+  <!-- Infobulle flottante en mode compact (sans dépliage de la sidebar) -->
+  @if (isCollapsed() && hoveredTooltip(); as tip) {
+    <div class="compact-floating-tooltip" [style.top.px]="tip.top">
+      <span class="tooltip-category">{{ tip.category }}</span>
+      <div class="tooltip-main">
+        <span class="tooltip-label">{{ tip.label }}</span>
+        @if (tip.badgeCount > 0) {
+          <span class="tooltip-badge">{{ tip.badgeCount }} en attente</span>
+        }
+      </div>
+    </div>
+  }
 
   <!-- Pied de barre latérale / Déconnexion -->
   <div class="sidebar-footer">
-    <button type="button" class="logout-btn" (click)="logout()" title="Déconnexion de la session">
+    <button
+      type="button"
+      class="logout-btn"
+      (click)="logout()"
+      [attr.title]="isCollapsed() ? 'Déconnexion de la session' : null"
+    >
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="logout-icon">
         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
         <polyline points="16 17 21 12 16 7"></polyline>
         <line x1="21" y1="12" x2="9" y2="12"></line>
       </svg>
-      <span>Déconnexion</span>
+      @if (!isCollapsed()) {
+        <span class="logout-text">Déconnexion</span>
+      }
     </button>
   </div>
 </aside>

@@ -104,3 +104,17 @@ hr{
   margin-left: 35px;
   width: 95%;
 }
+
+@media (max-width: 768px) {
+  .header {
+    padding: 18px 20px 18px 68px;
+  }
+
+  .header-title {
+    font-size: 19px;
+  }
+
+  .header-subtitle {
+    font-size: 12px;
+  }
+}

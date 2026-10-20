@@ -12,15 +12,16 @@
     </div>
 
     <div class="figma-card">
-      <h2 class="figma-card-title-center">Liste des quiz</h2>
+      <h2 class="figma-card-title-center">Liste des quiz & questions</h2>
 
       <div class="table-responsive">
         <table class="figma-table">
           <thead>
             <tr>
               <th style="width: 70px;">Logo</th>
-              <th>Nom quiz</th>
-              <th>Point</th>
+              <th>Nom du quiz</th>
+              <th>Questions</th>
+              <th>Points</th>
               <th>Description</th>
               <th>Actions</th>
             </tr>
@@ -28,7 +29,7 @@
           <tbody>
             @if (filteredQuiz.length === 0) {
               <tr>
-                <td colspan="5" style="text-align: center; padding: 24px; color: #64748B;">Aucun quiz trouvé.</td>
+                <td colspan="6" style="text-align: center; padding: 24px; color: #64748B;">Aucun quiz trouvé.</td>
               </tr>
             } @else {
               @for (q of filteredQuiz; track q.id ?? q.nomQuiz) {
@@ -36,16 +37,28 @@
                   <td>
                     <img [src]="getQuizImage(q)" [alt]="q.nomQuiz" class="figma-thumb-small" />
                   </td>
-                  <td><strong>{{ q.nomQuiz }}</strong></td>
+                  <td>
+                    <div><strong>{{ q.nomQuiz }}</strong></div>
+                    @if (q.categorie) {
+                      <span style="display: inline-block; margin-top: 4px; font-size: 11px; padding: 2px 8px; border-radius: 12px; background: #F0FDF4; color: #0E8F76; font-weight: 600;">
+                        {{ q.categorie }}
+                      </span>
+                    }
+                  </td>
+                  <td>
+                    <span style="display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; background: #EFF6FF; color: #1D4ED8; font-size: 12px; font-weight: 700;">
+                      {{ getQuizQuestionsCount(q) }} question(s)
+                    </span>
+                  </td>
                   <td>
                     <span style="font-weight: 700; color: #D97706;">{{ formatPoints(q.points) }}</span>
                   </td>
-                  <td style="color: #64748B; max-width: 440px;">
+                  <td style="color: #64748B; max-width: 380px;">
                     {{ q.description || 'Quiz interactif sur le patrimoine, les traditions et l’histoire du Mali.' }}
                   </td>
                   <td>
                     <div class="figma-action-cell">
-                      <button type="button" class="figma-icon-btn edit" (click)="startEdit(q)" title="Modifier">
+                      <button type="button" class="figma-icon-btn edit" (click)="startEdit(q)" title="Modifier le quiz et ses questions">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                           <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
                         </svg>
@@ -67,40 +80,40 @@
     </div>
   }
 
-  <!-- VUE 2 : PAGE INDÉPENDANTE D'AJOUT / MODIFICATION (Figma) -->
+  <!-- VUE 2 : PAGE UNIFIÉE D'AJOUT / MODIFICATION DU QUIZ ET DE SES QUESTIONS -->
   @if (isEditing) {
     <div class="figma-add-header">
-      <h2 class="figma-add-title">{{ editingQuiz ? 'Modifier le quiz' : 'Ajouter un nouveau quiz' }}</h2>
+      <h2 class="figma-add-title">{{ editingQuiz ? 'Modifier le quiz et ses questions' : 'Créer un nouveau quiz et ses questions' }}</h2>
       <p class="figma-add-subtitle">
-        Renseignez les informations ci-dessous pour créer un nouveau quiz sur la plateforme MaliExplorer. Veillez à utiliser un logo ou une image de haute qualité.
+        Configurez les informations générales du quiz, téléversez son logo, puis ajoutez directement ses questions QCM (4 choix, bonne réponse et explication).
       </p>
     </div>
 
     <div class="figma-two-columns">
       <!-- Colonne Gauche : Informations générales -->
       <div class="figma-card">
-        <h3 class="figma-section-title">Informations générales</h3>
+        <h3 class="figma-section-title">1. Informations générales du quiz</h3>
 
         <div class="figma-form-group">
-          <label class="figma-label">Nom du quiz</label>
+          <label class="figma-label">Nom du quiz *</label>
           <input type="text" class="figma-input" [(ngModel)]="formData.nomQuiz" placeholder="Ex: Les Rois et Empereurs du Mandé, Faune du Gourma..." required />
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
           <div class="figma-form-group">
-            <label class="figma-label">Points</label>
-            <input type="number" class="figma-input" [(ngModel)]="formData.points" placeholder="Ex: 50" />
+            <label class="figma-label">Catégorie thématique</label>
+            <input type="text" class="figma-input" [(ngModel)]="formData.categorie" placeholder="Ex: Histoire & Empires" />
           </div>
 
           <div class="figma-form-group">
-            <label class="figma-label">Nombre de questions</label>
-            <input type="number" class="figma-input" [(ngModel)]="formData.nombreQuestions" placeholder="Ex: 5" />
+            <label class="figma-label">Points totaux du quiz</label>
+            <input type="number" class="figma-input" [(ngModel)]="formData.points" placeholder="Ex: 50" />
           </div>
         </div>
 
         <div class="figma-form-group">
           <label class="figma-label">Description</label>
-          <textarea rows="4" class="figma-textarea" [(ngModel)]="formData.description" placeholder="Présentez les objectifs de ce quiz, les personnages historiques ou thématiques clés explorés..."></textarea>
+          <textarea rows="3" class="figma-textarea" [(ngModel)]="formData.description" placeholder="Présentez les objectifs de ce quiz, les personnages historiques ou thématiques clés explorés..."></textarea>
         </div>
       </div>
 
@@ -177,10 +190,204 @@
       </div>
     </div>
 
+    <!-- SECTION 2 : GESTION INTÉGRÉE DES QUESTIONS QCM DU QUIZ -->
+    <div class="figma-card" style="margin-top: 24px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 18px;">
+        <div>
+          <h3 class="figma-section-title" style="margin-bottom: 4px;">
+            2. Questions du quiz ({{ quizQuestions.length }})
+          </h3>
+          <p style="margin: 0; font-size: 13px; color: #64748B;">
+            Ajoutez ou modifiez les questions à choix multiples (QCM) associées à ce quiz.
+          </p>
+        </div>
+
+        @if (!showQuestionForm) {
+          <button
+            type="button"
+            (click)="openAddQuestionForm()"
+            style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 10px; border: none; background: #0E8F76; color: #FFFFFF; font-weight: 600; font-size: 13.5px; cursor: pointer;"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Ajouter une question
+          </button>
+        }
+      </div>
+
+      <!-- SOUS-FORMULAIRE D'AJOUT / ÉDITION D'UNE QUESTION QCM -->
+      @if (showQuestionForm) {
+        <div style="background: #F8FAFC; border: 1px solid #CBD5E1; border-radius: 14px; padding: 20px; margin-bottom: 22px;">
+          <h4 style="margin: 0 0 16px 0; font-size: 15px; font-weight: 700; color: #0F172A;">
+            {{ editingQuestionIndex !== null ? 'Modifier la question #' + (editingQuestionIndex + 1) : 'Nouvelle question QCM' }}
+          </h4>
+
+          <div class="figma-form-group">
+            <label class="figma-label">Énoncé de la question *</label>
+            <input
+              type="text"
+              class="figma-input"
+              [(ngModel)]="questionForm.question"
+              placeholder="Ex: En quelle année Soundiata Keïta a-t-il remporté la bataille de Kirina ?"
+            />
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 16px;">
+            <div class="figma-form-group" style="margin-bottom: 0;">
+              <label class="figma-label">Sous-thème</label>
+              <input type="text" class="figma-input" [(ngModel)]="questionForm.theme" placeholder="Ex: Empire du Mali" />
+            </div>
+            <div class="figma-form-group" style="margin-bottom: 0;">
+              <label class="figma-label">Durée (ex: 30s)</label>
+              <input type="text" class="figma-input" [(ngModel)]="questionForm.duree" placeholder="Ex: 30s" />
+            </div>
+            <div class="figma-form-group" style="margin-bottom: 0;">
+              <label class="figma-label">Points de la question</label>
+              <input type="number" class="figma-input" [(ngModel)]="questionForm.points" placeholder="Ex: 10" />
+            </div>
+          </div>
+
+          <!-- Les 4 Propositions de réponse avec sélection radio de la bonne réponse -->
+          <div style="margin-bottom: 16px;">
+            <label class="figma-label" style="display: block; margin-bottom: 8px;">
+              Propositions de réponses (Cochez le bouton radio à gauche de la bonne réponse) *
+            </label>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px;">
+              @for (opt of [0, 1, 2, 3]; track opt) {
+                <div
+                  [style.border]="questionForm.correctOptionIndex === opt ? '2px solid #0E8F76' : '1px solid #CBD5E1'"
+                  [style.background]="questionForm.correctOptionIndex === opt ? '#F0FDF4' : '#FFFFFF'"
+                  style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; transition: all 0.15s;"
+                >
+                  <input
+                    type="radio"
+                    name="correctOptionRadio"
+                    [value]="opt"
+                    [(ngModel)]="questionForm.correctOptionIndex"
+                    style="width: 18px; height: 18px; accent-color: #0E8F76; cursor: pointer;"
+                    title="Définir comme bonne réponse"
+                  />
+                  <span style="font-weight: 700; font-size: 13px; color: #334155; min-width: 22px;">
+                    {{ ['A', 'B', 'C', 'D'][opt] }}.
+                  </span>
+                  <input
+                    type="text"
+                    [(ngModel)]="questionForm.options[opt]"
+                    [placeholder]="'Proposition ' + ['A', 'B', 'C', 'D'][opt] + (opt < 2 ? ' (obligatoire)' : ' (optionnel)')"
+                    style="flex: 1; border: none; background: transparent; outline: none; font-size: 13.5px; color: #0F172A;"
+                  />
+                  @if (questionForm.correctOptionIndex === opt) {
+                    <span style="font-size: 11px; font-weight: 700; color: #0E8F76; background: #DCFCE7; padding: 2px 8px; border-radius: 12px; white-space: nowrap;">
+                      ✓ Bonne réponse
+                    </span>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="figma-form-group">
+            <label class="figma-label">Explication pédagogique (affichée au joueur après sa réponse)</label>
+            <textarea
+              rows="2"
+              class="figma-textarea"
+              [(ngModel)]="questionForm.explication"
+              placeholder="Ex: En 1235, Soundiata Keïta unifie les royaumes mandingues après la victoire de Kirina et proclame la Charte de Kouroukan Fouga."
+            ></textarea>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 12px;">
+            <button
+              type="button"
+              (click)="cancelQuestionForm()"
+              [disabled]="isSavingQuestion"
+              style="padding: 8px 16px; border-radius: 8px; border: 1px solid #CBD5E1; background: #FFFFFF; color: #475569; font-weight: 600; font-size: 13px; cursor: pointer;"
+            >
+              Annuler la question
+            </button>
+            <button
+              type="button"
+              (click)="saveQuestionInQuiz()"
+              [disabled]="isSavingQuestion"
+              style="padding: 8px 18px; border-radius: 8px; border: none; background: #0E8F76; color: #FFFFFF; font-weight: 600; font-size: 13px; cursor: pointer;"
+            >
+              {{ isSavingQuestion ? 'Enregistrement...' : (editingQuestionIndex !== null ? 'Mettre à jour la question' : 'Valider la question') }}
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- LISTE DES QUESTIONS DU QUIZ -->
+      @if (quizQuestions.length === 0) {
+        <div style="text-align: center; padding: 28px 16px; border: 1px dashed #CBD5E1; border-radius: 12px; color: #64748B;">
+          Aucune question n'est encore associée à ce quiz. Cliquez sur <strong>« Ajouter une question »</strong> ci-dessus pour composer votre QCM.
+        </div>
+      } @else {
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          @for (item of quizQuestions; track (item.id ?? item.question); let i = $index) {
+            <div style="border: 1px solid #E2E8F0; border-radius: 12px; padding: 14px 16px; background: #FFFFFF; display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;">
+              <div style="flex: 1;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap;">
+                  <span style="background: #0F172A; color: #FFFFFF; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 6px;">
+                    Q{{ i + 1 }}
+                  </span>
+                  <strong style="font-size: 14.5px; color: #0F172A;">{{ item.question }}</strong>
+                  <span style="font-size: 11px; color: #64748B; background: #F1F5F9; padding: 2px 8px; border-radius: 10px;">
+                    {{ item.duree || '30s' }} • {{ item.points || 10 }} pts
+                  </span>
+                </div>
+
+                <!-- Affichage des options QCM -->
+                <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
+                  @for (opt of (item.options && item.options.length > 0 ? item.options : [item.reponse]); track opt) {
+                    <span
+                      [style.background]="opt.trim().toLowerCase() === (item.reponse || '').trim().toLowerCase() ? '#DCFCE7' : '#F8FAFC'"
+                      [style.color]="opt.trim().toLowerCase() === (item.reponse || '').trim().toLowerCase() ? '#15803D' : '#475569'"
+                      [style.border]="opt.trim().toLowerCase() === (item.reponse || '').trim().toLowerCase() ? '1px solid #86EFAC' : '1px solid #E2E8F0'"
+                      style="font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 8px;"
+                    >
+                      @if (opt.trim().toLowerCase() === (item.reponse || '').trim().toLowerCase()) {
+                        ✓ {{ opt }}
+                      } @else {
+                        {{ opt }}
+                      }
+                    </span>
+                  }
+                </div>
+
+                @if (item.explication) {
+                  <p style="margin: 8px 0 0 0; font-size: 12px; color: #64748B; font-style: italic;">
+                    💡 {{ item.explication }}
+                  </p>
+                }
+              </div>
+
+              <div class="figma-action-cell">
+                <button type="button" class="figma-icon-btn edit" (click)="editQuestionInQuiz(i)" title="Modifier cette question">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                  </svg>
+                </button>
+                <button type="button" class="figma-icon-btn delete" (click)="deleteQuestionInQuiz(i)" title="Supprimer cette question">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
     <div class="figma-form-actions">
       <button type="button" class="figma-btn-cancel" (click)="cancelEdit()" [disabled]="isSubmitting">Annuler</button>
       <button type="button" class="figma-btn-primary" (click)="saveQuiz()" [disabled]="isSubmitting || isUploadingImage">
-        {{ isSubmitting ? 'Enregistrement...' : (editingQuiz ? 'Modifier le quiz' : 'Ajouter le quiz') }}
+        {{ isSubmitting ? 'Enregistrement...' : (editingQuiz ? 'Enregistrer les modifications du quiz' : 'Créer le quiz et ses questions') }}
       </button>
     </div>
   }

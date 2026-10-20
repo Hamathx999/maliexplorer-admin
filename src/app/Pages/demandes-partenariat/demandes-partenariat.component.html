@@ -303,6 +303,20 @@
                 <span class="info-label">Date de soumission</span>
                 <strong class="info-value">{{ selectedDemande.dateCreation || 'Récemment' }}</strong>
               </div>
+              @if (selectedDemande.pieceIdentite) {
+                <div class="info-item" style="grid-column: 1 / -1;">
+                  <span class="info-label">Pièce d'identité / Justificatif fourni</span>
+                  <div style="margin-top: 6px;">
+                    <a
+                      [href]="selectedDemande.pieceIdentite"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: #E8F4F0; color: #075E4D; border-radius: 8px; font-size: 12.5px; font-weight: 700; text-decoration: none;">
+                      📄 Consulter le document justificatif
+                    </a>
+                  </div>
+                </div>
+              }
             </div>
           </div>
 

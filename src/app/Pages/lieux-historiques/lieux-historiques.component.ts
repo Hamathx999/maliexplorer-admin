@@ -385,12 +385,12 @@ export class LieuxHistoriquesComponent implements OnInit {
           this.filterLieux();
           this.resetForm();
           this.router.navigate(['/lieux-historiques']);
-          this.cdr.markForCheck();
+          this.cdr.detectChanges();
         },
         error: (err: HttpErrorResponse) => {
           this.isSaving = false;
           this.isSubmitting = false;
-          this.cdr.markForCheck();
+          this.cdr.detectChanges();
           this.handleHttpError(err, 'mise à jour');
         }
       });
@@ -404,12 +404,12 @@ export class LieuxHistoriquesComponent implements OnInit {
           this.filterLieux();
           this.resetForm();
           this.router.navigate(['/lieux-historiques']);
-          this.cdr.markForCheck();
+          this.cdr.detectChanges();
         },
         error: (err: HttpErrorResponse) => {
           this.isSaving = false;
           this.isSubmitting = false;
-          this.cdr.markForCheck();
+          this.cdr.detectChanges();
           this.handleHttpError(err, 'création');
         }
       });
@@ -426,9 +426,10 @@ export class LieuxHistoriquesComponent implements OnInit {
         next: () => {
           this.lieux = this.lieux.filter((l) => l.id !== idToDelete && l.idLieu !== idToDelete);
           this.filterLieux();
-          this.cdr.markForCheck();
+          this.cdr.detectChanges();
         },
         error: (err: HttpErrorResponse) => {
+          this.cdr.detectChanges();
           this.handleHttpError(err, 'suppression');
         }
       });

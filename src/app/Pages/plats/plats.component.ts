@@ -7,6 +7,7 @@ import { PlatService } from '../../services/plat.service';
 import { IngredientService } from '../../services/ingredient.service';
 import { UploadService } from '../../services/upload.service';
 import { Plat } from '../../models/plat.model';
+import { sanitizeImageUrl, splitImageUrls } from '../../utils/image-url.util';
 import { Ingredient } from '../../models/ingredient.model';
 
 @Component({
@@ -270,11 +271,11 @@ export class PlatsComponent implements OnInit {
   startEdit(plat: Plat): void {
     this.editingPlat = plat;
     this.selectedIngredientIds = [];
-    this.imageUrl = plat.imageUrl || '';
+    this.imageUrl = sanitizeImageUrl(plat.imageUrl || '');
     if (plat.images && plat.images.length > 0) {
-      this.images = [...plat.images];
+      this.images = plat.images.map((u) => sanitizeImageUrl(u)).filter(Boolean);
     } else if (this.imageUrl) {
-      this.images = this.imageUrl.split(',').map((u) => u.trim()).filter(Boolean);
+      this.images = splitImageUrls(this.imageUrl);
     } else {
       this.images = [];
     }
@@ -310,6 +311,7 @@ export class PlatsComponent implements OnInit {
   cancelEdit(): void {
     this.resetForm();
     this.router.navigate(['/plats']);
+    this.cdr.detectChanges();
   }
 
   resetForm(): void {
@@ -333,6 +335,7 @@ export class PlatsComponent implements OnInit {
     this.isSubmitting = false;
     this.isUploadingImage = false;
     this.isDragging = false;
+    this.cdr.detectChanges();
   }
 
   getPlatFallbackImage(nomPlat: string): string {
@@ -374,10 +377,12 @@ export class PlatsComponent implements OnInit {
   getPlatImage(plat: Plat): string {
     const archwayFallback = '1a4120a4-11f1-4850-833f-19bd89ea6639_ville_de_tombouctou.jpg';
     if (plat.imageUrl && plat.imageUrl.trim() && !plat.imageUrl.includes(archwayFallback)) {
-      return plat.imageUrl.split(',')[0].trim();
+      const list = splitImageUrls(plat.imageUrl);
+      if (list.length > 0) return list[0];
     }
     if (plat.images && plat.images.length > 0 && plat.images[0] && !plat.images[0].includes(archwayFallback)) {
-      return plat.images[0];
+      const first = sanitizeImageUrl(plat.images[0]);
+      if (first) return first;
     }
     return this.getPlatFallbackImage(plat.nom);
   }
@@ -396,6 +401,7 @@ export class PlatsComponent implements OnInit {
     }
 
     this.isSubmitting = true;
+    this.cdr.markForCheck();
 
     this.syncIngredientPrincipal();
 
@@ -432,11 +438,13 @@ export class PlatsComponent implements OnInit {
           }
           this.filterPlats();
           this.cancelEdit();
+          this.cdr.detectChanges();
         },
         error: (err) => {
           this.isSubmitting = false;
           console.error('Erreur modification plat', err);
           alert('Erreur lors de la modification du plat.');
+          this.cdr.detectChanges();
         }
       });
     } else {
@@ -446,11 +454,13 @@ export class PlatsComponent implements OnInit {
           this.plats.unshift(created);
           this.filterPlats();
           this.cancelEdit();
+          this.cdr.detectChanges();
         },
         error: (err) => {
           this.isSubmitting = false;
           console.error('Erreur création plat', err);
           alert('Erreur lors de la création du plat.');
+          this.cdr.detectChanges();
         }
       });
     }
@@ -464,10 +474,12 @@ export class PlatsComponent implements OnInit {
         next: () => {
           this.plats = this.plats.filter((p) => String(p.id ?? (p as any).idPlat) !== String(platId));
           this.filterPlats();
+          this.cdr.detectChanges();
         },
         error: (err) => {
           console.error('Erreur suppression plat', err);
           alert('Impossible de supprimer le plat.');
+          this.cdr.detectChanges();
         }
       });
     }

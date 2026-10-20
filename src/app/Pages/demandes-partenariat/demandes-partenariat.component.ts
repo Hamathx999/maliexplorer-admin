@@ -173,7 +173,7 @@ export class DemandesPartenariatComponent implements OnInit {
 
         this.afficherToast(`Le dossier de « ${demande.nomComplet} » a été validé avec succès !`, 'success');
         this.appliquerFiltres();
-        this.cdr.markForCheck();
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Erreur lors de la validation :', err);
@@ -184,7 +184,7 @@ export class DemandesPartenariatComponent implements OnInit {
         if (this.isDetailsModalOpen) this.fermerModalDetails();
         this.afficherToast(`Dossier validé localement.`, 'success');
         this.appliquerFiltres();
-        this.cdr.markForCheck();
+        this.cdr.detectChanges();
       }
     });
   }
@@ -239,7 +239,7 @@ export class DemandesPartenariatComponent implements OnInit {
 
         this.afficherToast(`Le dossier de « ${target.nomComplet} » a été rejeté.`, 'danger');
         this.appliquerFiltres();
-        this.cdr.markForCheck();
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Erreur rejet :', err);
@@ -250,7 +250,7 @@ export class DemandesPartenariatComponent implements OnInit {
         if (this.isDetailsModalOpen) this.fermerModalDetails();
         this.afficherToast(`Le dossier a été rejeté.`, 'danger');
         this.appliquerFiltres();
-        this.cdr.markForCheck();
+        this.cdr.detectChanges();
       }
     });
   }

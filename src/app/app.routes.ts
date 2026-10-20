@@ -18,6 +18,8 @@ import { ReligionsComponent } from './Pages/religions/religions.component';
 import { AdministrateursComponent } from './Pages/administrateurs/administrateurs.component';
 import { PartenairesComponent } from './Pages/partenaires/partenaires.component';
 import { DemandesPartenariatComponent } from './Pages/demandes-partenariat/demandes-partenariat.component';
+import { LanguesComponent } from './Pages/langues/langues.component';
+import { InfosPratiquesComponent } from './Pages/infos-pratiques/infos-pratiques.component';
 import { authGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
@@ -75,6 +77,30 @@ export const routes: Routes = [
     component: EthniesComponent,
     canActivate: [authGuard],
     title: 'Ajouter une Ethnie - MaliExplorer Admin'
+  },
+  {
+    path: 'langues',
+    component: LanguesComponent,
+    canActivate: [authGuard],
+    title: 'Gestion des Langues Nationales - MaliExplorer Admin'
+  },
+  {
+    path: 'langues/ajouter',
+    component: LanguesComponent,
+    canActivate: [authGuard],
+    title: 'Ajouter une Langue Nationale - MaliExplorer Admin'
+  },
+  {
+    path: 'infos-pratiques',
+    component: InfosPratiquesComponent,
+    canActivate: [authGuard],
+    title: 'Informations Pratiques - MaliExplorer Admin'
+  },
+  {
+    path: 'infos-pratiques/ajouter',
+    component: InfosPratiquesComponent,
+    canActivate: [authGuard],
+    title: 'Ajouter une Info Pratique - MaliExplorer Admin'
   },
   {
     path: 'presidents',
