@@ -6,6 +6,7 @@ import { filter } from 'rxjs';
 import { UserService } from '../../services/user.service';
 import { GuideService } from '../../services/guide.service';
 import { UploadService } from '../../services/upload.service';
+import { DialogService } from '../../services/dialog.service';
 import { User } from '../../models/user.model';
 import { GuideRequestDTO } from '../../models/guide.model';
 
@@ -20,6 +21,7 @@ export class UtilisateursComponent implements OnInit {
   private readonly userService = inject(UserService);
   private readonly guideService = inject(GuideService);
   private readonly uploadService = inject(UploadService);
+  private readonly dialogService = inject(DialogService);
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
 
@@ -452,39 +454,57 @@ export class UtilisateursComponent implements OnInit {
     }
   }
 
-  deleteUser(user: User): void {
+  async deleteUser(user: User): Promise<void> {
     const userId = user?.id ?? (user as any)?.idUsers;
     if (!userId) return;
+
+    const confirmed = await this.dialogService.confirm({
+      title: 'Supprimer l\'utilisateur',
+      message: `Confirmez-vous la suppression du compte "${user.email}" ? Cette action est irréversible.`,
+      confirmText: 'Supprimer définitivement',
+      cancelText: 'Annuler',
+      type: 'danger'
+    });
+
+    if (!confirmed) return;
+
     const isGuide = (user.role || '').toLowerCase().includes('guide');
-    if (confirm(`Confirmez-vous la suppression du compte "${user.email}" ?`)) {
-      if (isGuide) {
-        this.guideService.deleteGuide(userId).subscribe({
-          next: () => {
-            this.utilisateurs = this.utilisateurs.filter((u) => String(u.id ?? (u as any).idUsers) !== String(userId));
-            this.filterUsers();
-            this.cdr.detectChanges();
-          },
-          error: () => {
-            this.userService.deleteUser(userId).subscribe({
-              next: () => {
-                this.utilisateurs = this.utilisateurs.filter((u) => String(u.id ?? (u as any).idUsers) !== String(userId));
-                this.filterUsers();
-                this.cdr.detectChanges();
-              },
-              error: () => this.cdr.detectChanges()
-            });
-          }
-        });
-      } else {
-        this.userService.deleteUser(userId).subscribe({
-          next: () => {
-            this.utilisateurs = this.utilisateurs.filter((u) => String(u.id ?? (u as any).idUsers) !== String(userId));
-            this.filterUsers();
-            this.cdr.detectChanges();
-          },
-          error: () => this.cdr.detectChanges()
-        });
-      }
+    if (isGuide) {
+      this.guideService.deleteGuide(userId).subscribe({
+        next: () => {
+          this.utilisateurs = this.utilisateurs.filter((u) => String(u.id ?? (u as any).idUsers) !== String(userId));
+          this.filterUsers();
+          this.dialogService.toastSuccess(`Compte "${user.email}" supprimé avec succès.`);
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.userService.deleteUser(userId).subscribe({
+            next: () => {
+              this.utilisateurs = this.utilisateurs.filter((u) => String(u.id ?? (u as any).idUsers) !== String(userId));
+              this.filterUsers();
+              this.dialogService.toastSuccess(`Compte "${user.email}" supprimé avec succès.`);
+              this.cdr.detectChanges();
+            },
+            error: () => {
+              this.dialogService.toastError('Impossible de supprimer cet utilisateur.');
+              this.cdr.detectChanges();
+            }
+          });
+        }
+      });
+    } else {
+      this.userService.deleteUser(userId).subscribe({
+        next: () => {
+          this.utilisateurs = this.utilisateurs.filter((u) => String(u.id ?? (u as any).idUsers) !== String(userId));
+          this.filterUsers();
+          this.dialogService.toastSuccess(`Compte "${user.email}" supprimé avec succès.`);
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.dialogService.toastError('Impossible de supprimer cet utilisateur.');
+          this.cdr.detectChanges();
+        }
+      });
     }
   }
 

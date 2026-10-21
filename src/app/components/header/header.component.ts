@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
+import { DialogService } from '../../services/dialog.service';
 import { sanitizeImageUrl } from '../../utils/image-url.util';
 
 @Component({
@@ -15,6 +16,7 @@ import { sanitizeImageUrl } from '../../utils/image-url.util';
 export class HeaderComponent implements OnInit {
   private readonly router = inject(Router);
   readonly authService = inject(AuthService);
+  private readonly dialogService = inject(DialogService);
 
   @Input() title: string = 'Tableau de bord';
   @Input() subtitle: string = "Bienvenue dans l'administration de MaliExplorer !";
@@ -49,8 +51,15 @@ export class HeaderComponent implements OnInit {
       });
   }
 
-  logout(): void {
-    if (confirm('Voulez-vous vous déconnecter de l’administration MaliExplorer ?')) {
+  async logout(): Promise<void> {
+    const confirmed = await this.dialogService.confirm({
+      title: 'Déconnexion',
+      message: 'Voulez-vous vous déconnecter de l’administration MaliExplorer ?',
+      confirmText: 'Se déconnecter',
+      cancelText: 'Annuler',
+      type: 'warning'
+    });
+    if (confirmed) {
       this.authService.logout();
     }
   }

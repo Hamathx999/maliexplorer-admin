@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs';
 import { IngredientService } from '../../services/ingredient.service';
+import { DialogService } from '../../services/dialog.service';
 import { Ingredient } from '../../models/ingredient.model';
 
 @Component({
@@ -15,6 +16,7 @@ import { Ingredient } from '../../models/ingredient.model';
 })
 export class IngredientsComponent implements OnInit {
   private readonly ingredientService = inject(IngredientService);
+  private readonly dialogService = inject(DialogService);
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
 
@@ -167,20 +169,31 @@ export class IngredientsComponent implements OnInit {
     }
   }
 
-  deleteIngredient(item: Ingredient): void {
+  async deleteIngredient(item: Ingredient): Promise<void> {
     const idToDelete = item.id ?? item.idIngredient;
     if (!idToDelete) return;
-    if (confirm(`Confirmez-vous la suppression de "${item.nom}" ?`)) {
-      this.ingredientService.deleteIngredient(idToDelete).subscribe({
-        next: () => {
-          this.ingredients = this.ingredients.filter((i) => String(i.id ?? i.idIngredient) !== String(idToDelete));
-          this.filterIngredients();
-          this.cdr.detectChanges();
-        },
-        error: () => {
-          this.cdr.detectChanges();
-        }
-      });
-    }
+
+    const confirmed = await this.dialogService.confirm({
+      title: 'Supprimer l\'ingrédient',
+      message: `Confirmez-vous la suppression de l'ingrédient "${item.nom}" ? Cette action est irréversible.`,
+      confirmText: 'Supprimer définitivement',
+      cancelText: 'Annuler',
+      type: 'danger'
+    });
+
+    if (!confirmed) return;
+
+    this.ingredientService.deleteIngredient(idToDelete).subscribe({
+      next: () => {
+        this.ingredients = this.ingredients.filter((i) => String(i.id ?? i.idIngredient) !== String(idToDelete));
+        this.filterIngredients();
+        this.dialogService.toastSuccess(`Ingrédient "${item.nom}" supprimé.`);
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.dialogService.toastError('Impossible de supprimer cet ingrédient.');
+        this.cdr.detectChanges();
+      }
+    });
   }
 }

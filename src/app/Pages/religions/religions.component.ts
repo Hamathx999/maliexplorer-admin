@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ReligionService } from '../../services/religion.service';
 import { UploadService } from '../../services/upload.service';
+import { DialogService } from '../../services/dialog.service';
 import { Religion } from '../../models/religion.model';
 
 @Component({
@@ -15,6 +16,7 @@ import { Religion } from '../../models/religion.model';
 export class ReligionsComponent implements OnInit {
   private readonly religionService = inject(ReligionService);
   private readonly uploadService = inject(UploadService);
+  private readonly dialogService = inject(DialogService);
   private readonly cdr = inject(ChangeDetectorRef);
 
   religions: Religion[] = [];
@@ -283,17 +285,26 @@ export class ReligionsComponent implements OnInit {
     });
   }
 
-  onDelete(rel: Religion): void {
+  async onDelete(rel: Religion): Promise<void> {
     if (!rel.id) return;
-    if (confirm(`Supprimer la religion "${rel.nom}" ?`)) {
-      this.religionService.deleteReligion(rel.id).subscribe({
-        next: () => {
-          this.showNotification('Suppression réussie.');
-          this.loadReligions();
-        },
-        error: () => this.showNotification('Erreur de suppression.', true)
-      });
-    }
+
+    const confirmed = await this.dialogService.confirm({
+      title: 'Supprimer la religion / spiritualité',
+      message: `Supprimer définitivement la religion "${rel.nom}" ? Cette action est irréversible.`,
+      confirmText: 'Supprimer définitivement',
+      cancelText: 'Annuler',
+      type: 'danger'
+    });
+
+    if (!confirmed) return;
+
+    this.religionService.deleteReligion(rel.id).subscribe({
+      next: () => {
+        this.dialogService.toastSuccess(`Religion "${rel.nom}" supprimée.`);
+        this.loadReligions();
+      },
+      error: () => this.dialogService.toastError('Erreur de suppression.')
+    });
   }
 
   showNotification(msg: string, isError: boolean = false): void {

@@ -285,85 +285,148 @@
     </div>
 
     <div class="map-and-details-grid">
-      <!-- Canevas SVG officiel de la République du Mali -->
+      <!-- Canevas de la carte du Mali (Vraie carte géographique Leaflet OpenStreetMap & Schéma SVG) -->
       <div class="mali-map-wrapper">
-        <svg class="mali-svg" viewBox="0 0 600 480">
-          <defs>
-            <!-- Ombre portée douce de la carte -->
-            <filter id="mapShadow" x="-5%" y="-5%" width="115%" height="115%">
-              <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#0E8F76" flood-opacity="0.08" />
-            </filter>
-          </defs>
+        <!-- Barre de sélection du mode de carte -->
+        <div class="map-mode-switcher-bar">
+          <div class="map-view-pills">
+            <button
+              type="button"
+              class="btn-view-pill"
+              [class.active]="modeCarte === 'osm'"
+              (click)="changerModeCarte('osm')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="2" y1="12" x2="22" y2="12"></line>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1 4-10z"></path>
+              </svg>
+              <span>Vraie carte géographique</span>
+            </button>
+            <button
+              type="button"
+              class="btn-view-pill"
+              [class.active]="modeCarte === 'svg'"
+              (click)="changerModeCarte('svg')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                <polyline points="2 17 12 22 22 17"></polyline>
+                <polyline points="2 12 12 17 22 12"></polyline>
+              </svg>
+              <span>Schéma vectoriel</span>
+            </button>
+          </div>
 
-          <!-- Tracé vectoriel officiel du contour de la République du Mali -->
-          <path
-            class="mali-boundary-path"
-            filter="url(#mapShadow)"
-            d="M 120 220
-               L 160 210
-               L 180 230
-               L 260 220
-               L 310 180
-               L 350 70
-               L 410 80
-               L 460 140
-               L 550 140
-               L 560 230
-               L 490 280
-               L 440 260
-               L 360 280
-               L 310 290
-               L 260 360
-               L 230 450
-               L 170 390
-               L 140 370
-               L 70 330
-               L 60 270
-               Z"
-          />
+          <div class="map-buttons-group">
+            <button type="button" class="btn-map-tool btn-gps" (click)="ouvrirCarteGps()" title="Ouvrir dans OpenStreetMap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="13" height="13">
+                <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon>
+                <line x1="9" y1="3" x2="9" y2="18"></line>
+                <line x1="15" y1="6" x2="15" y2="21"></line>
+              </svg>
+              <span>Plein écran GPS</span>
+            </button>
+          </div>
+        </div>
 
-          <!-- Pôles régionaux interactifs -->
-          @for (reg of regionsMali; track reg.code) {
-            <g
-              class="region-pole-group"
-              [class.pole-selected]="selectedRegion?.code === reg.code"
-              [class.pole-active]="reg.actif"
-              (click)="selectRegion(reg)"
-              (mouseenter)="hoverRegion(reg)"
-              (mouseleave)="leaveRegion()">
+        <!-- 1. Vraie Carte Géographique OpenStreetMap (Leaflet) -->
+        @if (modeCarte === 'osm') {
+          <div id="mali-leaflet-map" class="mali-leaflet-container"></div>
+        } @else {
+          <!-- 2. Schéma Vectoriel SVG -->
+          <svg class="mali-svg" [attr.viewBox]="mapViewBox">
+            <defs>
+              <!-- Ombre portée douce de la carte -->
+              <filter id="mapShadow" x="-5%" y="-5%" width="115%" height="115%">
+                <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#0E8F76" flood-opacity="0.12" />
+              </filter>
 
-              <!-- Halo pulsant si région active -->
-              @if (reg.actif) {
-                <circle
-                  class="pole-pulse"
-                  [attr.cx]="reg.x"
-                  [attr.cy]="reg.y"
-                  r="12"
-                />
+              <!-- Lueur douce pour le Fleuve Niger -->
+              <filter id="riverGlow" x="-20%" y="-20%" width="140%" height="140%">
+                <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-color="#0288D1" flood-opacity="0.45" />
+              </filter>
+            </defs>
+
+            <!-- Tracé vectoriel officiel du contour de la République du Mali -->
+            <path
+              class="mali-boundary-path"
+              filter="url(#mapShadow)"
+              [attr.d]="maliBoundaryD"
+            />
+
+            <!-- Polygones interactifs des 16 régions administratives -->
+            <g class="regions-polygons-group">
+              @for (reg of regionsMali; track reg.code) {
+                @if (reg.svgPath) {
+                  <path
+                    class="region-polygon"
+                    [class.poly-selected]="selectedRegion?.code === reg.code"
+                    [class.poly-hovered]="hoveredRegion?.code === reg.code"
+                    [class.poly-active]="reg.actif"
+                    [attr.d]="reg.svgPath"
+                    (click)="selectRegion(reg)"
+                    (mouseenter)="hoverRegion(reg)"
+                    (mouseleave)="leaveRegion()"
+                  />
+                }
               }
+            </g>
 
-              <!-- Cercle de pôle principal -->
-              <circle
-                class="pole-circle"
-                [attr.cx]="reg.x"
-                [attr.cy]="reg.y"
-                [attr.r]="selectedRegion?.code === reg.code ? 7.5 : (reg.actif ? 6 : 4.5)"
+            <!-- Tracé officiel du Fleuve Niger (Djoliba) -->
+            <g class="fleuve-niger-group">
+              <path
+                class="fleuve-niger-path"
+                filter="url(#riverGlow)"
+                [attr.d]="fleuveNigerD"
               />
-
-              <!-- Libellé du chef-lieu -->
-              <text
-                class="pole-label"
-                [attr.x]="reg.x + 9"
-                [attr.y]="reg.y + 4">
-                {{ reg.chefLieu }}
+              <text class="fleuve-niger-label" x="250" y="325" transform="rotate(-15 250 325)">
+                Fleuve Niger (Djoliba)
               </text>
             </g>
-          }
-        </svg>
+
+            <!-- Pôles régionaux interactifs -->
+            @for (reg of regionsMali; track reg.code) {
+              <g
+                class="region-pole-group"
+                [class.pole-selected]="selectedRegion?.code === reg.code"
+                [class.pole-active]="reg.actif"
+                (click)="selectRegion(reg)"
+                (mouseenter)="hoverRegion(reg)"
+                (mouseleave)="leaveRegion()">
+
+                <!-- Halo pulsant si région active -->
+                @if (reg.actif) {
+                  <circle
+                    class="pole-pulse"
+                    [attr.cx]="reg.x"
+                    [attr.cy]="reg.y"
+                    r="12"
+                  />
+                }
+
+                <!-- Cercle de pôle principal -->
+                <circle
+                  class="pole-circle"
+                  [attr.cx]="reg.x"
+                  [attr.cy]="reg.y"
+                  [attr.r]="selectedRegion?.code === reg.code ? 7.5 : (reg.actif ? 5.5 : 4)"
+                />
+
+                <!-- Libellé du chef-lieu -->
+                <text
+                  class="pole-label"
+                  [attr.x]="reg.x + 9"
+                  [attr.y]="reg.y + 4">
+                  {{ reg.chefLieu }}
+                </text>
+              </g>
+            }
+          </svg>
+        }
 
         <div class="map-legend">
           <span class="legend-tag active">● Pôle actif</span>
           <span class="legend-tag inactive">○ En développement</span>
+          <span class="legend-tag river">〰 Fleuve Niger</span>
         </div>
       </div>
 
@@ -386,25 +449,33 @@
             <div class="pole-metrics-grid">
               <div class="metric-box">
                 <span class="metric-label">Entités culturelles</span>
-                <strong class="metric-val">{{ current?.totalEntites }}</strong>
+                <strong class="metric-val">{{ current?.totalEntites ?? 0 }}</strong>
               </div>
               <div class="metric-box">
                 <span class="metric-label">Lieux historiques</span>
-                <strong class="metric-val">{{ current?.nombreLieux ?? '—' }}</strong>
+                <strong class="metric-val">{{ current?.nombreLieux ?? 0 }}</strong>
               </div>
               <div class="metric-box">
                 <span class="metric-label">Villes répertoriées</span>
-                <strong class="metric-val">{{ current?.nombreVilles ?? '—' }}</strong>
+                <strong class="metric-val">{{ current?.nombreVilles ?? 0 }}</strong>
               </div>
               <div class="metric-box">
                 <span class="metric-label">Événements</span>
-                <strong class="metric-val">{{ current?.nombreEvenements ?? '—' }}</strong>
+                <strong class="metric-val">{{ current?.nombreEvenements ?? 0 }}</strong>
               </div>
             </div>
 
             <div class="pole-actions">
               <a routerLink="/regions" class="btn-pole-action">Consulter les régions</a>
               <a routerLink="/villes" class="btn-pole-action secondary">Voir les villes</a>
+              <button type="button" class="btn-pole-action ghost" (click)="ouvrirCarteGps(current)" title="Ouvrir la localisation dans OpenStreetMap">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                  <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon>
+                  <line x1="9" y1="3" x2="9" y2="18"></line>
+                  <line x1="15" y1="6" x2="15" y2="21"></line>
+                </svg>
+                Localiser GPS
+              </button>
             </div>
           </div>
         }

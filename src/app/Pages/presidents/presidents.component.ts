@@ -5,6 +5,7 @@ import { Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs';
 import { PresidentService } from '../../services/president.service';
 import { UploadService } from '../../services/upload.service';
+import { DialogService } from '../../services/dialog.service';
 import { President } from '../../models/president.model';
 
 @Component({
@@ -16,6 +17,7 @@ import { President } from '../../models/president.model';
 export class PresidentsComponent implements OnInit {
   private readonly presidentService = inject(PresidentService);
   private readonly uploadService = inject(UploadService);
+  private readonly dialogService = inject(DialogService);
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
 
@@ -242,22 +244,32 @@ export class PresidentsComponent implements OnInit {
     this.cdr.detectChanges();
   }
 
-  onDelete(president: President): void {
+  async onDelete(president: President): Promise<void> {
     const presId = president.id ?? (president as any).idPresident;
     if (!presId) return;
-    if (window.confirm(`Supprimer "${president.nom}" ?`)) {
-      this.presidentService.deletePresident(presId).subscribe({
-        next: () => {
-          this.showNotification(`Chef d'État "${president.nom}" supprimé.`);
-          this.loadPresidents();
-          this.cdr.detectChanges();
-        },
-        error: () => {
-          this.showNotification('Erreur de suppression.', true);
-          this.cdr.detectChanges();
-        }
-      });
-    }
+
+    const fullName = `${president.prenom || ''} ${president.nom || ''}`.trim() || 'ce chef d\'État';
+    const confirmed = await this.dialogService.confirm({
+      title: 'Supprimer le Chef d\'État',
+      message: `Confirmez-vous la suppression de "${fullName}" ? Cette action est irréversible.`,
+      confirmText: 'Supprimer définitivement',
+      cancelText: 'Annuler',
+      type: 'danger'
+    });
+
+    if (!confirmed) return;
+
+    this.presidentService.deletePresident(presId).subscribe({
+      next: () => {
+        this.dialogService.toastSuccess(`Chef d'État "${fullName}" supprimé.`);
+        this.loadPresidents();
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.dialogService.toastError('Erreur de suppression.');
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   resetForm(): void {

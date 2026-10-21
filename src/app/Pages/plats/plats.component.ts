@@ -6,6 +6,7 @@ import { filter } from 'rxjs';
 import { PlatService } from '../../services/plat.service';
 import { IngredientService } from '../../services/ingredient.service';
 import { UploadService } from '../../services/upload.service';
+import { DialogService } from '../../services/dialog.service';
 import { Plat } from '../../models/plat.model';
 import { sanitizeImageUrl, splitImageUrls } from '../../utils/image-url.util';
 import { Ingredient } from '../../models/ingredient.model';
@@ -21,6 +22,7 @@ export class PlatsComponent implements OnInit {
   private readonly platService = inject(PlatService);
   private readonly ingredientService = inject(IngredientService);
   private readonly uploadService = inject(UploadService);
+  private readonly dialogService = inject(DialogService);
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
 
@@ -190,7 +192,7 @@ export class PlatsComponent implements OnInit {
   private uploadFiles(fileList: FileList | File[]): void {
     const files = Array.from(fileList).filter((f) => f.type.startsWith('image/'));
     if (files.length === 0) {
-      alert('Veuillez sélectionner des fichiers images valides (JPG, PNG, WEBP).');
+      this.dialogService.toastWarning('Veuillez sélectionner des fichiers images valides (JPG, PNG, WEBP).');
       return;
     }
 
@@ -210,12 +212,13 @@ export class PlatsComponent implements OnInit {
         }
         this.isUploadingImage = false;
         this.selectedFileName = `${this.images.length} image(s) au total`;
+        this.dialogService.toastSuccess(`${urls.length} image(s) téléversée(s) avec succès.`);
         this.cdr.markForCheck();
       },
       error: (err) => {
         console.error('Erreur téléversement images plat:', err);
         this.isUploadingImage = false;
-        alert(err.message || 'Erreur lors du téléversement des images.');
+        this.dialogService.toastError(err.message || 'Erreur lors du téléversement des images.');
         this.cdr.markForCheck();
       }
     });
@@ -391,12 +394,12 @@ export class PlatsComponent implements OnInit {
     if (this.isSubmitting) return;
 
     if (this.isUploadingImage) {
-      alert('Veuillez patienter pendant le téléversement de l\'image vers Supabase...');
+      this.dialogService.toastWarning('Veuillez patienter pendant le téléversement de l\'image...');
       return;
     }
 
     if (!this.formData.nom || !this.formData.nom.trim()) {
-      alert('Veuillez renseigner le nom du plat.');
+      this.dialogService.toastWarning('Veuillez renseigner le nom du plat.');
       return;
     }
 
@@ -438,12 +441,13 @@ export class PlatsComponent implements OnInit {
           }
           this.filterPlats();
           this.cancelEdit();
+          this.dialogService.toastSuccess(`Plat "${platToSave.nom}" modifié avec succès !`);
           this.cdr.detectChanges();
         },
         error: (err) => {
           this.isSubmitting = false;
           console.error('Erreur modification plat', err);
-          alert('Erreur lors de la modification du plat.');
+          this.dialogService.toastError('Erreur lors de la modification du plat.');
           this.cdr.detectChanges();
         }
       });
@@ -454,34 +458,45 @@ export class PlatsComponent implements OnInit {
           this.plats.unshift(created);
           this.filterPlats();
           this.cancelEdit();
+          this.dialogService.toastSuccess(`Plat "${platToSave.nom}" ajouté avec succès !`);
           this.cdr.detectChanges();
         },
         error: (err) => {
           this.isSubmitting = false;
           console.error('Erreur création plat', err);
-          alert('Erreur lors de la création du plat.');
+          this.dialogService.toastError('Erreur lors de la création du plat.');
           this.cdr.detectChanges();
         }
       });
     }
   }
 
-  deletePlat(plat: Plat): void {
+  async deletePlat(plat: Plat): Promise<void> {
     const platId = plat?.id ?? (plat as any)?.idPlat;
     if (!platId) return;
-    if (confirm(`Confirmez-vous la suppression du plat traditionnel "${plat.nom}" ?`)) {
-      this.platService.deletePlat(platId).subscribe({
-        next: () => {
-          this.plats = this.plats.filter((p) => String(p.id ?? (p as any).idPlat) !== String(platId));
-          this.filterPlats();
-          this.cdr.detectChanges();
-        },
-        error: (err) => {
-          console.error('Erreur suppression plat', err);
-          alert('Impossible de supprimer le plat.');
-          this.cdr.detectChanges();
-        }
-      });
-    }
+
+    const confirmed = await this.dialogService.confirm({
+      title: 'Supprimer le plat traditionnel',
+      message: `Confirmez-vous la suppression du plat traditionnel "${plat.nom}" ? Cette action est irréversible.`,
+      confirmText: 'Supprimer définitivement',
+      cancelText: 'Annuler',
+      type: 'danger'
+    });
+
+    if (!confirmed) return;
+
+    this.platService.deletePlat(platId).subscribe({
+      next: () => {
+        this.plats = this.plats.filter((p) => String(p.id ?? (p as any).idPlat) !== String(platId));
+        this.filterPlats();
+        this.dialogService.toastSuccess(`Le plat "${plat.nom}" a été supprimé avec succès.`);
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Erreur suppression plat', err);
+        this.dialogService.toastError('Impossible de supprimer le plat.');
+        this.cdr.detectChanges();
+      }
+    });
   }
 }

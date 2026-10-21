@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { PartenaireService } from '../../services/partenaire.service';
+import { DialogService } from '../../services/dialog.service';
 import { PartenaireItem } from '../../models/partenaire.model';
 
 /**
@@ -19,6 +20,7 @@ import { PartenaireItem } from '../../models/partenaire.model';
 })
 export class PartenairesComponent implements OnInit {
   private readonly partenaireService = inject(PartenaireService);
+  private readonly dialogService = inject(DialogService);
   private readonly cdr = inject(ChangeDetectorRef);
 
   // Données de la liste
@@ -149,33 +151,43 @@ export class PartenairesComponent implements OnInit {
   /**
    * Inverse le statut d'un compte partenaire (Actif <-> Bloqué).
    */
-  basculerStatut(partenaire: PartenaireItem, event?: Event): void {
+  async basculerStatut(partenaire: PartenaireItem, event?: Event): Promise<void> {
     if (event) {
       event.stopPropagation();
     }
 
-    const action = partenaire.statutCompte === 'ACTIF' ? 'bloquer' : 'activer';
-    const confirmMsg = `Confirmez-vous vouloir ${action} le compte de ${partenaire.nomComplet} ?`;
+    const isBlocking = partenaire.statutCompte === 'ACTIF';
+    const action = isBlocking ? 'bloquer' : 'activer';
 
-    if (confirm(confirmMsg)) {
-      this.partenaireService.toggleStatutPartenaire(partenaire.id).subscribe({
-        next: () => {
-          partenaire.statutCompte = partenaire.statutCompte === 'ACTIF' ? 'BLOQUE' : 'ACTIF';
-          if (this.selectedPartenaire && this.selectedPartenaire.id === partenaire.id) {
-            this.selectedPartenaire.statutCompte = partenaire.statutCompte;
-          }
-          this.appliquerFiltres();
-          this.cdr.detectChanges();
-        },
-        error: (err) => {
-          console.error('Erreur lors du changement de statut :', err);
-          // Basculement optimiste local
-          partenaire.statutCompte = partenaire.statutCompte === 'ACTIF' ? 'BLOQUE' : 'ACTIF';
-          this.appliquerFiltres();
-          this.cdr.detectChanges();
+    const confirmed = await this.dialogService.confirm({
+      title: `${isBlocking ? 'Bloquer' : 'Activer'} le partenaire`,
+      message: `Confirmez-vous vouloir ${action} le compte de « ${partenaire.nomComplet} » ?`,
+      confirmText: isBlocking ? 'Bloquer' : 'Activer',
+      cancelText: 'Annuler',
+      type: isBlocking ? 'warning' : 'success'
+    });
+
+    if (!confirmed) return;
+
+    this.partenaireService.toggleStatutPartenaire(partenaire.id).subscribe({
+      next: () => {
+        partenaire.statutCompte = isBlocking ? 'BLOQUE' : 'ACTIF';
+        if (this.selectedPartenaire && this.selectedPartenaire.id === partenaire.id) {
+          this.selectedPartenaire.statutCompte = partenaire.statutCompte;
         }
-      });
-    }
+        this.appliquerFiltres();
+        this.dialogService.toastSuccess(`Compte de « ${partenaire.nomComplet} » ${isBlocking ? 'bloqué' : 'activé'}.`);
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Erreur lors du changement de statut :', err);
+        // Basculement optimiste local
+        partenaire.statutCompte = isBlocking ? 'BLOQUE' : 'ACTIF';
+        this.appliquerFiltres();
+        this.dialogService.toastSuccess(`Compte de « ${partenaire.nomComplet} » mis à jour.`);
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   /**

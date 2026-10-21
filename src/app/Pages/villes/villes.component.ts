@@ -6,6 +6,7 @@ import { filter } from 'rxjs';
 import { VilleService } from '../../services/ville.service';
 import { RegionService } from '../../services/region.service';
 import { UploadService } from '../../services/upload.service';
+import { DialogService } from '../../services/dialog.service';
 import { Ville } from '../../models/ville.model';
 import { Region } from '../../models/region.model';
 import { sanitizeImageUrl, splitImageUrls } from '../../utils/image-url.util';
@@ -21,6 +22,7 @@ export class VillesComponent implements OnInit {
   private readonly villeService = inject(VilleService);
   private readonly regionService = inject(RegionService);
   private readonly uploadService = inject(UploadService);
+  private readonly dialogService = inject(DialogService);
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
 
@@ -220,6 +222,15 @@ export class VillesComponent implements OnInit {
       return;
     }
 
+    if (this.latitude !== null && (isNaN(Number(this.latitude)) || Number(this.latitude) < -90 || Number(this.latitude) > 90)) {
+      this.showNotification('La latitude doit être comprise entre -90° et +90°.', true);
+      return;
+    }
+    if (this.longitude !== null && (isNaN(Number(this.longitude)) || Number(this.longitude) < -180 || Number(this.longitude) > 180)) {
+      this.showNotification('La longitude doit être comprise entre -180° et +180°.', true);
+      return;
+    }
+
     this.isSubmitting = true;
 
     const foundReg = this.regions.find((r) => r.nom === this.selectedRegion);
@@ -288,7 +299,7 @@ export class VillesComponent implements OnInit {
     this.editingVilleId = ville.id ?? (ville as any).idVille ?? null;
     this.nom = ville.nom;
     this.selectedRegion = ville.region;
-    this.population = String(ville.population || '');
+    this.population = String(ville.population || (ville as any).nbreHbt || '');
     this.cordonnees = (ville as any).cordonnees || '';
     this.latitude = (ville as any).latitude ?? null;
     this.longitude = (ville as any).longitude ?? null;
@@ -317,18 +328,27 @@ export class VillesComponent implements OnInit {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  onDelete(ville: Ville): void {
+  async onDelete(ville: Ville): Promise<void> {
     const targetId = ville.id ?? (ville as any).idVille;
     if (!targetId) return;
-    if (window.confirm(`Supprimer la ville "${ville.nom}" ?`)) {
-      this.villeService.deleteVille(targetId).subscribe({
-        next: () => {
-          this.showNotification(`Ville "${ville.nom}" supprimée.`);
-          this.loadVilles();
-        },
-        error: () => this.showNotification('Erreur de suppression.', true)
-      });
-    }
+
+    const confirmed = await this.dialogService.confirm({
+      title: 'Supprimer la ville',
+      message: `Confirmez-vous la suppression de la ville "${ville.nom}" ? Cette action est irréversible.`,
+      confirmText: 'Supprimer définitivement',
+      cancelText: 'Annuler',
+      type: 'danger'
+    });
+
+    if (!confirmed) return;
+
+    this.villeService.deleteVille(targetId).subscribe({
+      next: () => {
+        this.dialogService.toastSuccess(`Ville "${ville.nom}" supprimée.`);
+        this.loadVilles();
+      },
+      error: () => this.dialogService.toastError('Erreur de suppression.')
+    });
   }
 
   toggleMisEnAvantHome(ville: Ville): void {
@@ -346,24 +366,77 @@ export class VillesComponent implements OnInit {
     });
   }
 
+  formatVillePopulation(ville: Ville): string {
+    const raw = ville.population ?? (ville as any).nbreHbt;
+    if (!raw || String(raw).trim() === '') return '—';
+    return String(raw);
+  }
+
+  formatVilleCoords(ville: Ville): string {
+    const lat = (ville as any).latitude;
+    const lng = (ville as any).longitude;
+    if (lat !== null && lat !== undefined && lng !== null && lng !== undefined) {
+      const nLat = Number(lat);
+      const nLng = Number(lng);
+      if (!isNaN(nLat) && !isNaN(nLng)) {
+        return `${Math.abs(nLat).toFixed(4)}° ${nLat >= 0 ? 'N' : 'S'}, ${Math.abs(nLng).toFixed(4)}° ${nLng >= 0 ? 'E' : 'O'}`;
+      }
+    }
+    return (ville as any).cordonnees || '—';
+  }
+
   getCityFallbackImage(nom?: string, region?: string): string {
+    const base = 'https://dzhqwkpwaljqsjwoqvso.supabase.co/storage/v1/object/public/maliexplorer-media/villes';
     const key = `${nom || ''} ${region || ''}`.toLowerCase().trim();
     if (key.includes('djenne') || key.includes('djenné')) {
-      return 'https://images.unsplash.com/photo-1590523741831-ab7e8b8f9c7f?w=600&auto=format&fit=crop&q=80';
+      return `${base}/0d45c4b9-ddcb-4bfe-89fe-226739aacf74_Djenn_.jpg`;
     }
     if (key.includes('tombouctou')) {
-      return 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=600&auto=format&fit=crop&q=80';
+      return `${base}/3984e765-781e-4966-9c04-90b19fd64403_deuxieme_imagehome.jpeg`;
     }
     if (key.includes('mopti')) {
-      return 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&auto=format&fit=crop&q=80';
+      return `${base}/d35072d2-51f7-4dc5-b906-f1199b4d2fa7_Mopti__Mali.jpeg`;
     }
     if (key.includes('segou') || key.includes('ségou')) {
-      return 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=600&auto=format&fit=crop&q=80';
+      return `${base}/046acd3d-6899-4076-b662-2502cbbda963_Segou__Mali___.jpeg`;
     }
     if (key.includes('sikasso')) {
-      return 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=600&auto=format&fit=crop&q=80';
+      return `${base}/2ba6d709-eafa-4d39-929d-61fbcf2d2bee_Le-Mamelon-de-Sikasso-Sindebou-_StudioTamani.jpg`;
     }
-    return 'https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?w=600&auto=format&fit=crop&q=80';
+    if (key.includes('kayes')) {
+      return `${base}/a74e7a57-4181-4298-b98a-bf3c59702646_Fleuve_S_n_gal_Kayes_Mali.jpeg`;
+    }
+    if (key.includes('koulikoro')) {
+      return `${base}/910921e0-844f-4af7-b5dd-5aab12fcbaef_vestibule-koulikoro.jpg`;
+    }
+    if (key.includes('koutiala')) {
+      return `${base}/2e0e6bf5-0023-494b-9157-f24aa881512b_koutiala.jpeg`;
+    }
+    if (key.includes('san')) {
+      return `${base}/4aac1e77-f062-4bf8-8d8f-9b8ec39e1df0_san_sanke-mon.jpg`;
+    }
+    if (key.includes('kenieba') || key.includes('kéniéba')) {
+      return `${base}/20c147b6-b759-4b58-b974-3c4611f2b1cb_kenieba.jpeg`;
+    }
+    if (key.includes('kita')) {
+      return `${base}/8a2b87e9-7ef4-4298-8698-ac341176f1ce_kita.jpeg`;
+    }
+    if (key.includes('bandiagara')) {
+      return `${base}/092d8b10-62e7-4254-9e2e-3b97571beb46_badiangara.jpeg`;
+    }
+    if (key.includes('gao')) {
+      return `${base}/Gao1.jpg`;
+    }
+    if (key.includes('kidal')) {
+      return `${base}/Kidal1.jpg`;
+    }
+    if (key.includes('taoudeni') || key.includes('taoudéni')) {
+      return `${base}/Taoudeni1.JPG`;
+    }
+    if (key.includes('menaka') || key.includes('ménaka')) {
+      return `${base}/Menaka1.jpg`;
+    }
+    return `${base}/72e5bb3b-0144-4ad7-aea5-0eb6d4b2e3f5_Bamako.jpg`;
   }
 
   getVilleImage(ville: Ville): string {

@@ -3,12 +3,13 @@ import { RouterOutlet, Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs';
 import { SidebarComponent } from './components/sidebar/sidebar.component';
 import { HeaderComponent } from './components/header/header.component';
+import { DialogModalComponent } from './components/dialog-modal/dialog-modal.component';
 import { sanitizeImageUrl, splitImageUrls } from './utils/image-url.util';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, SidebarComponent, HeaderComponent],
+  imports: [RouterOutlet, SidebarComponent, HeaderComponent, DialogModalComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })

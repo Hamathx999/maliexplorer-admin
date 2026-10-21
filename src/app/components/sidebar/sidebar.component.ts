@@ -4,6 +4,7 @@ import { Router, RouterLink, NavigationEnd } from '@angular/router';
 import { Subscription, filter } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import { ModerationPartenaireService } from '../../services/moderation-partenaire.service';
+import { DialogService } from '../../services/dialog.service';
 
 export interface NavItem {
   label: string;
@@ -35,6 +36,7 @@ export interface NavGroup {
 })
 export class SidebarComponent implements OnInit, OnDestroy {
   private readonly authService = inject(AuthService);
+  private readonly dialogService = inject(DialogService);
   private readonly router = inject(Router);
   private readonly moderationService = inject(ModerationPartenaireService);
 
@@ -326,8 +328,15 @@ export class SidebarComponent implements OnInit, OnDestroy {
     this.hoveredTooltip.set(null);
   }
 
-  logout(): void {
-    if (confirm('Voulez-vous vous déconnecter de l’administration MaliExplorer ?')) {
+  async logout(): Promise<void> {
+    const confirmed = await this.dialogService.confirm({
+      title: 'Déconnexion',
+      message: 'Voulez-vous vraiment vous déconnecter de l’administration MaliExplorer ?',
+      confirmText: 'Se déconnecter',
+      cancelText: 'Annuler',
+      type: 'warning'
+    });
+    if (confirmed) {
       this.authService.logout();
     }
   }

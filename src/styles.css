@@ -1,3 +1,5 @@
+@import 'leaflet/dist/leaflet.css';
+
 :root {
   --primary-forest: #075E4D;
   --primary-dark: #121A16;

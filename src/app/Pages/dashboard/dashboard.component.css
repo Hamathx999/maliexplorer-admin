@@ -437,10 +437,127 @@
   padding: 12px;
 }
 
+/* Container de la vraie carte OpenStreetMap Leaflet */
+.mali-leaflet-container {
+  width: 100%;
+  height: 380px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #D2E7DE;
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.04);
+  position: relative;
+  z-index: 1;
+}
+
+/* Sélecteur de mode de carte */
+.map-mode-switcher-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 2px 4px 10px;
+  flex-wrap: wrap;
+}
+
+.map-view-pills {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background-color: #EDF6F3;
+  padding: 3px;
+  border-radius: 8px;
+  border: 1px solid #D2E7DE;
+}
+
+.btn-view-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #4A635D;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-view-pill:hover {
+  color: #075E4D;
+}
+
+.btn-view-pill.active {
+  background-color: #FFFFFF;
+  color: #075E4D;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  font-weight: 700;
+}
+
 .mali-svg {
   width: 100%;
   height: 380px;
   display: block;
+}
+
+/* Barre d'outils et commandes de la carte */
+.map-controls-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 6px 10px;
+}
+
+.map-watermark {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #0E8F76;
+  opacity: 0.85;
+}
+
+.map-buttons-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-map-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 28px;
+  min-width: 28px;
+  padding: 0 7px;
+  background-color: #FFFFFF;
+  border: 1px solid #D2E7DE;
+  border-radius: 6px;
+  color: #16332D;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.btn-map-tool:hover {
+  background-color: #E6F7F3;
+  color: #0E8F76;
+  border-color: #0E8F76;
+}
+
+.btn-map-tool.btn-gps {
+  color: #0288D1;
+  border-color: #BAE6FD;
+  background-color: #F0F9FF;
+}
+
+.btn-map-tool.btn-gps:hover {
+  background-color: #E0F2FE;
+  border-color: #0288D1;
 }
 
 .mali-boundary-path {
@@ -449,6 +566,55 @@
   stroke-width: 2.2;
   stroke-linejoin: round;
   transition: fill 0.3s ease;
+}
+
+/* Polygones interactifs des régions */
+.region-polygon {
+  fill: #F4FAF7;
+  stroke: #D7EBE3;
+  stroke-width: 1px;
+  stroke-linejoin: round;
+  cursor: pointer;
+  transition: fill 0.25s ease, stroke 0.25s ease, stroke-width 0.25s ease;
+}
+
+.region-polygon:hover,
+.region-polygon.poly-hovered {
+  fill: #DDF3EC;
+  stroke: #0E8F76;
+  stroke-width: 1.8px;
+}
+
+.region-polygon.poly-selected {
+  fill: #CEEFE6;
+  stroke: #075E4D;
+  stroke-width: 2.2px;
+}
+
+/* Fleuve Niger (Djoliba) */
+.fleuve-niger-path {
+  fill: none;
+  stroke: #2563EB;
+  stroke-width: 3.5px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.92;
+  transition: all 0.3s ease;
+}
+
+.fleuve-niger-path:hover {
+  stroke: #1D4ED8;
+  stroke-width: 4.8px;
+}
+
+.fleuve-niger-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  fill: #2563EB;
+  letter-spacing: 0.4px;
+  opacity: 0.75;
+  pointer-events: none;
+  font-style: italic;
 }
 
 .region-pole-group {
@@ -511,6 +677,10 @@
 
 .legend-tag.inactive {
   color: #94A3B8;
+}
+
+.legend-tag.river {
+  color: #2563EB;
 }
 
 /* Pole detail card */
@@ -633,6 +803,21 @@
 
 .btn-pole-action.secondary:hover {
   background-color: #E2E8F0;
+}
+
+.btn-pole-action.ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background-color: #F0F9FF;
+  color: #0288D1;
+  border: 1px solid #BAE6FD;
+}
+
+.btn-pole-action.ghost:hover {
+  background-color: #E0F2FE;
+  border-color: #0288D1;
 }
 
 /* 4. Tableau de Modération « À valider » */
