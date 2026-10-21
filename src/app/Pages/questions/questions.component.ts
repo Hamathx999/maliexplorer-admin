@@ -5,6 +5,7 @@ import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs';
 import { QuestionService } from '../../services/question.service';
 import { QuizService } from '../../services/quiz.service';
+import { DialogService } from '../../services/dialog.service';
 import { Question } from '../../models/question.model';
 import { Quiz } from '../../models/quiz.model';
 
@@ -18,6 +19,7 @@ import { Quiz } from '../../models/quiz.model';
 export class QuestionsComponent implements OnInit {
   private readonly questionService = inject(QuestionService);
   private readonly quizService = inject(QuizService);
+  private readonly dialogService = inject(DialogService);
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
 
@@ -190,21 +192,32 @@ export class QuestionsComponent implements OnInit {
     }
   }
 
-  deleteQuestion(q: Question): void {
+  async deleteQuestion(q: Question): Promise<void> {
     const targetId = q.id ?? q.idQuestion;
     if (!targetId) return;
+
     const questionText = q.question || q.nomQuestion || 'cette question';
-    if (confirm(`Confirmez-vous la suppression de la question "${questionText}" ?`)) {
-      this.questionService.deleteQuestion(targetId).subscribe({
-        next: () => {
-          this.questions = this.questions.filter((item) => (item.id ?? item.idQuestion) !== targetId);
-          this.filterQuestions();
-          this.cdr.detectChanges();
-        },
-        error: () => {
-          this.cdr.detectChanges();
-        }
-      });
-    }
+    const confirmed = await this.dialogService.confirm({
+      title: 'Supprimer la question',
+      message: `Confirmez-vous la suppression de la question "${questionText}" ?`,
+      confirmText: 'Supprimer',
+      cancelText: 'Annuler',
+      type: 'danger'
+    });
+
+    if (!confirmed) return;
+
+    this.questionService.deleteQuestion(targetId).subscribe({
+      next: () => {
+        this.questions = this.questions.filter((item) => (item.id ?? item.idQuestion) !== targetId);
+        this.filterQuestions();
+        this.dialogService.toastSuccess('Question supprimée avec succès.');
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.dialogService.toastError('Erreur lors de la suppression de la question.');
+        this.cdr.detectChanges();
+      }
+    });
   }
 }

@@ -1,0 +1,322 @@
+/* ==========================================================================
+   Dialog Backdrop & Modal Animation
+   ========================================================================== */
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  background: rgba(18, 26, 22, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: backdropFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes backdropFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.dialog-card {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 2rem 1.75rem 1.5rem;
+  box-shadow: 0 25px 50px -12px rgba(7, 94, 77, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  animation: cardScaleIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes cardScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* ==========================================================================
+   Icon Badges
+   ========================================================================== */
+.dialog-icon-wrapper {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+  transition: transform 0.2s ease;
+}
+
+.dialog-icon-wrapper svg {
+  width: 30px;
+  height: 30px;
+}
+
+.icon-danger {
+  background: #FEE2E2;
+  color: #DC2626;
+  box-shadow: 0 0 0 8px #FEF2F2;
+}
+
+.icon-warning {
+  background: #FEF3C7;
+  color: #D97706;
+  box-shadow: 0 0 0 8px #FFFBEB;
+}
+
+.icon-success {
+  background: #D1FAE5;
+  color: #059669;
+  box-shadow: 0 0 0 8px #ECFDF5;
+}
+
+.icon-info {
+  background: #E0F2FE;
+  color: #0284C7;
+  box-shadow: 0 0 0 8px #F0F9FF;
+}
+
+/* ==========================================================================
+   Content Typography
+   ========================================================================== */
+.dialog-content {
+  width: 100%;
+  margin-bottom: 1.75rem;
+}
+
+.dialog-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #16332D;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.01em;
+}
+
+.dialog-message {
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: #6C7C77;
+  word-break: break-word;
+}
+
+/* ==========================================================================
+   Action Buttons
+   ========================================================================== */
+.dialog-actions {
+  display: flex;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.btn {
+  flex: 1;
+  padding: 0.85rem 1.25rem;
+  border-radius: 14px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-cancel {
+  background: #F4F6F4;
+  color: #475569;
+  border: 1px solid #E2E8F0;
+}
+
+.btn-cancel:hover {
+  background: #E2E8F0;
+  color: #1E293B;
+  transform: translateY(-1px);
+}
+
+.btn-danger {
+  background: #DC2626;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.28);
+}
+
+.btn-danger:hover {
+  background: #B91C1C;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(220, 38, 38, 0.36);
+}
+
+.btn-warning {
+  background: #D97706;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.28);
+}
+
+.btn-warning:hover {
+  background: #B45309;
+  transform: translateY(-1px);
+}
+
+.btn-success {
+  background: #075E4D;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(7, 94, 77, 0.28);
+}
+
+.btn-success:hover {
+  background: #0E8F76;
+  transform: translateY(-1px);
+}
+
+.btn-info {
+  background: #0284C7;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.28);
+}
+
+.btn-info:hover {
+  background: #0369A1;
+  transform: translateY(-1px);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+/* ==========================================================================
+   Toasts Floating Notifications
+   ========================================================================== */
+.toast-container {
+  position: fixed;
+  top: 1.5rem;
+  right: 1.5rem;
+  z-index: 100000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  pointer-events: none;
+  max-width: 400px;
+  width: calc(100% - 3rem);
+}
+
+.toast-item {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 1rem 1.15rem;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid #E6EAE8;
+  animation: toastSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.toast-icon {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toast-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.toast-body {
+  flex: 1;
+}
+
+.toast-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #16332D;
+  margin-bottom: 0.2rem;
+}
+
+.toast-message {
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: #475569;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  color: #94A3B8;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease;
+}
+
+.toast-close:hover {
+  color: #1E293B;
+}
+
+.toast-close svg {
+  width: 16px;
+  height: 16px;
+}
+
+.toast-success .toast-icon {
+  color: #059669;
+}
+.toast-success {
+  border-left: 4px solid #059669;
+}
+
+.toast-danger .toast-icon {
+  color: #DC2626;
+}
+.toast-danger {
+  border-left: 4px solid #DC2626;
+}
+
+.toast-warning .toast-icon {
+  color: #D97706;
+}
+.toast-warning {
+  border-left: 4px solid #D97706;
+}
+
+.toast-info .toast-icon {
+  color: #0284C7;
+}
+.toast-info {
+  border-left: 4px solid #0284C7;
+}
+

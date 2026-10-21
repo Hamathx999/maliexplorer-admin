@@ -57,7 +57,7 @@
                   <td><strong>{{ ville.nom }}</strong></td>
                   <td style="color: #64748B; max-width: 320px;">{{ ville.description || 'Description sur la ville de ' + ville.nom }}</td>
                   <td>{{ ville.region }}</td>
-                  <td>{{ ville.population || '—' }}</td>
+                  <td>{{ formatVillePopulation(ville) }}</td>
                   <td>
                     <button type="button" class="figma-pill-btn" [class.pill-active]="ville.misEnAvantHome" [class.pill-inactive]="!ville.misEnAvantHome" (click)="toggleMisEnAvantHome(ville)" title="Cliquer pour afficher ou masquer du carrousel de l'accueil">
                       {{ ville.misEnAvantHome ? '★ En avant' + (ville.ordreHome ? ' (#' + ville.ordreHome + ')' : '') : 'Masqué' }}

@@ -1,5 +1,5 @@
-import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, AfterViewInit, OnDestroy, inject, ChangeDetectorRef, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser, CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { DashboardStatsService } from '../../services/dashboard-stats.service';
@@ -52,14 +52,20 @@ export interface ChartTooltipData {
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css'
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   private readonly statsService = inject(DashboardStatsService);
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly platformId = inject(PLATFORM_ID);
+
+  private leafletMap: any = null;
 
   // État de chargement
   isLoading: boolean = true;
   statsData: DashboardStatsResponseDTO | null = null;
+
+  // Mode de carte ('osm' = vraie carte géographique OpenStreetMap, 'svg' = vue vectorielle)
+  modeCarte: 'osm' | 'svg' = 'osm';
 
   // 1. Les 5 Cartes KPI Supérieures
   kpiCards: KpiDisplayCard[] = [];
@@ -84,6 +90,16 @@ export class DashboardComponent implements OnInit {
   regionsMali: RegionStatDTO[] = [];
   selectedRegion: RegionStatDTO | null = null;
   hoveredRegion: RegionStatDTO | null = null;
+
+  // Tracé haute fidélité officiel des frontières de la République du Mali (WGS84 projeté)
+  readonly maliBoundaryD: string = 'M 274.6 35.5 L 300.0 35.5 L 306.4 41.1 L 331.8 77.0 L 379.4 118.4 L 411.2 146.1 L 458.8 173.7 L 506.5 187.5 L 562.1 197.2 L 554.1 228.9 L 538.2 256.6 L 516.0 270.4 L 506.5 289.7 L 484.2 306.3 L 452.5 313.2 L 433.4 311.8 L 422.3 317.4 L 401.6 331.2 L 369.9 336.7 L 338.1 347.8 L 315.9 372.6 L 284.1 394.7 L 268.2 433.4 L 252.4 444.5 L 230.1 443.1 L 204.7 436.2 L 179.3 427.9 L 166.6 408.6 L 153.9 392.0 L 134.8 389.2 L 103.1 386.4 L 71.3 383.7 L 52.2 378.2 L 39.5 353.3 L 39.5 318.8 L 45.9 306.3 L 77.6 298.0 L 125.3 295.3 L 157.1 292.5 L 188.8 298.0 L 236.5 289.7 L 252.4 270.4 L 252.4 173.7 L 268.2 90.8 Z';
+
+  // Tracé officiel du Fleuve Niger (Djoliba) traversant le Mali
+  readonly fleuveNigerD: string = 'M 166.6 397.5 Q 170 387 172.9 376.8 T 187.2 371.0 T 228.2 355.2 T 234.2 347.8 T 268.2 333.9 T 294.3 325.9 T 296.8 303.6 T 300.6 286.1 T 319.7 276.8 T 331.8 262.9 T 360.4 259.3 T 382.6 255.7 T 415.9 258.0 T 428.6 276.8 T 442.9 293.6 T 450.9 312.4';
+
+  // Contrôles de zoom et vue sur la carte
+  mapZoom: number = 1;
+  mapViewBox: string = '0 0 600 480';
 
   // 5. Tableau de modération « À valider »
   elementsAValider: ElementModerationDTO[] = [];
@@ -119,6 +135,9 @@ export class DashboardComponent implements OnInit {
         this.activitesRecentes = data.activiteRecente || [];
         this.isLoading = false;
         this.cdr.markForCheck();
+        if (this.modeCarte === 'osm' && isPlatformBrowser(this.platformId)) {
+          setTimeout(() => this.initialiserLeafletMap(), 200);
+        }
       },
       error: (err) => {
         console.error('Erreur chargement dashboard stats :', err);
@@ -227,14 +246,14 @@ export class DashboardComponent implements OnInit {
     const paddingRight = 30;
     const paddingTop = 35;
     const paddingBottom = 45;
-    const chartHeight = 240 - paddingTop - paddingBottom;
+    const chartHeight = 150; // Aligne parfaitement les points à 0 sur l'axe horizontal SVG (y = 35 + 150 = 185)
     const chartWidth = svgWidth - paddingLeft - paddingRight;
 
     // Calcul du maximum pour l'échelle Y
     let maxVal = Math.max(
-      ...rawPoints.map((p) => Math.max(p.pagesVues || p.valeur || 1, p.visiteurs || 1))
+      ...rawPoints.map((p) => Math.max(p.pagesVues ?? p.valeur ?? 0, p.visiteurs ?? 0))
     );
-    if (maxVal <= 0) maxVal = 100;
+    if (maxVal <= 0) maxVal = 10;
     maxVal = Math.ceil(maxVal * 1.15); // marge supérieure 15%
 
     // Calcul des coordonnées X et Y de chaque point
@@ -242,8 +261,8 @@ export class DashboardComponent implements OnInit {
 
     this.chartPoints = rawPoints.map((p, idx) => {
       const x = Math.round(paddingLeft + idx * stepX);
-      const vVisitors = p.visiteurs || Math.round((p.valeur || 10) * 0.4);
-      const vPages = p.pagesVues || p.valeur || Math.round(vVisitors * 2.2);
+      const vVisitors = p.visiteurs ?? p.valeur ?? 0;
+      const vPages = p.pagesVues ?? (vVisitors > 0 ? vVisitors * 3 : 0);
 
       const yVisiteurs = Math.round(paddingTop + chartHeight - (vVisitors / maxVal) * chartHeight);
       const yPagesVues = Math.round(paddingTop + chartHeight - (vPages / maxVal) * chartHeight);
@@ -367,6 +386,172 @@ export class DashboardComponent implements OnInit {
       this.router.navigate(['/validation-evenement', item.id]);
     } else {
       this.router.navigate(['/demandes-partenariat']);
+    }
+  }
+
+  zoomIn(): void {
+    if (this.mapZoom < 2.4) {
+      this.mapZoom = Math.round((this.mapZoom + 0.3) * 10) / 10;
+      this.actualiserViewBox();
+    }
+  }
+
+  zoomOut(): void {
+    if (this.mapZoom > 0.8) {
+      this.mapZoom = Math.round((this.mapZoom - 0.3) * 10) / 10;
+      this.actualiserViewBox();
+    }
+  }
+
+  resetZoom(): void {
+    this.mapZoom = 1;
+    this.mapViewBox = '0 0 600 480';
+  }
+
+  private actualiserViewBox(): void {
+    const w = Math.round(600 / this.mapZoom);
+    const h = Math.round(480 / this.mapZoom);
+    const cx = this.selectedRegion?.x ?? 300;
+    const cy = this.selectedRegion?.y ?? 240;
+    const x = Math.max(0, Math.min(600 - w, Math.round(cx - w / 2)));
+    const y = Math.max(0, Math.min(480 - h, Math.round(cy - h / 2)));
+    this.mapViewBox = `${x} ${y} ${w} ${h}`;
+  }
+
+  ouvrirCarteGps(region?: RegionStatDTO | null): void {
+    if (typeof window === 'undefined') return;
+    const reg = region || this.selectedRegion;
+    const query = reg ? `${reg.chefLieu}, ${reg.nom}, Mali` : 'République du Mali';
+    const url = `https://www.openstreetmap.org/search?query=${encodeURIComponent(query)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+
+  ngAfterViewInit(): void {
+    if (isPlatformBrowser(this.platformId)) {
+      setTimeout(() => this.initialiserLeafletMap(), 250);
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (this.leafletMap) {
+      try {
+        this.leafletMap.remove();
+      } catch {}
+      this.leafletMap = null;
+    }
+  }
+
+  changerModeCarte(mode: 'osm' | 'svg'): void {
+    this.modeCarte = mode;
+    this.cdr.markForCheck();
+    if (mode === 'osm' && isPlatformBrowser(this.platformId)) {
+      setTimeout(() => {
+        if (!this.leafletMap) {
+          this.initialiserLeafletMap();
+        } else {
+          this.leafletMap.invalidateSize();
+        }
+      }, 150);
+    }
+  }
+
+  async initialiserLeafletMap(): Promise<void> {
+    if (!isPlatformBrowser(this.platformId)) return;
+    const mapContainer = document.getElementById('mali-leaflet-map');
+    if (!mapContainer) return;
+
+    if (this.leafletMap) {
+      try {
+        this.leafletMap.remove();
+      } catch {}
+      this.leafletMap = null;
+    }
+
+    try {
+      const L = await import('leaflet');
+
+      this.leafletMap = L.map('mali-leaflet-map', {
+        center: [16.5, -3.5], // Centre géographique de la République du Mali
+        zoom: 5,
+        minZoom: 4,
+        maxZoom: 14,
+        scrollWheelZoom: true
+      });
+
+      // Fond de carte OpenStreetMap officiel haute résolution
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors • République du Mali'
+      }).addTo(this.leafletMap);
+
+      // Tracé royal du Fleuve Niger (Djoliba)
+      const nigerCoords: [number, number][] = [
+        [11.90, -8.20],
+        [12.65, -8.00],
+        [12.86, -7.55],
+        [13.43, -6.26],
+        [13.70, -6.07],
+        [14.20, -5.00],
+        [14.49, -4.18],
+        [15.30, -4.10],
+        [15.93, -3.98],
+        [16.27, -3.38],
+        [16.77, -3.00],
+        [16.90, -2.10],
+        [17.03, -1.40],
+        [16.95, -0.35],
+        [16.27, 0.05],
+        [15.66, 0.50],
+        [14.98, 0.75]
+      ];
+
+      L.polyline(nigerCoords, {
+        color: '#0288D1',
+        weight: 4.5,
+        opacity: 0.88,
+        lineCap: 'round',
+        lineJoin: 'round'
+      }).bindPopup('<b style="color:#0288D1; font-size:13px;">Fleuve Niger (Djoliba)</b><br>Artère fluviale et historique du Mali').addTo(this.leafletMap);
+
+      // Marqueurs interactifs pour chaque pôle régional
+      for (const reg of this.regionsMali) {
+        const lat = reg.lat ?? 12.65;
+        const lng = reg.lng ?? -8.00;
+
+        const marker = L.circleMarker([lat, lng], {
+          radius: reg.actif ? 8.5 : 6,
+          fillColor: reg.actif ? '#0E8F76' : '#94A3B8',
+          color: '#FFFFFF',
+          weight: 2.5,
+          opacity: 1,
+          fillOpacity: 0.95
+        }).addTo(this.leafletMap);
+
+        const statusBadge = reg.actif
+          ? '<span style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:10.5px;font-weight:700;background:#DCFCE7;color:#15803D;">● Région Active</span>'
+          : '<span style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:10.5px;font-weight:700;background:#F1F5F9;color:#64748B;">○ En développement</span>';
+
+        marker.bindPopup(`
+          <div style="font-family: inherit; font-size: 12px; line-height: 1.4;">
+            <strong style="color: #075E4D; font-size: 14px;">${reg.nom}</strong><br>
+            <span style="color: #64748B;">Chef-lieu : <b>${reg.chefLieu}</b></span><br>
+            <div style="margin: 4px 0;">${statusBadge}</div>
+            <div style="margin-top: 6px; border-top: 1px solid #E2E8F0; padding-top: 4px;">
+              Entités culturelles : <b>${reg.totalEntites}</b><br>
+              Lieux historiques : <b>${reg.nombreLieux ?? 0}</b> • Villes : <b>${reg.nombreVilles ?? 0}</b>
+            </div>
+          </div>
+        `);
+
+        marker.on('click', () => {
+          this.selectRegion(reg);
+          this.cdr.markForCheck();
+        });
+      }
+
+      setTimeout(() => this.leafletMap?.invalidateSize(), 300);
+    } catch (err) {
+      console.warn('Initialisation Leaflet reportée :', err);
     }
   }
 

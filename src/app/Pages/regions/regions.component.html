@@ -34,38 +34,35 @@
               <th>Chef-lieu</th>
               <th>Population</th>
               <th>Superficie</th>
+              <th>Coordonnées GPS</th>
               <th style="width: 120px;">Actions</th>
             </tr>
           </thead>
           <tbody>
             @if (isLoading) {
               <tr>
-                <td colspan="6" style="text-align: center; padding: 24px; color: #64748B;">Chargement des régions...</td>
+                <td colspan="7" style="text-align: center; padding: 24px; color: #64748B;">Chargement des régions...</td>
               </tr>
             } @else if (regions.length === 0) {
               <tr>
-                <td colspan="6" style="text-align: center; padding: 24px; color: #64748B;">Aucune région répertoriée.</td>
+                <td colspan="7" style="text-align: center; padding: 24px; color: #64748B;">Aucune région répertoriée.</td>
               </tr>
             } @else {
               @for (region of regions; track region.id ?? region.nom) {
                 <tr>
                   <td>
-                    @if (region.imageUrl) {
-                      <img [src]="region.imageUrl" [alt]="region.nom" class="region-table-thumb" />
-                    } @else {
-                      <div class="region-table-thumb-placeholder">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8B9B95" stroke-width="2">
-                          <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
-                          <line x1="8" y1="2" x2="8" y2="18"></line>
-                          <line x1="16" y1="6" x2="16" y2="22"></line>
-                        </svg>
-                      </div>
-                    }
+                    <img
+                      [src]="getRegionImage(region)"
+                      [alt]="region.nom"
+                      class="region-table-thumb"
+                      (error)="onRegionImageError($event, region)"
+                    />
                   </td>
                   <td><strong>{{ region.nom }}</strong></td>
                   <td>{{ region.chefLieu || '—' }}</td>
-                  <td>{{ region.population || '—' }}</td>
+                  <td>{{ formatPopulation(region) }}</td>
                   <td>{{ region.superficie || '—' }}</td>
+                  <td style="font-size: 12.5px; color: #075E4D; font-weight: 600;">{{ formatCoordinates(region) }}</td>
                   <td>
                     <div class="figma-action-cell">
                       <button type="button" class="figma-icon-btn edit" (click)="onEdit(region)" title="Modifier">
@@ -95,12 +92,12 @@
     <div class="figma-add-header">
       <h2 class="figma-add-title">{{ editingRegionId ? 'Modifier la région' : 'Ajouter une nouvelle région' }}</h2>
       <p class="figma-add-subtitle">
-        Renseignez les données territoriales et téléversez une image authentique et vérifiable vers Supabase Storage pour actualiser la carte MaliExplorer.
+        Renseignez les données territoriales, les coordonnées GPS et téléversez une image authentique vers Supabase Storage pour actualiser la carte MaliExplorer.
       </p>
     </div>
 
     <div class="figma-card">
-      <h3 class="figma-section-title">Informations territoriales</h3>
+      <h3 class="figma-section-title">Informations territoriales & coordonnées GPS</h3>
 
       <div class="form-row">
         <div class="figma-form-group flex-1">
@@ -146,6 +143,36 @@
             class="figma-input"
             placeholder="Ex: 70 280 km²"
             [(ngModel)]="superficie"
+          />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="figma-form-group flex-1">
+          <label class="figma-label" for="latitudeRegion">Latitude GPS (° WGS84)</label>
+          <input
+            id="latitudeRegion"
+            type="number"
+            step="0.0001"
+            min="-90"
+            max="90"
+            class="figma-input"
+            placeholder="Ex: 11.3176"
+            [(ngModel)]="latitude"
+          />
+        </div>
+
+        <div class="figma-form-group flex-1">
+          <label class="figma-label" for="longitudeRegion">Longitude GPS (° WGS84)</label>
+          <input
+            id="longitudeRegion"
+            type="number"
+            step="0.0001"
+            min="-180"
+            max="180"
+            class="figma-input"
+            placeholder="Ex: -5.6665"
+            [(ngModel)]="longitude"
           />
         </div>
       </div>

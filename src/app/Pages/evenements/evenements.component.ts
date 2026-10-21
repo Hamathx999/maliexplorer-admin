@@ -5,6 +5,7 @@ import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs';
 import { EvenementService } from '../../services/evenement.service';
 import { UploadService } from '../../services/upload.service';
+import { DialogService } from '../../services/dialog.service';
 import { Evenement } from '../../models/evenement.model';
 
 @Component({
@@ -17,6 +18,7 @@ import { Evenement } from '../../models/evenement.model';
 export class EvenementsComponent implements OnInit {
   private readonly evenementService = inject(EvenementService);
   private readonly uploadService = inject(UploadService);
+  private readonly dialogService = inject(DialogService);
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
 
@@ -324,20 +326,31 @@ export class EvenementsComponent implements OnInit {
     this.router.navigate(['/validation-evenement', id]);
   }
 
-  deleteEvenement(evt: Evenement): void {
+  async deleteEvenement(evt: Evenement): Promise<void> {
     const evtId = evt?.id ?? (evt as any)?.idEvenement;
     if (!evtId) return;
-    if (confirm(`Confirmez-vous la suppression de l'événement "${evt.titre}" ?`)) {
-      this.evenementService.deleteEvenement(evtId).subscribe({
-        next: () => {
-          this.evenements = this.evenements.filter((e) => (e.id ?? (e as any).idEvenement) !== evtId);
-          this.filterEvenements();
-          this.cdr.detectChanges();
-        },
-        error: () => {
-          this.cdr.detectChanges();
-        }
-      });
-    }
+
+    const confirmed = await this.dialogService.confirm({
+      title: 'Supprimer l\'événement',
+      message: `Confirmez-vous la suppression de l'événement "${evt.titre}" ? Cette action est irréversible.`,
+      confirmText: 'Supprimer définitivement',
+      cancelText: 'Annuler',
+      type: 'danger'
+    });
+
+    if (!confirmed) return;
+
+    this.evenementService.deleteEvenement(evtId).subscribe({
+      next: () => {
+        this.evenements = this.evenements.filter((e) => (e.id ?? (e as any).idEvenement) !== evtId);
+        this.filterEvenements();
+        this.dialogService.toastSuccess(`Événement "${evt.titre}" supprimé.`);
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.dialogService.toastError('Erreur lors de la suppression de l\'événement.');
+        this.cdr.detectChanges();
+      }
+    });
   }
 }

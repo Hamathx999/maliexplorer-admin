@@ -100,6 +100,9 @@ export interface RegionStatDTO {
   nombreLieux?: number;
   /** Nombre d'événements programmés dans la région */
   nombreEvenements?: number;
+  svgPath?: string;
+  lat?: number;
+  lng?: number;
 }
 
 export interface StatistiquesRegionalesDTO {

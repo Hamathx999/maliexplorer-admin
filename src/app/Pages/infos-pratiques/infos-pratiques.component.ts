@@ -5,6 +5,7 @@ import { Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs';
 import { InfoPratiqueService } from '../../services/info-pratique.service';
 import { UploadService } from '../../services/upload.service';
+import { DialogService } from '../../services/dialog.service';
 import { InfoPratique } from '../../models/info-pratique.model';
 
 /**
@@ -22,6 +23,7 @@ import { InfoPratique } from '../../models/info-pratique.model';
 export class InfosPratiquesComponent implements OnInit {
   private readonly infoService = inject(InfoPratiqueService);
   private readonly uploadService = inject(UploadService);
+  private readonly dialogService = inject(DialogService);
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
 
@@ -211,21 +213,29 @@ export class InfosPratiquesComponent implements OnInit {
   /**
    * Supprime une fiche pratique.
    */
-  onDelete(info: InfoPratique): void {
+  async onDelete(info: InfoPratique): Promise<void> {
     const id = info.id;
     if (!id) return;
 
-    if (window.confirm(`Confirmez-vous la suppression de la rubrique "${info.titre}" ?`)) {
-      this.infoService.deleteInfoPratique(id).subscribe({
-        next: () => {
-          this.showNotification(`Rubrique "${info.titre}" supprimée.`);
-          this.loadInfos();
-        },
-        error: () => {
-          this.showNotification('Erreur lors de la suppression.', true);
-        }
-      });
-    }
+    const confirmed = await this.dialogService.confirm({
+      title: 'Supprimer la rubrique pratique',
+      message: `Confirmez-vous la suppression de la rubrique "${info.titre}" ? Cette action est irréversible.`,
+      confirmText: 'Supprimer définitivement',
+      cancelText: 'Annuler',
+      type: 'danger'
+    });
+
+    if (!confirmed) return;
+
+    this.infoService.deleteInfoPratique(id).subscribe({
+      next: () => {
+        this.dialogService.toastSuccess(`Rubrique "${info.titre}" supprimée.`);
+        this.loadInfos();
+      },
+      error: () => {
+        this.dialogService.toastError('Erreur lors de la suppression.');
+      }
+    });
   }
 
   /**

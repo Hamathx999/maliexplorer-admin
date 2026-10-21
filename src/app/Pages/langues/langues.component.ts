@@ -5,6 +5,7 @@ import { Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs';
 import { LangueService } from '../../services/langue.service';
 import { UploadService } from '../../services/upload.service';
+import { DialogService } from '../../services/dialog.service';
 import { LangueNationale, LexiqueItem } from '../../models/langue.model';
 
 /**
@@ -22,6 +23,7 @@ import { LangueNationale, LexiqueItem } from '../../models/langue.model';
 export class LanguesComponent implements OnInit {
   private readonly langueService = inject(LangueService);
   private readonly uploadService = inject(UploadService);
+  private readonly dialogService = inject(DialogService);
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
 
@@ -187,21 +189,29 @@ export class LanguesComponent implements OnInit {
   /**
    * Supprime une langue nationale après confirmation.
    */
-  onDelete(langue: LangueNationale): void {
+  async onDelete(langue: LangueNationale): Promise<void> {
     const id = langue.id;
     if (!id) return;
 
-    if (window.confirm(`Confirmez-vous la suppression de la langue "${langue.nom}" ? Cette action est irréversible.`)) {
-      this.langueService.deleteLangue(id).subscribe({
-        next: () => {
-          this.showNotification(`Langue "${langue.nom}" supprimée.`);
-          this.loadLangues();
-        },
-        error: () => {
-          this.showNotification('Erreur lors de la suppression.', true);
-        }
-      });
-    }
+    const confirmed = await this.dialogService.confirm({
+      title: 'Supprimer la langue nationale',
+      message: `Confirmez-vous la suppression de la langue "${langue.nom}" ? Cette action est irréversible.`,
+      confirmText: 'Supprimer définitivement',
+      cancelText: 'Annuler',
+      type: 'danger'
+    });
+
+    if (!confirmed) return;
+
+    this.langueService.deleteLangue(id).subscribe({
+      next: () => {
+        this.dialogService.toastSuccess(`Langue "${langue.nom}" supprimée.`);
+        this.loadLangues();
+      },
+      error: () => {
+        this.dialogService.toastError('Erreur lors de la suppression.');
+      }
+    });
   }
 
   /**

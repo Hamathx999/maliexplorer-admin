@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { ModerationPartenaireService } from '../../services/moderation-partenaire.service';
+import { DialogService } from '../../services/dialog.service';
 import { OpportuniteResponseDTO } from '../../models/partenaire.model';
 
 /**
@@ -19,6 +20,7 @@ import { OpportuniteResponseDTO } from '../../models/partenaire.model';
 })
 export class DemandesPartenariatComponent implements OnInit {
   private readonly moderationService = inject(ModerationPartenaireService);
+  private readonly dialogService = inject(DialogService);
   private readonly cdr = inject(ChangeDetectorRef);
 
   // Onglet actif : 'EN_ATTENTE' | 'VALIDE' | 'REJETE'
@@ -145,13 +147,20 @@ export class DemandesPartenariatComponent implements OnInit {
   /**
    * Valide directement une demande de partenariat.
    */
-  validerDossier(demande: OpportuniteResponseDTO, event?: Event): void {
+  async validerDossier(demande: OpportuniteResponseDTO, event?: Event): Promise<void> {
     if (event) {
       event.stopPropagation();
     }
 
-    const confirmMsg = `Confirmez-vous la validation officielle du dossier de partenariat de « ${demande.nomComplet} » ?`;
-    if (!confirm(confirmMsg)) return;
+    const confirmed = await this.dialogService.confirm({
+      title: 'Validation de partenariat',
+      message: `Confirmez-vous la validation officielle du dossier de partenariat de « ${demande.nomComplet} » ?`,
+      confirmText: 'Valider officiellement',
+      cancelText: 'Annuler',
+      type: 'success'
+    });
+
+    if (!confirmed) return;
 
     this.isSubmittingAction = true;
     this.moderationService.validerDemande(demande.idUsers).subscribe({
@@ -171,7 +180,7 @@ export class DemandesPartenariatComponent implements OnInit {
           this.fermerModalDetails();
         }
 
-        this.afficherToast(`Le dossier de « ${demande.nomComplet} » a été validé avec succès !`, 'success');
+        this.dialogService.toastSuccess(`Le dossier de « ${demande.nomComplet} » a été validé avec succès !`);
         this.appliquerFiltres();
         this.cdr.detectChanges();
       },
@@ -181,8 +190,10 @@ export class DemandesPartenariatComponent implements OnInit {
         this.demandesEnAttente = this.demandesEnAttente.filter((d) => d.idUsers !== demande.idUsers);
         this.demandesValidees.unshift({ ...demande, statutModeration: 'VALIDE' });
         this.isSubmittingAction = false;
-        if (this.isDetailsModalOpen) this.fermerModalDetails();
-        this.afficherToast(`Dossier validé localement.`, 'success');
+        if (this.isDetailsModalOpen) {
+          this.fermerModalDetails();
+        }
+        this.dialogService.toastSuccess(`Dossier de « ${demande.nomComplet} » validé.`);
         this.appliquerFiltres();
         this.cdr.detectChanges();
       }

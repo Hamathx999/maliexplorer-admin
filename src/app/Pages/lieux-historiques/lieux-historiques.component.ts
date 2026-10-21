@@ -8,6 +8,7 @@ import { LieuHistoriqueService } from '../../services/lieu-historique.service';
 import { VilleService } from '../../services/ville.service';
 import { AuthService } from '../../services/auth.service';
 import { UploadService } from '../../services/upload.service';
+import { DialogService } from '../../services/dialog.service';
 import { LieuHistorique } from '../../models/lieu-historique.model';
 import { Ville } from '../../models/ville.model';
 
@@ -24,6 +25,7 @@ export class LieuxHistoriquesComponent implements OnInit {
   private readonly villeService = inject(VilleService);
   private readonly authService = inject(AuthService);
   private readonly uploadService = inject(UploadService);
+  private readonly dialogService = inject(DialogService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
@@ -416,24 +418,33 @@ export class LieuxHistoriquesComponent implements OnInit {
     }
   }
 
-  deleteLieu(lieu: LieuHistorique): void {
+  async deleteLieu(lieu: LieuHistorique): Promise<void> {
     const idToDelete = lieu.idLieu || lieu.id;
     if (!idToDelete) return;
 
     const nom = lieu.nom || lieu.nomLieuHisto || 'ce lieu';
-    if (confirm(`Confirmez-vous la suppression de "${nom}" ?`)) {
-      this.lieuService.deleteLieu(idToDelete).subscribe({
-        next: () => {
-          this.lieux = this.lieux.filter((l) => l.id !== idToDelete && l.idLieu !== idToDelete);
-          this.filterLieux();
-          this.cdr.detectChanges();
-        },
-        error: (err: HttpErrorResponse) => {
-          this.cdr.detectChanges();
-          this.handleHttpError(err, 'suppression');
-        }
-      });
-    }
+    const confirmed = await this.dialogService.confirm({
+      title: 'Supprimer le lieu historique',
+      message: `Confirmez-vous la suppression de "${nom}" ? Cette action est irréversible.`,
+      confirmText: 'Supprimer définitivement',
+      cancelText: 'Annuler',
+      type: 'danger'
+    });
+
+    if (!confirmed) return;
+
+    this.lieuService.deleteLieu(idToDelete).subscribe({
+      next: () => {
+        this.lieux = this.lieux.filter((l) => l.id !== idToDelete && l.idLieu !== idToDelete);
+        this.filterLieux();
+        this.dialogService.toastSuccess(`Lieu historique "${nom}" supprimé.`);
+        this.cdr.detectChanges();
+      },
+      error: (err: HttpErrorResponse) => {
+        this.cdr.detectChanges();
+        this.handleHttpError(err, 'suppression');
+      }
+    });
   }
 
   private handleHttpError(err: HttpErrorResponse, action: string): void {

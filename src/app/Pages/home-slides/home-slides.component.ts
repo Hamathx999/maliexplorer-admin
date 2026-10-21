@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { HomeSlideService } from '../../services/home-slide.service';
 import { UploadService } from '../../services/upload.service';
+import { DialogService } from '../../services/dialog.service';
 import { HomeSlide } from '../../models/home-slide.model';
 
 @Component({
@@ -16,6 +17,7 @@ import { HomeSlide } from '../../models/home-slide.model';
 export class HomeSlidesComponent implements OnInit {
   private readonly slideService = inject(HomeSlideService);
   private readonly uploadService = inject(UploadService);
+  private readonly dialogService = inject(DialogService);
   private readonly cdr = inject(ChangeDetectorRef);
 
   slides: HomeSlide[] = [];
@@ -242,17 +244,26 @@ export class HomeSlidesComponent implements OnInit {
     });
   }
 
-  onDelete(slide: HomeSlide): void {
+  async onDelete(slide: HomeSlide): Promise<void> {
     if (!slide.id) return;
-    if (confirm(`Supprimer la diapositive "${slide.titre}" ?`)) {
-      this.slideService.deleteSlide(slide.id).subscribe({
-        next: () => {
-          this.showNotification('Diapositive supprimée.');
-          this.loadSlides();
-        },
-        error: () => this.showNotification('Erreur de suppression.', true)
-      });
-    }
+
+    const confirmed = await this.dialogService.confirm({
+      title: 'Supprimer la diapositive',
+      message: `Supprimer la diapositive "${slide.titre}" ? Cette action est irréversible.`,
+      confirmText: 'Supprimer définitivement',
+      cancelText: 'Annuler',
+      type: 'danger'
+    });
+
+    if (!confirmed) return;
+
+    this.slideService.deleteSlide(slide.id).subscribe({
+      next: () => {
+        this.dialogService.toastSuccess('Diapositive supprimée.');
+        this.loadSlides();
+      },
+      error: () => this.dialogService.toastError('Erreur de suppression.')
+    });
   }
 
   showNotification(msg: string, isError: boolean = false): void {

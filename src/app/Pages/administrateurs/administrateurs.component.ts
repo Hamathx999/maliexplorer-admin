@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { AdministrateurService } from '../../services/administrateur.service';
 import { AuthService } from '../../services/auth.service';
 import { UploadService } from '../../services/upload.service';
+import { DialogService } from '../../services/dialog.service';
 import { Administrateur } from '../../models/administrateur.model';
 
 @Component({
@@ -17,6 +18,7 @@ export class AdministrateursComponent implements OnInit {
   private readonly adminService = inject(AdministrateurService);
   readonly authService = inject(AuthService);
   private readonly uploadService = inject(UploadService);
+  private readonly dialogService = inject(DialogService);
   private readonly cdr = inject(ChangeDetectorRef);
 
   administrateurs: Administrateur[] = [];
@@ -210,41 +212,53 @@ export class AdministrateursComponent implements OnInit {
     }
   }
 
-  toggleBlock(admin: Administrateur): void {
+  async toggleBlock(admin: Administrateur): Promise<void> {
     const actionLabel = admin.statut === 'ACTIF' ? 'bloquer' : 'activer';
-    if (!confirm(`Voulez-vous vraiment ${actionLabel} le compte de ${admin.prenom} ${admin.nom} ?`)) {
-      return;
-    }
+    const confirmed = await this.dialogService.confirm({
+      title: `${admin.statut === 'ACTIF' ? 'Bloquer' : 'Activer'} l'administrateur`,
+      message: `Voulez-vous vraiment ${actionLabel} le compte de ${admin.prenom} ${admin.nom} ?`,
+      confirmText: admin.statut === 'ACTIF' ? 'Bloquer' : 'Activer',
+      cancelText: 'Annuler',
+      type: admin.statut === 'ACTIF' ? 'warning' : 'success'
+    });
+
+    if (!confirmed) return;
 
     this.adminService.toggleBlock(admin).subscribe({
       next: () => {
-        this.showNotification(`Statut de ${admin.prenom} ${admin.nom} mis à jour.`, 'success');
+        this.dialogService.toastSuccess(`Statut de ${admin.prenom} ${admin.nom} mis à jour.`);
         this.loadAdmins();
       },
       error: () => {
-        this.showNotification('Erreur lors du changement de statut.', 'error');
+        this.dialogService.toastError('Erreur lors du changement de statut.');
       }
     });
   }
 
-  deleteAdmin(admin: Administrateur): void {
+  async deleteAdmin(admin: Administrateur): Promise<void> {
     const current = this.authService.currentUser();
     if (current && current.email === admin.email) {
-      this.showNotification('Vous ne pouvez pas supprimer votre propre compte administrateur !', 'error');
+      this.dialogService.toastError('Vous ne pouvez pas supprimer votre propre compte administrateur !');
       return;
     }
 
-    if (!confirm(`Attention : Voulez-vous définitivement révoquer le compte administrateur de ${admin.prenom} ${admin.nom} (${admin.email}) ?`)) {
-      return;
-    }
+    const confirmed = await this.dialogService.confirm({
+      title: 'Révoquer l\'administrateur',
+      message: `Attention : Voulez-vous définitivement révoquer le compte administrateur de ${admin.prenom} ${admin.nom} (${admin.email}) ? Cette action est irréversible.`,
+      confirmText: 'Révoquer définitivement',
+      cancelText: 'Annuler',
+      type: 'danger'
+    });
+
+    if (!confirmed) return;
 
     this.adminService.delete(admin.idUsers!).subscribe({
       next: () => {
-        this.showNotification(`Administrateur ${admin.prenom} ${admin.nom} révoqué.`, 'success');
+        this.dialogService.toastSuccess(`Administrateur ${admin.prenom} ${admin.nom} révoqué.`);
         this.loadAdmins();
       },
       error: (err) => {
-        this.showNotification(err?.error?.message || 'Erreur lors de la suppression.', 'error');
+        this.dialogService.toastError(err?.error?.message || 'Erreur lors de la suppression.');
       }
     });
   }

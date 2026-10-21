@@ -5,6 +5,7 @@ import { Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs';
 import { EthnieService } from '../../services/ethnie.service';
 import { UploadService } from '../../services/upload.service';
+import { DialogService } from '../../services/dialog.service';
 import { Ethnie } from '../../models/ethnie.model';
 import { splitImageUrls } from '../../utils/image-url.util';
 
@@ -18,6 +19,7 @@ import { splitImageUrls } from '../../utils/image-url.util';
 export class EthniesComponent implements OnInit {
   private readonly ethnieService = inject(EthnieService);
   private readonly uploadService = inject(UploadService);
+  private readonly dialogService = inject(DialogService);
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
 
@@ -266,22 +268,32 @@ export class EthniesComponent implements OnInit {
     this.cdr.detectChanges();
   }
 
-  onDelete(ethnie: Ethnie): void {
+  async onDelete(ethnie: Ethnie): Promise<void> {
     const ethnieId = ethnie.id ?? (ethnie as any).idEthnie;
     if (!ethnieId) return;
-    if (window.confirm(`Supprimer l'ethnie "${ethnie.nom || (ethnie as any).nomEthnie}" ?`)) {
-      this.ethnieService.deleteEthnie(ethnieId).subscribe({
-        next: () => {
-          this.showNotification(`Ethnie "${ethnie.nom || (ethnie as any).nomEthnie}" supprimée.`);
-          this.loadEthnies();
-          this.cdr.detectChanges();
-        },
-        error: () => {
-          this.showNotification('Erreur de suppression.', true);
-          this.cdr.detectChanges();
-        }
-      });
-    }
+
+    const nomEthnie = ethnie.nom || (ethnie as any).nomEthnie || '';
+    const confirmed = await this.dialogService.confirm({
+      title: 'Supprimer l\'ethnie',
+      message: `Voulez-vous vraiment supprimer l'ethnie "${nomEthnie}" ? Cette action est irréversible.`,
+      confirmText: 'Supprimer définitivement',
+      cancelText: 'Annuler',
+      type: 'danger'
+    });
+
+    if (!confirmed) return;
+
+    this.ethnieService.deleteEthnie(ethnieId).subscribe({
+      next: () => {
+        this.dialogService.toastSuccess(`Ethnie "${nomEthnie}" supprimée.`);
+        this.loadEthnies();
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.dialogService.toastError('Erreur de suppression.');
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   resetForm(): void {

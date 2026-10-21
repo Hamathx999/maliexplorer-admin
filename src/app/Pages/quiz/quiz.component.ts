@@ -6,6 +6,7 @@ import { filter, forkJoin, of } from 'rxjs';
 import { QuizService } from '../../services/quiz.service';
 import { QuestionService } from '../../services/question.service';
 import { UploadService } from '../../services/upload.service';
+import { DialogService } from '../../services/dialog.service';
 import { Quiz } from '../../models/quiz.model';
 import { Question } from '../../models/question.model';
 
@@ -20,6 +21,7 @@ export class QuizComponent implements OnInit {
   private readonly quizService = inject(QuizService);
   private readonly questionService = inject(QuestionService);
   private readonly uploadService = inject(UploadService);
+  private readonly dialogService = inject(DialogService);
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
 
@@ -479,13 +481,19 @@ export class QuizComponent implements OnInit {
     }
   }
 
-  deleteQuestionInQuiz(index: number): void {
+  async deleteQuestionInQuiz(index: number): Promise<void> {
     const q = this.quizQuestions[index];
     if (!q) return;
 
-    if (!confirm(`Confirmez-vous la suppression de la question "${q.question}" ?`)) {
-      return;
-    }
+    const confirmed = await this.dialogService.confirm({
+      title: 'Supprimer la question',
+      message: `Confirmez-vous la suppression de la question "${q.question}" ?`,
+      confirmText: 'Supprimer',
+      cancelText: 'Annuler',
+      type: 'danger'
+    });
+
+    if (!confirmed) return;
 
     const qId = q.id ?? q.idQuestion;
     const editingQuizId = this.editingQuiz?.id ?? (this.editingQuiz as any)?.idQuiz;
@@ -496,16 +504,18 @@ export class QuizComponent implements OnInit {
           this.quizQuestions.splice(index, 1);
           this.formData.nombreQuestions = this.quizQuestions.length;
           this.questionsCountMap[String(editingQuizId)] = this.quizQuestions.length;
+          this.dialogService.toastSuccess('Question supprimée avec succès.');
           this.cdr.markForCheck();
         },
         error: (err) => {
           console.error('Erreur suppression question :', err);
-          alert('Impossible de supprimer cette question.');
+          this.dialogService.toastError('Impossible de supprimer cette question.');
         }
       });
     } else {
       this.quizQuestions.splice(index, 1);
       this.formData.nombreQuestions = this.quizQuestions.length;
+      this.dialogService.toastSuccess('Question retirée du quiz.');
       this.cdr.markForCheck();
     }
   }
@@ -631,20 +641,30 @@ export class QuizComponent implements OnInit {
     }
   }
 
-  deleteQuiz(quiz: Quiz): void {
+  async deleteQuiz(quiz: Quiz): Promise<void> {
     const id = quiz.id ?? (quiz as any).idQuiz;
     if (!id) return;
-    if (confirm(`Confirmez-vous la suppression du quiz "${quiz.nomQuiz}" et de ses questions associées ?`)) {
-      this.quizService.deleteQuiz(id).subscribe({
-        next: () => {
-          this.quizList = this.quizList.filter((q) => String(q.id ?? (q as any).idQuiz) !== String(id));
-          this.filterQuiz();
-        },
-        error: (err) => {
-          console.error('Erreur suppression quiz:', err);
-          alert('Impossible de supprimer ce quiz : ' + (err?.error?.message || err.message));
-        }
-      });
-    }
+
+    const confirmed = await this.dialogService.confirm({
+      title: 'Supprimer le quiz',
+      message: `Confirmez-vous la suppression du quiz "${quiz.nomQuiz}" et de toutes ses questions associées ? Cette action est irréversible.`,
+      confirmText: 'Supprimer définitivement',
+      cancelText: 'Annuler',
+      type: 'danger'
+    });
+
+    if (!confirmed) return;
+
+    this.quizService.deleteQuiz(id).subscribe({
+      next: () => {
+        this.quizList = this.quizList.filter((q) => String(q.id ?? (q as any).idQuiz) !== String(id));
+        this.filterQuiz();
+        this.dialogService.toastSuccess(`Quiz "${quiz.nomQuiz}" supprimé avec succès.`);
+      },
+      error: (err) => {
+        console.error('Erreur suppression quiz:', err);
+        this.dialogService.toastError('Impossible de supprimer ce quiz : ' + (err?.error?.message || err.message));
+      }
+    });
   }
 }
