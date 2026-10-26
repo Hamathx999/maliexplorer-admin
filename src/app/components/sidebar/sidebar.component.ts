@@ -117,7 +117,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
       items: [
         { label: 'Partenaires', route: '/partenaires', icon: 'handshake' },
         {
-          label: 'Demandes de partenariat',
+          label: 'Validations & Candidatures',
           route: '/demandes-partenariat',
           icon: 'clipboard',
           hasPartnershipBadge: true
@@ -299,7 +299,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
   getItemTooltip(item: NavItem): string {
     if (item.hasPartnershipBadge && this.pendingPartnershipCount() > 0) {
       const count = this.pendingPartnershipCount();
-      return `${item.label} (${count} demande${count > 1 ? 's' : ''} en attente)`;
+      return `${item.label} (${count} candidature${count > 1 ? 's' : ''} en attente)`;
     }
     return item.label;
   }

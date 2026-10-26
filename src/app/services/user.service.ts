@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of, catchError, map } from 'rxjs';
+import { Observable, map, throwError, catchError } from 'rxjs';
 import { User } from '../models/user.model';
 import { environment } from '../../environments/environment';
 
@@ -11,38 +11,27 @@ export class UserService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = `${environment.apiUrl}/utilisateurs`;
 
-  private readonly STORAGE_KEY = 'maliexplorer_users_custom';
-
-  private getLocalUsers(): User[] {
-    try {
-      const stored = localStorage.getItem(this.STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) return parsed;
+  constructor() {
+    // Purge de sécurité de l'ancien cache local obsolète
+    if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+      try {
+        localStorage.removeItem('maliexplorer_users_custom');
+      } catch (e) {
+        console.warn('Impossible de nettoyer le cache obsolète des utilisateurs', e);
       }
-    } catch (e) {
-      console.warn('Erreur lecture localStorage utilisateurs', e);
-    }
-    return [];
-  }
-
-  private saveLocalUsers(users: User[]): void {
-    try {
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(users));
-    } catch (e) {
-      console.warn('Erreur écriture localStorage utilisateurs', e);
     }
   }
 
   private mapRoleFromBackend(role: any): string {
-    if (!role) return 'Visiteur';
+    if (!role) return 'Explorateur';
     const r = String(role).toUpperCase();
-    if (r.includes('ADMIN')) return 'Administrateur';
+    if (r.includes('SUPER') || r.includes('ADMIN')) return 'Administrateur';
     if (r.includes('GUIDE')) return 'Guide Local';
     if (r.includes('EXPLORATEUR') || r.includes('TOURISTE')) return 'Explorateur';
     if (r.includes('PROMOTEUR')) return 'Promoteur';
     if (r.includes('PARTENAIRE')) return 'Partenaire';
-    return 'Visiteur';
+    if (r.includes('INVESTISSEUR')) return 'Investisseur';
+    return String(role);
   }
 
   private mapUser(dto: any): User {
@@ -54,7 +43,7 @@ export class UserService {
           dateStr = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }).format(d);
         }
       } catch {
-        dateStr = 'Récemment inscrit';
+        dateStr = '';
       }
     }
 
@@ -68,21 +57,21 @@ export class UserService {
       role: this.mapRoleFromBackend(dto.role),
       statut: dto.statut || 'ACTIF',
       points: typeof dto.points === 'number' ? dto.points : 0,
-      photoUrl: dto.photoUrl,
-      pieceIdentite: dto.pieceIdentite,
-      nomOrganisation: dto.nomOrganisation,
-      adresseOrganisation: dto.adresseOrganisation,
-      piecesJustificatifs: dto.piecesJustificatifs,
-      photoPieceOrganisation: dto.photoPieceOrganisation,
-      nomEvenement: dto.nomEvenement,
-      dateEvenement: dto.dateEvenement,
-      descriptionEvenement: dto.descriptionEvenement,
-      photosEvenement: dto.photosEvenement,
-      langues: dto.langues || dto.langue,
-      experience: dto.experience,
-      description: dto.description || dto.descriptionEvenement,
-      statutModeration: dto.statutModeration,
-      dateInscription: dateStr || 'Récemment inscrit'
+      photoUrl: dto.photoUrl || '',
+      pieceIdentite: dto.pieceIdentite || '',
+      nomOrganisation: dto.nomOrganisation || '',
+      adresseOrganisation: dto.adresseOrganisation || '',
+      piecesJustificatifs: dto.piecesJustificatifs || '',
+      photoPieceOrganisation: dto.photoPieceOrganisation || '',
+      nomEvenement: dto.nomEvenement || '',
+      dateEvenement: dto.dateEvenement || '',
+      descriptionEvenement: dto.descriptionEvenement || '',
+      photosEvenement: Array.isArray(dto.photosEvenement) ? dto.photosEvenement : [],
+      langues: dto.langues || dto.langue || '',
+      experience: typeof dto.experience === 'number' ? dto.experience : undefined,
+      description: dto.description || dto.descriptionEvenement || '',
+      statutModeration: dto.statutModeration || '',
+      dateInscription: dateStr || ''
     };
   }
 
@@ -95,18 +84,18 @@ export class UserService {
         return [];
       }),
       catchError((error) => {
-        console.warn('API Spring Boot non disponible pour les utilisateurs, utilisation du stockage local :', error);
-        return of(this.getLocalUsers());
+        console.error('Erreur lors de la récupération des utilisateurs depuis le backend :', error);
+        return throwError(() => error);
       })
     );
   }
 
   getUserById(id: number | string): Observable<User> {
     return this.http.get<any>(`${this.apiUrl}/${id}`).pipe(
-      catchError(() => {
-        const local = this.getLocalUsers();
-        const found = local.find((u) => String(u.id) === String(id));
-        return of(found ? this.mapUser(found) : { id, nom: 'Utilisateur', email: 'user@example.com' });
+      map((dto) => this.mapUser(dto)),
+      catchError((error) => {
+        console.error(`Erreur lors de la récupération de l'utilisateur ${id} :`, error);
+        return throwError(() => error);
       })
     );
   }
@@ -124,10 +113,9 @@ export class UserService {
   }
 
   createUser(user: User): Observable<User> {
-    const todayStr = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date());
     const payload = {
       nom: user.nom?.trim() || '',
-      prenom: user.prenom?.trim() || user.nom?.trim() || 'Utilisateur',
+      prenom: user.prenom?.trim() || user.nom?.trim() || '',
       email: user.email?.trim() || '',
       telephone: user.telephone?.trim() || '',
       adresse: user.adresse?.trim() || '',
@@ -136,28 +124,21 @@ export class UserService {
       nomOrganisation: user.nomOrganisation?.trim() || '',
       role: this.mapRoleToBackend(user.role),
       statut: user.statut || 'ACTIF',
-      points: user.points ?? 0
+      points: user.points ?? 0,
+      langues: user.langues?.trim() || 'Français, Bambara',
+      experience: user.experience ?? 1,
+      description: user.description?.trim() || '',
+      nomEvenement: user.nomEvenement?.trim() || '',
+      dateEvenement: user.dateEvenement?.trim() || '',
+      descriptionEvenement: user.descriptionEvenement?.trim() || '',
+      photosEvenement: user.photosEvenement || []
     };
 
     return this.http.post<any>(this.apiUrl, payload).pipe(
-      map((res) => {
-        const mapped = this.mapUser(res);
-        const current = this.getLocalUsers();
-        current.unshift(mapped);
-        this.saveLocalUsers(current);
-        return mapped;
-      }),
+      map((res) => this.mapUser(res)),
       catchError((error) => {
-        console.warn('API Spring Boot non joignable, enregistrement local utilisateur :', error);
-        const newUser: User = {
-          ...user,
-          id: Date.now(),
-          dateInscription: todayStr
-        };
-        const current = this.getLocalUsers();
-        current.unshift(newUser);
-        this.saveLocalUsers(current);
-        return of(newUser);
+        console.error('Erreur lors de la création de l\'utilisateur sur le backend :', error);
+        return throwError(() => error);
       })
     );
   }
@@ -165,7 +146,7 @@ export class UserService {
   updateUser(id: number | string, user: User): Observable<User> {
     const payload = {
       nom: user.nom?.trim() || '',
-      prenom: user.prenom?.trim() || user.nom?.trim() || 'Utilisateur',
+      prenom: user.prenom?.trim() || user.nom?.trim() || '',
       email: user.email?.trim() || '',
       telephone: user.telephone?.trim() || '',
       adresse: user.adresse?.trim() || '',
@@ -174,29 +155,21 @@ export class UserService {
       nomOrganisation: user.nomOrganisation?.trim() || '',
       role: this.mapRoleToBackend(user.role),
       statut: user.statut || 'ACTIF',
-      points: user.points ?? 0
+      points: user.points ?? 0,
+      langues: user.langues?.trim() || 'Français, Bambara',
+      experience: user.experience ?? 1,
+      description: user.description?.trim() || '',
+      nomEvenement: user.nomEvenement?.trim() || '',
+      dateEvenement: user.dateEvenement?.trim() || '',
+      descriptionEvenement: user.descriptionEvenement?.trim() || '',
+      photosEvenement: user.photosEvenement || []
     };
 
     return this.http.put<any>(`${this.apiUrl}/${id}`, payload).pipe(
-      map((res) => {
-        const mapped = this.mapUser(res);
-        const current = this.getLocalUsers();
-        const index = current.findIndex((u) => String(u.id) === String(id));
-        if (index !== -1) {
-          current[index] = mapped;
-          this.saveLocalUsers(current);
-        }
-        return mapped;
-      }),
+      map((res) => this.mapUser(res)),
       catchError((error) => {
-        console.warn('API Spring Boot non joignable, mise à jour locale utilisateur :', error);
-        const current = this.getLocalUsers();
-        const index = current.findIndex((u) => String(u.id) === String(id));
-        if (index !== -1) {
-          current[index] = { ...current[index], ...user, id };
-          this.saveLocalUsers(current);
-        }
-        return of({ ...user, id });
+        console.error(`Erreur lors de la mise à jour de l'utilisateur ${id} sur le backend :`, error);
+        return throwError(() => error);
       })
     );
   }
@@ -204,23 +177,19 @@ export class UserService {
   deleteUser(id: number | string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`).pipe(
       catchError((error) => {
-        console.warn('API Spring Boot non joignable, suppression locale utilisateur :', error);
-        const current = this.getLocalUsers().filter((u) => String(u.id) !== String(id));
-        this.saveLocalUsers(current);
-        return of(void 0);
+        console.error(`Erreur lors de la suppression de l'utilisateur ${id} sur le backend :`, error);
+        return throwError(() => error);
       })
     );
   }
 
   toggleBlockUser(id: number | string): Observable<User> {
-    const current = this.getLocalUsers();
-    const found = current.find((u) => String(u.id) === String(id));
-    if (found) {
-      found.statut = found.statut === 'ACTIF' ? 'BLOQUE' : 'ACTIF';
-      this.saveLocalUsers(current);
-    }
     return this.http.patch<any>(`${this.apiUrl}/${id}/toggle-status`, {}).pipe(
-      catchError(() => of(found!))
+      map((res) => this.mapUser(res)),
+      catchError((error) => {
+        console.error(`Erreur lors du basculement du statut de l'utilisateur ${id} sur le backend :`, error);
+        return throwError(() => error);
+      })
     );
   }
 }

@@ -53,7 +53,9 @@ export class App {
         }
       }
 
-      // 2. Nettoyage des caches localStorage d'images potentiellement tronqués
+      // 2. Nettoyage des caches localStorage obsolètes ou corrompus
+      localStorage.removeItem('maliexplorer_users_custom');
+
       const cacheKeys = [
         'maliexplorer_villes_custom',
         'maliexplorer_plats_custom',

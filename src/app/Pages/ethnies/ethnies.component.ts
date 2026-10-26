@@ -197,11 +197,7 @@ export class EthniesComponent implements OnInit {
 
     this.isSubmitting = true;
 
-    const defaultEthnieImage = 'https://dzhqwkpwaljqsjwoqvso.supabase.co/storage/v1/object/public/maliexplorer-media/ethnies/db279909-85b5-4af8-844c-b6bc74ce4337_A_Visit_to_the_Dogon_Tribe_High_in_the_Bandiagara___Travel_Photographs_By_Rosemary_Sheel.jpg';
-    let primaryUrl = this.images.length > 0 ? this.images[0] : (this.imageUrl || '').trim();
-    if (!primaryUrl) {
-      primaryUrl = defaultEthnieImage;
-    }
+    const primaryUrl = this.images.length > 0 ? this.images[0] : (this.imageUrl || '').trim();
 
     const payload: Ethnie = {
       nom: nomStr,
@@ -209,7 +205,7 @@ export class EthniesComponent implements OnInit {
       region: (this.region || '').trim(),
       population: (this.population || '').trim(),
       imageUrl: primaryUrl,
-      images: this.images.length > 0 ? this.images : [primaryUrl],
+      images: this.images.length > 0 ? this.images : (primaryUrl ? [primaryUrl] : []),
       description: (this.description || '').trim()
     };
 

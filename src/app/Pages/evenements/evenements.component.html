@@ -28,7 +28,7 @@
           <tbody>
             @if (filteredEvenements.length === 0) {
               <tr>
-                <td colspan="5" style="text-align: center; padding: 24px; color: #64748B;">Aucun événement trouvé.</td>
+                <td colspan="5" style="text-align: center; padding: 24px; color: #64748B;">Aucun événement publié pour le moment.</td>
               </tr>
             } @else {
               @for (evt of filteredEvenements; track evt.id ?? evt.titre) {
@@ -110,22 +110,22 @@
 
         <div class="figma-form-group">
           <label class="figma-label">Date de début *</label>
-          <input type="text" class="figma-input" [(ngModel)]="formData.dateDebut" placeholder="Ex: 01 Fév 2026" required />
+          <input type="date" class="figma-input" [(ngModel)]="formData.dateDebut" required />
         </div>
 
         <div class="figma-form-group">
           <label class="figma-label">Date de fin</label>
-          <input type="text" class="figma-input" [(ngModel)]="formData.dateFin" placeholder="Ex: 05 Fév 2026" />
+          <input type="date" class="figma-input" [(ngModel)]="formData.dateFin" [min]="formData.dateDebut || ''" />
         </div>
 
         <div class="figma-form-group">
-          <label class="figma-label">Heure de début</label>
-          <input type="text" class="figma-input" [(ngModel)]="formData.heureDebut" placeholder="Ex: 09:00" />
+          <label class="figma-label">Heure de début *</label>
+          <input type="time" class="figma-input" [(ngModel)]="formData.heureDebut" required />
         </div>
 
         <div class="figma-form-group">
           <label class="figma-label">Heure de fin</label>
-          <input type="text" class="figma-input" [(ngModel)]="formData.heureFin" placeholder="Ex: 23:00" />
+          <input type="time" class="figma-input" [(ngModel)]="formData.heureFin" />
         </div>
 
         <div class="figma-form-group">

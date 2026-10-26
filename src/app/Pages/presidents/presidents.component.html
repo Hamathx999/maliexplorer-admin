@@ -40,7 +40,7 @@
             @if (isLoading) {
               <tr><td colspan="5" style="text-align: center; padding: 24px; color: #64748B;">Chargement des chefs d'État...</td></tr>
             } @else if (presidents.length === 0) {
-              <tr><td colspan="5" style="text-align: center; padding: 24px; color: #64748B;">Aucun chef d'État trouvé.</td></tr>
+              <tr><td colspan="5" style="text-align: center; padding: 24px; color: #64748B;">Aucun président disponible pour le moment.</td></tr>
             } @else {
               @for (pres of presidents; track pres.id ?? pres.nom) {
                 <tr>

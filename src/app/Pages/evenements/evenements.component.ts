@@ -192,9 +192,28 @@ export class EvenementsComponent implements OnInit {
     this.cdr.markForCheck();
   }
 
+  private normalizeToIsoDate(val?: string): string {
+    if (!val) return '';
+    const trimmed = val.trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+    const parts = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if (parts) {
+      const dd = parts[1].padStart(2, '0');
+      const mm = parts[2].padStart(2, '0');
+      return `${parts[3]}-${mm}-${dd}`;
+    }
+    return trimmed;
+  }
+
   startEdit(evt: Evenement): void {
     this.editingEvenement = evt;
-    this.formData = { ...evt };
+    this.formData = {
+      ...evt,
+      dateDebut: this.normalizeToIsoDate(evt.dateDebut),
+      dateFin: this.normalizeToIsoDate(evt.dateFin),
+      heureDebut: evt.heureDebut || '09:00',
+      heureFin: evt.heureFin || '18:00'
+    };
     this.selectedAfficheName = '';
     this.isEditing = true;
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -244,7 +263,23 @@ export class EvenementsComponent implements OnInit {
     }
 
     if (!this.formData.titre || !this.formData.dateDebut) {
-      alert('Veuillez renseigner au minimum le titre et la date de début.');
+      this.dialogService.toastError('Veuillez renseigner au minimum le titre et la date de début.');
+      return;
+    }
+
+    if (this.formData.dateFin && this.formData.dateFin < this.formData.dateDebut) {
+      this.dialogService.toastError('La date de fin ne peut pas être antérieure à la date de début.');
+      return;
+    }
+
+    if (
+      this.formData.dateFin &&
+      this.formData.dateFin === this.formData.dateDebut &&
+      this.formData.heureDebut &&
+      this.formData.heureFin &&
+      this.formData.heureFin < this.formData.heureDebut
+    ) {
+      this.dialogService.toastError('L’heure de fin ne peut pas être antérieure à l’heure de début pour le même jour.');
       return;
     }
 

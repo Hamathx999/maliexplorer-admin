@@ -31,10 +31,22 @@ export class PartenaireService {
           if (o.idUsers) oppMap.set(o.idUsers, o);
         });
 
-        // Filtrer les comptes ayant un rôle professionnel
+        // Filtrer les comptes professionnels : seuls les comptes validés (statutModeration === 'VALIDE') figurent dans l'annuaire
         const professionalUsers = (Array.isArray(users) ? users : []).filter((u: User) => {
           const r = (u.role || '').toLowerCase();
-          return r.includes('promoteur') || r.includes('guide') || r.includes('investisseur') || r.includes('partenaire');
+          const isPro = r.includes('promoteur') || r.includes('guide') || r.includes('investisseur') || r.includes('partenaire');
+          if (!isPro) return false;
+
+          const opp = oppMap.get(Number(u.id));
+          const mod = String(u.statutModeration || (opp ? opp.statutModeration : '') || '').toUpperCase();
+
+          // Exigence stricte R2 : Seuls les guides et promoteurs ayant statutModeration === 'VALIDE' apparaissent dans l'annuaire
+          if (r.includes('promoteur') || r.includes('guide')) {
+            return mod === 'VALIDE';
+          }
+
+          // Pour les autres partenaires B2B (investisseurs), compte validé ou actif
+          return mod === 'VALIDE' || u.statut === 'ACTIF';
         });
 
         // Mapper chaque utilisateur vers un PartenaireItem riche
@@ -49,24 +61,31 @@ export class PartenaireService {
 
           const nomComplet = `${u.prenom || ''} ${u.nom || ''}`.trim() || u.email;
 
+          // Détails d'organisation et spécialité adaptés pour promoteurs et guides
+          let organisation = u.nomOrganisation || (opp ? opp.nomOrganisation || opp.specialiteOuOrganisation : undefined);
+          let specialite = u.langues || (u.experience ? `${u.experience} an(s) d'expérience` : undefined) || (opp ? opp.langue || opp.specialiteOuOrganisation : undefined);
+          if (roleTitle === 'Guide' && !specialite) {
+            specialite = 'Guide du patrimoine & visites touristiques';
+          }
+
           return {
             id: Number(u.id),
             nomComplet,
             email: u.email,
-            telephone: u.telephone,
+            telephone: u.telephone || (opp ? opp.telephone : undefined),
             adresse: u.adresse || (opp ? opp.adresse : ''),
             photoUrl: u.photoUrl || (opp ? opp.photoUrl : ''),
             role: roleTitle,
             roleCode: u.role || 'partenaire',
-            organisation: u.nomOrganisation || (opp ? opp.specialiteOuOrganisation : undefined),
-            specialite: u.experience || (opp ? opp.specialiteOuOrganisation : undefined),
+            organisation,
+            specialite,
             statutCompte: (u.statut === 'BLOQUE' ? 'BLOQUE' : 'ACTIF') as 'ACTIF' | 'BLOQUE',
-            statutModeration: u.statutModeration || (opp ? opp.statutModeration : 'VALIDE'),
+            statutModeration: 'VALIDE',
             recherchePartenariat: opp ? opp.recherchePartenariat : Boolean(u.nomOrganisation || u.nomEvenement),
             titreProjet: opp ? opp.titreProjet : u.nomEvenement,
             besoinPartenariat: opp ? opp.besoinPartenariat : u.descriptionEvenement,
             dateCreation: u.dateInscription,
-            pieceIdentite: u.pieceIdentite,
+            pieceIdentite: u.pieceIdentite || (opp ? opp.pieceIdentite : undefined),
             piecesJustificatifs: u.piecesJustificatifs || u.photoPieceOrganisation,
             description: u.description || u.descriptionEvenement
           };
