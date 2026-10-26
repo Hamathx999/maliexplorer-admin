@@ -102,7 +102,7 @@
               <span class="group-title">{{ group.title }}</span>
               <span class="group-header-right">
                 @if (group.id === 'partenariats' && !isGroupOpen(group.id) && pendingPartnershipCount() > 0) {
-                  <span class="group-collapsed-badge" title="Demandes de partenariat en attente">
+                  <span class="group-collapsed-badge" title="Candidatures en attente de validation">
                     {{ pendingPartnershipCount() > 99 ? '99+' : pendingPartnershipCount() }}
                   </span>
                 }
@@ -303,7 +303,7 @@
                     @if (item.hasPartnershipBadge && pendingPartnershipCount() > 0) {
                       <span
                         class="nav-badge"
-                        [attr.title]="pendingPartnershipCount() + ' demande(s) de partenariat en attente'"
+                        [attr.title]="pendingPartnershipCount() + ' candidature(s) en attente'"
                       >
                         {{ pendingPartnershipCount() > 99 ? '99+' : pendingPartnershipCount() }}
                       </span>

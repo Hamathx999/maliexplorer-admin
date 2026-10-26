@@ -181,8 +181,8 @@ export class PresidentsComponent implements OnInit {
     const prenom = (this.prenom || '').trim();
     const periode = (this.periode || '').trim();
 
-    if (!nom || !periode) {
-      this.showNotification('Veuillez renseigner le nom et la période du chef d’État.', true);
+    if (!nom || !prenom || !periode) {
+      this.showNotification('Veuillez renseigner le prénom, le nom et la période du chef d’État.', true);
       return;
     }
 

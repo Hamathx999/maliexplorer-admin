@@ -30,6 +30,8 @@ export class UtilisateursComponent implements OnInit {
   searchTerm: string = '';
   selectedRole: string = 'TOUS';
   imageLoadErrors: Record<string, boolean> = {};
+  isLoading: boolean = false;
+  errorMessage: string = '';
 
   // Sélecteur de rôle pour le formulaire d'ajout/édition (Touriste, Promoteur, Guide)
   activeRoleTab: 'Touriste' | 'Promoteur' | 'Guide' = 'Touriste';
@@ -64,11 +66,19 @@ export class UtilisateursComponent implements OnInit {
     dateEvenement: '',
     descriptionEvenement: '',
     photosEvenement: [],
-    langues: 'Français, Bambara',
-    experience: 1,
+    langues: '',
+    experience: undefined,
     description: '',
-    statutModeration: 'VALIDE'
+    statutModeration: ''
   };
+
+  get totalUsersCount(): number {
+    return this.utilisateurs.length;
+  }
+
+  get filteredUsersCount(): number {
+    return this.filteredUsers.length;
+  }
 
   ngOnInit(): void {
     this.loadUsers();
@@ -93,42 +103,29 @@ export class UtilisateursComponent implements OnInit {
   }
 
   loadUsers(): void {
+    this.isLoading = true;
+    this.errorMessage = '';
     this.userService.getUsers().subscribe({
       next: (data) => {
-        this.utilisateurs = data;
-        // Synchroniser et enrichir avec les profils guides issus de /api/guides
+        this.utilisateurs = Array.isArray(data) ? data : [];
+        this.isLoading = false;
+
+        // Enrichir optionnellement avec les profils guides réels issus de /api/guides
         this.guideService.getGuides().subscribe({
           next: (guides) => {
             if (Array.isArray(guides) && guides.length > 0) {
               guides.forEach((g) => {
                 const existing = this.utilisateurs.find(
-                  (u) => String(u.id ?? (u as any).idUsers) === String(g.idUsers) || u.email === g.email
+                  (u) => String(u.id ?? (u as any).idUsers) === String(g.idUsers) || (u.email && g.email && u.email.toLowerCase() === g.email.toLowerCase())
                 );
                 if (existing) {
-                  existing.statutModeration = g.statutModeration || 'VALIDE';
+                  existing.statutModeration = g.statutModeration || existing.statutModeration;
                   existing.langues = g.langue || existing.langues;
                   existing.experience = g.experience ?? existing.experience;
                   existing.description = g.description || existing.description;
                   if (!existing.role || existing.role === 'Visiteur') {
                     existing.role = 'Guide Local';
                   }
-                } else {
-                  this.utilisateurs.push({
-                    id: g.idUsers,
-                    nom: g.nom,
-                    prenom: g.prenom,
-                    email: g.email,
-                    adresse: g.adresse,
-                    photoUrl: g.photoUrl,
-                    pieceIdentite: g.pieceIdentite,
-                    langues: g.langue,
-                    experience: g.experience,
-                    description: g.description,
-                    role: 'Guide Local',
-                    statut: 'ACTIF',
-                    statutModeration: g.statutModeration || 'VALIDE',
-                    dateInscription: g.dateCreation ? String(g.dateCreation) : 'Récemment inscrit'
-                  });
                 }
               });
             }
@@ -141,24 +138,43 @@ export class UtilisateursComponent implements OnInit {
           }
         });
       },
-      error: (err) => console.error('Erreur chargement utilisateurs', err)
+      error: (err) => {
+        console.error('Erreur chargement utilisateurs depuis le backend', err);
+        this.isLoading = false;
+        this.utilisateurs = [];
+        this.filteredUsers = [];
+        this.errorMessage = 'Impossible de charger la liste des utilisateurs depuis le serveur.';
+        this.dialogService.toastError(this.errorMessage);
+        this.cdr.markForCheck();
+      }
     });
   }
 
   filterUsers(): void {
+    const term = (this.searchTerm || '').trim().toLowerCase();
     this.filteredUsers = this.utilisateurs.filter((u) => {
       const matchSearch =
-        !this.searchTerm ||
-        (u.nom && u.nom.toLowerCase().includes(this.searchTerm.toLowerCase())) ||
-        (u.prenom && u.prenom.toLowerCase().includes(this.searchTerm.toLowerCase())) ||
-        (u.email && u.email.toLowerCase().includes(this.searchTerm.toLowerCase()));
+        !term ||
+        (u.nom && u.nom.toLowerCase().includes(term)) ||
+        (u.prenom && u.prenom.toLowerCase().includes(term)) ||
+        (u.email && u.email.toLowerCase().includes(term)) ||
+        (u.role && u.role.toLowerCase().includes(term));
 
       const matchRole =
         this.selectedRole === 'TOUS' ||
-        u.role?.toUpperCase() === this.selectedRole.toUpperCase();
+        (u.role && u.role.toUpperCase() === this.selectedRole.toUpperCase());
 
       return matchSearch && matchRole;
     });
+  }
+
+  onSearchChange(): void {
+    this.filterUsers();
+  }
+
+  onRoleFilterChange(role: string): void {
+    this.selectedRole = role;
+    this.filterUsers();
   }
 
   selectRole(role: 'Touriste' | 'Promoteur' | 'Guide'): void {
@@ -180,7 +196,7 @@ export class UtilisateursComponent implements OnInit {
         error: (err) => {
           console.error('Erreur téléversement photo profil:', err);
           this.isUploadingPhoto = false;
-          alert(err.message || 'Erreur lors du téléversement de la photo.');
+          this.dialogService.toastError(err.message || 'Erreur lors du téléversement de la photo.');
           this.cdr.markForCheck();
         }
       });
@@ -201,7 +217,7 @@ export class UtilisateursComponent implements OnInit {
         error: (err) => {
           console.error('Erreur téléversement pièce identité:', err);
           this.isUploadingPiece = false;
-          alert(err.message || 'Erreur lors du téléversement de la pièce.');
+          this.dialogService.toastError(err.message || 'Erreur lors du téléversement de la pièce.');
           this.cdr.markForCheck();
         }
       });
@@ -222,7 +238,7 @@ export class UtilisateursComponent implements OnInit {
         error: (err) => {
           console.error('Erreur téléversement pièce organisation:', err);
           this.isUploadingPieceOrg = false;
-          alert(err.message || 'Erreur lors du téléversement.');
+          this.dialogService.toastError(err.message || 'Erreur lors du téléversement.');
           this.cdr.markForCheck();
         }
       });
@@ -246,7 +262,7 @@ export class UtilisateursComponent implements OnInit {
         error: (err) => {
           console.error('Erreur téléversement photos événement:', err);
           this.isUploadingEventPhotos = false;
-          alert(err.message || 'Erreur téléversement photos événement.');
+          this.dialogService.toastError(err.message || 'Erreur téléversement photos événement.');
           this.cdr.markForCheck();
         }
       });
@@ -294,10 +310,10 @@ export class UtilisateursComponent implements OnInit {
       dateEvenement: '',
       descriptionEvenement: '',
       photosEvenement: [],
-      langues: 'Français, Bambara',
-      experience: 1,
+      langues: '',
+      experience: undefined,
       description: '',
-      statutModeration: 'VALIDE'
+      statutModeration: ''
     };
     this.isEditing = true;
     this.router.navigate(['/utilisateurs/ajouter']);
@@ -317,10 +333,10 @@ export class UtilisateursComponent implements OnInit {
     this.formData = {
       ...user,
       photosEvenement: user.photosEvenement ? [...user.photosEvenement] : [],
-      langues: user.langues || 'Français, Bambara',
-      experience: user.experience ?? 1,
+      langues: user.langues || '',
+      experience: user.experience,
       description: user.description || '',
-      statutModeration: user.statutModeration || 'VALIDE'
+      statutModeration: user.statutModeration || ''
     };
     this.isEditing = true;
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -351,7 +367,7 @@ export class UtilisateursComponent implements OnInit {
       { bg: '#FEF9C3', color: '#854D0E' }
     ];
     let hash = 0;
-    const str = (name || 'Utilisateur').trim();
+    const str = (name || '').trim();
     for (let i = 0; i < str.length; i++) {
       hash = str.charCodeAt(i) + ((hash << 5) - hash);
     }
@@ -360,96 +376,47 @@ export class UtilisateursComponent implements OnInit {
   }
 
   saveUser(): void {
-    if (!this.formData.nom || !this.formData.nom.trim() || !this.formData.email || !this.formData.email.trim()) {
-      alert('Veuillez renseigner le nom et l’adresse email.');
+    if (!this.formData.nom?.trim() || !this.formData.email?.trim()) {
+      this.dialogService.toastError('Veuillez renseigner le nom et l’adresse email.');
       return;
+    }
+
+    if (!this.formData.prenom || this.formData.prenom.trim().length < 2) {
+      this.formData.prenom = this.formData.nom.trim();
     }
 
     this.formData.role = this.activeRoleTab;
     const editingId = this.editingUser?.id ?? (this.editingUser as any)?.idUsers ?? this.formData?.id ?? (this.formData as any)?.idUsers;
 
-    // Gestion dédiée pour les Guides via GuideService (/api/guides)
-    if (this.activeRoleTab === 'Guide') {
-      const guidePayload: GuideRequestDTO = {
-        nom: this.formData.nom?.trim() || '',
-        prenom: this.formData.prenom?.trim() || this.formData.nom?.trim() || 'Guide',
-        email: this.formData.email?.trim() || '',
-        motDePasse: this.formData.motDePasse || undefined,
-        adresse: this.formData.adresse?.trim() || '',
-        photoUrl: this.formData.photoUrl || '',
-        experience: this.formData.experience != null ? Number(this.formData.experience) : 1,
-        description: this.formData.description?.trim() || 'Guide touristique local',
-        langue: this.formData.langues?.trim() || 'Français, Bambara',
-        pieceIdentite: this.formData.pieceIdentite || ''
-      };
-
-      if (editingId) {
-        this.guideService.updateGuide(editingId, guidePayload).subscribe({
-          next: () => {
-            this.loadUsers();
-            this.cancelEdit();
-            this.cdr.detectChanges();
-          },
-          error: (err) => {
-            console.error('Erreur mise à jour guide via API guides, repli sur userService :', err);
-            this.userService.updateUser(editingId, this.formData as User).subscribe({
-              next: () => {
-                this.loadUsers();
-                this.cancelEdit();
-                this.cdr.detectChanges();
-              },
-              error: () => this.cdr.detectChanges()
-            });
-          }
-        });
-      } else {
-        this.guideService.createGuide(guidePayload).subscribe({
-          next: () => {
-            this.loadUsers();
-            this.cancelEdit();
-            this.cdr.detectChanges();
-          },
-          error: (err) => {
-            console.error('Erreur création guide via API guides, repli sur userService :', err);
-            this.userService.createUser(this.formData as User).subscribe({
-              next: () => {
-                this.loadUsers();
-                this.cancelEdit();
-                this.cdr.detectChanges();
-              },
-              error: () => this.cdr.detectChanges()
-            });
-          }
-        });
-      }
-      return;
-    }
-
     if (editingId) {
       this.userService.updateUser(editingId, this.formData as User).subscribe({
         next: (updated) => {
-          const updatedId = updated?.id ?? (updated as any)?.idUsers ?? editingId;
-          const idx = this.utilisateurs.findIndex((u) => String(u.id ?? (u as any).idUsers) === String(updatedId));
-          if (idx !== -1) {
-            this.utilisateurs[idx] = { ...updated, id: updatedId };
-          } else {
-            this.loadUsers();
-          }
-          this.filterUsers();
+          this.dialogService.toastSuccess('Compte utilisateur mis à jour avec succès.');
+          this.loadUsers();
           this.cancelEdit();
           this.cdr.detectChanges();
         },
-        error: () => this.cdr.detectChanges()
+        error: (err) => {
+          console.error('Erreur mise à jour utilisateur:', err);
+          const msg = err?.error?.message || err?.message || 'Erreur lors de la mise à jour de l\'utilisateur.';
+          this.dialogService.toastError(msg);
+          this.cdr.detectChanges();
+        }
       });
     } else {
       this.userService.createUser(this.formData as User).subscribe({
         next: (created) => {
-          this.utilisateurs.unshift(created);
-          this.filterUsers();
+          this.dialogService.toastSuccess('Compte utilisateur créé avec succès.');
+          this.loadUsers();
           this.cancelEdit();
           this.cdr.detectChanges();
         },
-        error: () => this.cdr.detectChanges()
+        error: (err) => {
+          console.error('Erreur création utilisateur:', err);
+          const msg = err?.error?.message || err?.message || 'Erreur lors de la création de l\'utilisateur.';
+          this.dialogService.toastError(msg);
+          this.cdr.detectChanges();
+        }
       });
     }
   }
@@ -468,47 +435,22 @@ export class UtilisateursComponent implements OnInit {
 
     if (!confirmed) return;
 
-    const isGuide = (user.role || '').toLowerCase().includes('guide');
-    if (isGuide) {
-      this.guideService.deleteGuide(userId).subscribe({
-        next: () => {
-          this.utilisateurs = this.utilisateurs.filter((u) => String(u.id ?? (u as any).idUsers) !== String(userId));
-          this.filterUsers();
-          this.dialogService.toastSuccess(`Compte "${user.email}" supprimé avec succès.`);
-          this.cdr.detectChanges();
-        },
-        error: () => {
-          this.userService.deleteUser(userId).subscribe({
-            next: () => {
-              this.utilisateurs = this.utilisateurs.filter((u) => String(u.id ?? (u as any).idUsers) !== String(userId));
-              this.filterUsers();
-              this.dialogService.toastSuccess(`Compte "${user.email}" supprimé avec succès.`);
-              this.cdr.detectChanges();
-            },
-            error: () => {
-              this.dialogService.toastError('Impossible de supprimer cet utilisateur.');
-              this.cdr.detectChanges();
-            }
-          });
-        }
-      });
-    } else {
-      this.userService.deleteUser(userId).subscribe({
-        next: () => {
-          this.utilisateurs = this.utilisateurs.filter((u) => String(u.id ?? (u as any).idUsers) !== String(userId));
-          this.filterUsers();
-          this.dialogService.toastSuccess(`Compte "${user.email}" supprimé avec succès.`);
-          this.cdr.detectChanges();
-        },
-        error: () => {
-          this.dialogService.toastError('Impossible de supprimer cet utilisateur.');
-          this.cdr.detectChanges();
-        }
-      });
-    }
+    this.userService.deleteUser(userId).subscribe({
+      next: () => {
+        this.utilisateurs = this.utilisateurs.filter((u) => String(u.id ?? (u as any).idUsers) !== String(userId));
+        this.filterUsers();
+        this.dialogService.toastSuccess(`Compte "${user.email}" supprimé avec succès.`);
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Erreur suppression utilisateur:', err);
+        this.dialogService.toastError('Impossible de supprimer cet utilisateur.');
+        this.cdr.detectChanges();
+      }
+    });
   }
 
-  validerGuide(user: User): void {
+  validerPartenaire(user: User): void {
     const userId = user?.id ?? (user as any)?.idUsers;
     if (!userId) return;
     this.guideService.validerGuide(userId).subscribe({
@@ -516,19 +458,18 @@ export class UtilisateursComponent implements OnInit {
         user.statutModeration = 'VALIDE';
         user.statut = 'ACTIF';
         this.filterUsers();
+        this.dialogService.toastSuccess(`Compte "${user.email}" validé avec succès.`);
         this.cdr.markForCheck();
       },
       error: (err) => {
-        console.error('Erreur validation guide :', err);
-        user.statutModeration = 'VALIDE';
-        user.statut = 'ACTIF';
-        this.filterUsers();
+        console.error('Erreur validation partenaire :', err);
+        this.dialogService.toastError('Erreur lors de la validation du compte.');
         this.cdr.markForCheck();
       }
     });
   }
 
-  rejeterGuide(user: User): void {
+  rejeterPartenaire(user: User): void {
     const userId = user?.id ?? (user as any)?.idUsers;
     if (!userId) return;
     const motif = prompt('Veuillez préciser le motif de rejet (optionnel) :') || '';
@@ -536,14 +477,22 @@ export class UtilisateursComponent implements OnInit {
       next: () => {
         user.statutModeration = 'REJETE';
         this.filterUsers();
+        this.dialogService.toastSuccess(`Compte "${user.email}" rejeté.`);
         this.cdr.markForCheck();
       },
       error: (err) => {
-        console.error('Erreur rejet guide :', err);
-        user.statutModeration = 'REJETE';
-        this.filterUsers();
+        console.error('Erreur rejet partenaire :', err);
+        this.dialogService.toastError('Erreur lors du rejet du compte.');
         this.cdr.markForCheck();
       }
     });
+  }
+
+  validerGuide(user: User): void {
+    this.validerPartenaire(user);
+  }
+
+  rejeterGuide(user: User): void {
+    this.rejeterPartenaire(user);
   }
 }

@@ -11,13 +11,55 @@
       </button>
     </div>
 
+    <!-- Barre de recherche et de filtres dynamique -->
+    <div class="filter-bar">
+      <div class="search-box">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input
+          type="text"
+          placeholder="Rechercher par nom, prénom ou email..."
+          [(ngModel)]="searchTerm"
+          (input)="onSearchChange()"
+        />
+      </div>
+
+      <div class="filter-group">
+        <label for="roleFilter">Filtrer par rôle :</label>
+        <select id="roleFilter" [(ngModel)]="selectedRole" (change)="onRoleFilterChange(selectedRole)">
+          <option value="TOUS">Tous les rôles</option>
+          <option value="Administrateur">Administrateur</option>
+          <option value="Guide Local">Guide Local</option>
+          <option value="Explorateur">Explorateur</option>
+          <option value="Promoteur">Promoteur</option>
+        </select>
+      </div>
+    </div>
+
     <div class="figma-card">
-      <h2 class="figma-card-title-center">Liste des utilisateurs</h2>
+      <div class="figma-header-title-row">
+        <h2 class="figma-card-title-center">Liste des utilisateurs</h2>
+        <span class="figma-user-counter-badge">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          Total : {{ filteredUsers.length }} utilisateur{{ filteredUsers.length > 1 ? 's' : '' }}
+          @if (filteredUsers.length !== utilisateurs.length) {
+            <span style="opacity: 0.8; font-weight: 500;">(sur {{ utilisateurs.length }})</span>
+          }
+        </span>
+      </div>
 
       <div class="table-responsive">
         <table class="figma-table">
           <thead>
             <tr>
+              <th class="figma-index-col">#</th>
               <th>Nom</th>
               <th>Email</th>
               <th>Rôle</th>
@@ -26,13 +68,34 @@
             </tr>
           </thead>
           <tbody>
-            @if (filteredUsers.length === 0) {
+            @if (isLoading) {
               <tr>
-                <td colspan="5" style="text-align: center; padding: 24px; color: #64748B;">Aucun utilisateur trouvé.</td>
+                <td colspan="6" style="text-align: center; padding: 32px; color: #64748B;">
+                  <div style="display: inline-flex; align-items: center; gap: 8px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;">
+                      <circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-linecap="round"></circle>
+                    </svg>
+                    <span>Chargement des utilisateurs en cours...</span>
+                  </div>
+                </td>
+              </tr>
+            } @else if (filteredUsers.length === 0) {
+              <tr>
+                <td colspan="6" style="text-align: center; padding: 24px; color: #64748B;">
+                  <p style="margin: 0;">{{ errorMessage || 'Aucun utilisateur trouvé.' }}</p>
+                  @if (errorMessage) {
+                    <button type="button" class="figma-btn-retry" (click)="loadUsers()" style="margin-top: 12px; padding: 6px 16px; border-radius: 8px; border: 1px solid #CBD5E1; background: #FFFFFF; color: #16423C; font-weight: 600; cursor: pointer;">
+                      Réessayer
+                    </button>
+                  }
+                </td>
               </tr>
             } @else {
-              @for (user of filteredUsers; track user.id ?? user.email) {
+              @for (user of filteredUsers; track user.id ?? user.email; let i = $index) {
                 <tr>
+                  <td class="figma-index-col">
+                    <span class="user-index-number">{{ i + 1 }}</span>
+                  </td>
                   <td>
                     <div style="display: flex; align-items: center; gap: 12px;">
                       @if (user.photoUrl && !imageLoadErrors[user.id ?? user.email]) {
@@ -55,7 +118,7 @@
                     <span class="figma-pill-badge role">
                       {{ user.role || 'Visiteur' }}
                     </span>
-                    @if (user.role?.toLowerCase()?.includes('guide')) {
+                    @if (user.role?.toLowerCase()?.includes('guide') || user.role?.toLowerCase()?.includes('promoteur')) {
                       <span class="moderation-pill"
                             [class.mod-valide]="user.statutModeration === 'VALIDE'"
                             [class.mod-attente]="!user.statutModeration || user.statutModeration === 'EN_ATTENTE' || user.statutModeration === 'EN_ATTENTE_VALIDATION'"
@@ -67,16 +130,16 @@
                   <td style="color: #64748B;">{{ user.dateInscription || 'Récemment inscrit' }}</td>
                   <td>
                     <div class="figma-action-cell">
-                      @if (user.role?.toLowerCase()?.includes('guide')) {
+                      @if (user.role?.toLowerCase()?.includes('guide') || user.role?.toLowerCase()?.includes('promoteur')) {
                         @if (user.statutModeration !== 'VALIDE') {
-                          <button type="button" class="figma-icon-btn approve" (click)="validerGuide(user)" title="Valider le guide">
+                          <button type="button" class="figma-icon-btn approve" (click)="validerPartenaire(user)" title="Valider le compte">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                               <polyline points="20 6 9 17 4 12"></polyline>
                             </svg>
                           </button>
                         }
                         @if (user.statutModeration !== 'REJETE') {
-                          <button type="button" class="figma-icon-btn reject" (click)="rejeterGuide(user)" title="Rejeter le guide">
+                          <button type="button" class="figma-icon-btn reject" (click)="rejeterPartenaire(user)" title="Rejeter le compte">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                               <line x1="18" y1="6" x2="6" y2="18"></line>
                               <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -735,7 +798,7 @@
                   <line x1="3" y1="10" x2="21" y2="10"></line>
                 </svg>
               </span>
-              <input type="text" class="figma-native-input" [(ngModel)]="formData.dateEvenement" placeholder="Ex : 24 sept 2027" />
+              <input type="date" class="figma-native-input" [(ngModel)]="formData.dateEvenement" />
             </div>
           </div>
 

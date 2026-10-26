@@ -8,10 +8,14 @@ export interface OpportuniteResponseDTO {
   nomComplet: string;
   email: string;
   adresse?: string;
+  telephone?: string;
   photoUrl?: string;
   role?: string;
   typePartenaire?: string; // "PROMOTEUR", "GUIDE", "INVESTISSEUR"
   specialiteOuOrganisation?: string;
+  nomOrganisation?: string;
+  langue?: string;
+  experience?: number;
   recherchePartenariat?: boolean;
   titreProjet?: string;
   besoinPartenariat?: string;

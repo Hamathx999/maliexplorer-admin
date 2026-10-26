@@ -78,9 +78,9 @@ export class PartenairesComponent implements OnInit {
    */
   calculerIndicateurs(): void {
     this.totalCount = this.partenaires.length;
-    this.promoteursCount = this.partenaires.filter((p) => p.role === 'Promoteur').length;
-    this.guidesCount = this.partenaires.filter((p) => p.role === 'Guide').length;
-    this.investisseursCount = this.partenaires.filter((p) => p.role === 'Investisseur').length;
+    this.promoteursCount = this.partenaires.filter((p) => (p.role || '').toLowerCase().includes('promoteur')).length;
+    this.guidesCount = this.partenaires.filter((p) => (p.role || '').toLowerCase().includes('guide')).length;
+    this.investisseursCount = this.partenaires.filter((p) => (p.role || '').toLowerCase().includes('investisseur')).length;
   }
 
   /**
@@ -91,7 +91,7 @@ export class PartenairesComponent implements OnInit {
 
     // Filtre par catégorie de rôle
     if (this.selectedRole !== 'TOUS') {
-      result = result.filter((p) => p.role.toUpperCase() === this.selectedRole.toUpperCase());
+      result = result.filter((p) => (p.role || '').toUpperCase() === this.selectedRole.toUpperCase());
     }
 
     // Filtre par statut de compte
@@ -105,6 +105,7 @@ export class PartenairesComponent implements OnInit {
       result = result.filter((p) =>
         (p.nomComplet && p.nomComplet.toLowerCase().includes(q)) ||
         (p.email && p.email.toLowerCase().includes(q)) ||
+        (p.telephone && p.telephone.toLowerCase().includes(q)) ||
         (p.organisation && p.organisation.toLowerCase().includes(q)) ||
         (p.specialite && p.specialite.toLowerCase().includes(q)) ||
         (p.adresse && p.adresse.toLowerCase().includes(q)) ||
@@ -170,19 +171,23 @@ export class PartenairesComponent implements OnInit {
     if (!confirmed) return;
 
     this.partenaireService.toggleStatutPartenaire(partenaire.id).subscribe({
-      next: () => {
-        partenaire.statutCompte = isBlocking ? 'BLOQUE' : 'ACTIF';
+      next: (res: any) => {
+        const newStatus = (res?.statut || (isBlocking ? 'BLOQUE' : 'ACTIF')).toUpperCase();
+        partenaire.statutCompte = newStatus === 'BLOQUE' ? 'BLOQUE' : 'ACTIF';
         if (this.selectedPartenaire && this.selectedPartenaire.id === partenaire.id) {
           this.selectedPartenaire.statutCompte = partenaire.statutCompte;
         }
         this.appliquerFiltres();
-        this.dialogService.toastSuccess(`Compte de « ${partenaire.nomComplet} » ${isBlocking ? 'bloqué' : 'activé'}.`);
+        this.dialogService.toastSuccess(`Compte de « ${partenaire.nomComplet} » ${partenaire.statutCompte === 'BLOQUE' ? 'bloqué' : 'activé'}.`);
         this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Erreur lors du changement de statut :', err);
         // Basculement optimiste local
         partenaire.statutCompte = isBlocking ? 'BLOQUE' : 'ACTIF';
+        if (this.selectedPartenaire && this.selectedPartenaire.id === partenaire.id) {
+          this.selectedPartenaire.statutCompte = partenaire.statutCompte;
+        }
         this.appliquerFiltres();
         this.dialogService.toastSuccess(`Compte de « ${partenaire.nomComplet} » mis à jour.`);
         this.cdr.detectChanges();

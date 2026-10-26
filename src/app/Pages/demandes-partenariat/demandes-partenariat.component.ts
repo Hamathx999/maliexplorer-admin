@@ -2,13 +2,21 @@ import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
+import { forkJoin, of, catchError } from 'rxjs';
 import { ModerationPartenaireService } from '../../services/moderation-partenaire.service';
 import { DialogService } from '../../services/dialog.service';
 import { OpportuniteResponseDTO } from '../../models/partenaire.model';
 
+export type ModerationTab =
+  | 'TOUS_ATTENTE'
+  | 'GUIDES_ATTENTE'
+  | 'PROMOTEURS_ATTENTE'
+  | 'VALIDE'
+  | 'REJETE';
+
 /**
  * Composant de modération des demandes et opportunités de partenariat.
- * Permet d'examiner les dossiers soumis par les promoteurs et guides,
+ * Permet d'examiner les dossiers soumis par les promoteurs d'événements et les guides touristiques,
  * de les approuver directement ou de les rejeter avec notification de motif.
  */
 @Component({
@@ -23,8 +31,8 @@ export class DemandesPartenariatComponent implements OnInit {
   private readonly dialogService = inject(DialogService);
   private readonly cdr = inject(ChangeDetectorRef);
 
-  // Onglet actif : 'EN_ATTENTE' | 'VALIDE' | 'REJETE'
-  activeTab: 'EN_ATTENTE' | 'VALIDE' | 'REJETE' = 'EN_ATTENTE';
+  // Onglet actif : 5 onglets de filtrage
+  activeTab: ModerationTab = 'TOUS_ATTENTE';
 
   // Données
   demandesEnAttente: OpportuniteResponseDTO[] = [];
@@ -53,38 +61,77 @@ export class DemandesPartenariatComponent implements OnInit {
   // Gestion des erreurs d'images
   imageErrors: Record<number, boolean> = {};
 
+  // Helpers de détection de type
+  isGuide(demande: OpportuniteResponseDTO | null | undefined): boolean {
+    if (!demande) return false;
+    const type = (demande.typePartenaire || '').toUpperCase();
+    const role = (demande.role || '').toUpperCase();
+    return type === 'GUIDE' || role.includes('GUIDE');
+  }
+
+  isPromoteur(demande: OpportuniteResponseDTO | null | undefined): boolean {
+    if (!demande) return false;
+    const type = (demande.typePartenaire || '').toUpperCase();
+    const role = (demande.role || '').toUpperCase();
+    return type === 'PROMOTEUR' || role.includes('PROMOTEUR') || (!this.isGuide(demande) && !type.includes('INVESTISSEUR'));
+  }
+
+  isPendingTab(): boolean {
+    return (
+      this.activeTab === 'TOUS_ATTENTE' ||
+      this.activeTab === 'GUIDES_ATTENTE' ||
+      this.activeTab === 'PROMOTEURS_ATTENTE'
+    );
+  }
+
+  // Getters réactifs pour les compteurs d'onglets
+  get totalEnAttenteCount(): number {
+    return this.demandesEnAttente.length;
+  }
+
+  get guidesEnAttenteCount(): number {
+    return this.demandesEnAttente.filter((d) => this.isGuide(d)).length;
+  }
+
+  get promoteursEnAttenteCount(): number {
+    return this.demandesEnAttente.filter((d) => this.isPromoteur(d)).length;
+  }
+
+  get valideesCount(): number {
+    return this.demandesValidees.length;
+  }
+
+  get rejeteesCount(): number {
+    return this.demandesRejetees.length;
+  }
+
   ngOnInit(): void {
     this.chargerToutesLesDemandes();
   }
 
   /**
-   * Charge toutes les opportunités (en attente et catalogue public validé).
+   * Charge toutes les candidatures (en attente, validées et rejetées).
    */
   chargerToutesLesDemandes(): void {
     this.isLoading = true;
-    this.moderationService.getDemandesEnAttente().subscribe({
-      next: (enAttente) => {
+    forkJoin({
+      enAttente: this.moderationService.getDemandesEnAttente().pipe(catchError(() => of([]))),
+      validees: this.moderationService.getDemandesValidees().pipe(catchError(() => of([]))),
+      rejetees: this.moderationService.getDemandesRejetees().pipe(catchError(() => of([])))
+    }).subscribe({
+      next: ({ enAttente, validees, rejetees }) => {
         this.demandesEnAttente = Array.isArray(enAttente) ? enAttente : [];
-
-        // Charger ensuite le catalogue des opportunités validées
-        this.moderationService.getOpportunitesValidees().subscribe({
-          next: (validees) => {
-            this.demandesValidees = Array.isArray(validees) ? validees : [];
-            this.isLoading = false;
-            this.appliquerFiltres();
-            this.cdr.markForCheck();
-          },
-          error: () => {
-            this.demandesValidees = [];
-            this.isLoading = false;
-            this.appliquerFiltres();
-            this.cdr.markForCheck();
-          }
-        });
+        this.demandesValidees = Array.isArray(validees) ? validees : [];
+        this.demandesRejetees = Array.isArray(rejetees) ? rejetees : [];
+        this.isLoading = false;
+        this.appliquerFiltres();
+        this.cdr.markForCheck();
       },
       error: (err) => {
-        console.error('Erreur chargement demandes en attente :', err);
+        console.error('Erreur chargement dossiers de modération :', err);
         this.demandesEnAttente = [];
+        this.demandesValidees = [];
+        this.demandesRejetees = [];
         this.isLoading = false;
         this.appliquerFiltres();
         this.cdr.markForCheck();
@@ -95,7 +142,7 @@ export class DemandesPartenariatComponent implements OnInit {
   /**
    * Bascule d'onglet de modération.
    */
-  switchTab(tab: 'EN_ATTENTE' | 'VALIDE' | 'REJETE'): void {
+  switchTab(tab: ModerationTab): void {
     this.activeTab = tab;
     this.appliquerFiltres();
   }
@@ -105,11 +152,15 @@ export class DemandesPartenariatComponent implements OnInit {
    */
   appliquerFiltres(): void {
     let list: OpportuniteResponseDTO[] = [];
-    if (this.activeTab === 'EN_ATTENTE') {
+    if (this.activeTab === 'TOUS_ATTENTE') {
       list = [...this.demandesEnAttente];
+    } else if (this.activeTab === 'GUIDES_ATTENTE') {
+      list = this.demandesEnAttente.filter((d) => this.isGuide(d));
+    } else if (this.activeTab === 'PROMOTEURS_ATTENTE') {
+      list = this.demandesEnAttente.filter((d) => this.isPromoteur(d));
     } else if (this.activeTab === 'VALIDE') {
       list = [...this.demandesValidees];
-    } else {
+    } else if (this.activeTab === 'REJETE') {
       list = [...this.demandesRejetees];
     }
 
@@ -118,9 +169,12 @@ export class DemandesPartenariatComponent implements OnInit {
       list = list.filter((d) =>
         (d.nomComplet && d.nomComplet.toLowerCase().includes(q)) ||
         (d.email && d.email.toLowerCase().includes(q)) ||
+        (d.telephone && d.telephone.toLowerCase().includes(q)) ||
         (d.titreProjet && d.titreProjet.toLowerCase().includes(q)) ||
         (d.besoinPartenariat && d.besoinPartenariat.toLowerCase().includes(q)) ||
         (d.specialiteOuOrganisation && d.specialiteOuOrganisation.toLowerCase().includes(q)) ||
+        (d.nomOrganisation && d.nomOrganisation.toLowerCase().includes(q)) ||
+        (d.langue && d.langue.toLowerCase().includes(q)) ||
         (d.adresse && d.adresse.toLowerCase().includes(q))
       );
     }
@@ -186,15 +240,10 @@ export class DemandesPartenariatComponent implements OnInit {
       },
       error: (err) => {
         console.error('Erreur lors de la validation :', err);
-        // Traitement de secours réactif
-        this.demandesEnAttente = this.demandesEnAttente.filter((d) => d.idUsers !== demande.idUsers);
-        this.demandesValidees.unshift({ ...demande, statutModeration: 'VALIDE' });
         this.isSubmittingAction = false;
-        if (this.isDetailsModalOpen) {
-          this.fermerModalDetails();
-        }
-        this.dialogService.toastSuccess(`Dossier de « ${demande.nomComplet} » validé.`);
-        this.appliquerFiltres();
+        this.dialogService.toastError(
+          err?.error?.message || `Erreur lors de la validation du dossier de « ${demande.nomComplet} ».`
+        );
         this.cdr.detectChanges();
       }
     });
@@ -249,18 +298,18 @@ export class DemandesPartenariatComponent implements OnInit {
         if (this.isDetailsModalOpen) this.fermerModalDetails();
 
         this.afficherToast(`Le dossier de « ${target.nomComplet} » a été rejeté.`, 'danger');
+        this.dialogService.toastWarning(`Le dossier de « ${target.nomComplet} » a été rejeté avec motif.`);
         this.appliquerFiltres();
         this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Erreur rejet :', err);
-        this.demandesEnAttente = this.demandesEnAttente.filter((d) => d.idUsers !== target.idUsers);
-        this.demandesRejetees.unshift({ ...target, statutModeration: 'REJETE', motifRejet: motif });
         this.isSubmittingAction = false;
         this.fermerModaleRejet();
         if (this.isDetailsModalOpen) this.fermerModalDetails();
-        this.afficherToast(`Le dossier a été rejeté.`, 'danger');
-        this.appliquerFiltres();
+        this.dialogService.toastError(
+          err?.error?.message || `Erreur lors du rejet du dossier de « ${target.nomComplet} ».`
+        );
         this.cdr.detectChanges();
       }
     });

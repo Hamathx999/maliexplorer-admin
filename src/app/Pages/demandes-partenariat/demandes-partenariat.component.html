@@ -22,8 +22,8 @@
   <!-- En-tête de section -->
   <header class="section-header">
     <div class="header-titles">
-      <h2 class="main-title">Modération des Opportunités de Partenariat</h2>
-      <p class="main-subtitle">Examinez, validez et supervisez les propositions de projets culturels et touristiques.</p>
+      <h2 class="main-title">Modération & Validations : Guides & Promoteurs</h2>
+      <p class="main-subtitle">Examinez, validez et supervisez les candidatures des guides touristiques et promoteurs d'événements.</p>
     </div>
     <div class="header-actions">
       <a routerLink="/partenaires" class="btn-all-partners">
@@ -38,17 +38,39 @@
     </div>
   </header>
 
-  <!-- Onglets de modération & Recherche -->
+  <!-- Onglets de modération & Recherche (5 filtres rapides) -->
   <section class="tabs-and-search-card">
     <div class="moderation-tabs">
       <button
         type="button"
         class="tab-btn"
-        [class.active]="activeTab === 'EN_ATTENTE'"
-        (click)="switchTab('EN_ATTENTE')">
-        <span class="tab-label">En attente de validation</span>
-        <span class="badge-count" [class.has-pending]="demandesEnAttente.length > 0">
-          {{ demandesEnAttente.length }}
+        [class.active]="activeTab === 'TOUS_ATTENTE'"
+        (click)="switchTab('TOUS_ATTENTE')">
+        <span class="tab-label">Tous en attente</span>
+        <span class="badge-count" [class.has-pending]="totalEnAttenteCount > 0">
+          {{ totalEnAttenteCount }}
+        </span>
+      </button>
+
+      <button
+        type="button"
+        class="tab-btn"
+        [class.active]="activeTab === 'GUIDES_ATTENTE'"
+        (click)="switchTab('GUIDES_ATTENTE')">
+        <span class="tab-label">Guides en attente</span>
+        <span class="badge-count" [class.has-pending]="guidesEnAttenteCount > 0">
+          {{ guidesEnAttenteCount }}
+        </span>
+      </button>
+
+      <button
+        type="button"
+        class="tab-btn"
+        [class.active]="activeTab === 'PROMOTEURS_ATTENTE'"
+        (click)="switchTab('PROMOTEURS_ATTENTE')">
+        <span class="tab-label">Promoteurs en attente</span>
+        <span class="badge-count" [class.has-pending]="promoteursEnAttenteCount > 0">
+          {{ promoteursEnAttenteCount }}
         </span>
       </button>
 
@@ -57,8 +79,8 @@
         class="tab-btn"
         [class.active]="activeTab === 'VALIDE'"
         (click)="switchTab('VALIDE')">
-        <span class="tab-label">Dossiers approuvés</span>
-        <span class="badge-count">{{ demandesValidees.length }}</span>
+        <span class="tab-label">Dossiers validés</span>
+        <span class="badge-count">{{ valideesCount }}</span>
       </button>
 
       <button
@@ -67,7 +89,7 @@
         [class.active]="activeTab === 'REJETE'"
         (click)="switchTab('REJETE')">
         <span class="tab-label">Dossiers rejetés</span>
-        <span class="badge-count">{{ demandesRejetees.length }}</span>
+        <span class="badge-count">{{ rejeteesCount }}</span>
       </button>
     </div>
 
@@ -93,12 +115,12 @@
     @if (isLoading) {
       <div class="loading-state">
         <div class="spinner"></div>
-        <p>Chargement des dossiers de partenariat...</p>
+        <p>Chargement des dossiers de candidature et modération...</p>
       </div>
     } @else if (filteredDemandes.length === 0) {
       <div class="empty-state">
         <div class="empty-icon-circle">
-          @if (activeTab === 'EN_ATTENTE') {
+          @if (isPendingTab()) {
             <svg viewBox="0 0 24 24" fill="none" stroke="#0E8F76" stroke-width="2" width="44" height="44">
               <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
               <polyline points="22 4 12 14.01 9 11.01"></polyline>
@@ -113,17 +135,21 @@
           }
         </div>
         <h3>
-          @if (activeTab === 'EN_ATTENTE') {
-            Toutes les demandes ont été traitées !
+          @if (activeTab === 'TOUS_ATTENTE') {
+            Aucun guide ou promoteur en attente de validation
+          } @else if (activeTab === 'GUIDES_ATTENTE') {
+            Aucun guide en attente de validation
+          } @else if (activeTab === 'PROMOTEURS_ATTENTE') {
+            Aucun promoteur en attente de validation
           } @else if (activeTab === 'VALIDE') {
-            Aucun dossier approuvé trouvé
+            Aucun dossier validé trouvé
           } @else {
             Aucun dossier rejeté
           }
         </h3>
         <p>
-          @if (activeTab === 'EN_ATTENTE') {
-            La file de modération est vide pour le moment. Dès qu'un acteur culturel soumettra un projet de partenariat, il apparaîtra ici.
+          @if (isPendingTab()) {
+            La file de modération est vide pour le moment. Dès qu'un guide touristique ou un promoteur d'événements soumettra un dossier, il apparaîtra ici.
           } @else {
             Aucune opportunité ne correspond aux critères de filtre sélectionnés.
           }
@@ -164,21 +190,23 @@
                     <div class="requester-text">
                       <strong class="requester-name">{{ demande.nomComplet }}</strong>
                       <span class="requester-email">{{ demande.email }}</span>
-                      @if (demande.typePartenaire || demande.role) {
-                        <span class="requester-role">{{ demande.typePartenaire || demande.role }}</span>
-                      }
+                      <span class="requester-role">
+                        {{ isGuide(demande) ? 'Guide touristique' : (isPromoteur(demande) ? 'Promoteur culturel' : (demande.typePartenaire || demande.role || 'Candidat')) }}
+                      </span>
                     </div>
                   </div>
                 </td>
                 <td>
                   <div class="project-cell">
-                    <strong class="project-title">{{ demande.titreProjet || 'Projet de partenariat' }}</strong>
-                    <span class="project-org">{{ demande.specialiteOuOrganisation || demande.adresse || 'Organisation non spécifiée' }}</span>
+                    <strong class="project-title">{{ demande.titreProjet || (isGuide(demande) ? 'Candidature Guide Touristique' : 'Projet Promoteur Culturel') }}</strong>
+                    <span class="project-org">
+                      {{ isGuide(demande) ? (demande.langue ? 'Langue : ' + demande.langue : (demande.specialiteOuOrganisation || 'Guide du patrimoine')) : (demande.nomOrganisation || demande.specialiteOuOrganisation || demande.adresse || 'Promoteur d\'événements') }}
+                    </span>
                   </div>
                 </td>
                 <td>
                   <p class="need-text" [title]="demande.besoinPartenariat">
-                    {{ demande.besoinPartenariat || 'Recherche de partenaires et investisseurs pour développement culturel.' }}
+                    {{ demande.besoinPartenariat || (isGuide(demande) ? 'Accompagnement touristique et valorisation des circuits culturels.' : 'Recherche de partenaires et investisseurs pour développement culturel.') }}
                   </p>
                 </td>
                 <td>
@@ -203,7 +231,7 @@
                       Examiner
                     </button>
 
-                    @if (activeTab === 'EN_ATTENTE') {
+                    @if (isPendingTab()) {
                       <button
                         type="button"
                         class="btn-action-approve"
@@ -238,8 +266,8 @@
       <div class="modal-dialog" (click)="$event.stopPropagation()">
         <div class="modal-header">
           <div class="modal-title-group">
-            <h3 class="modal-title">Dossier de Partenariat</h3>
-            <span class="modal-subtitle">Examen approfondi des informations du demandeur</span>
+            <h3 class="modal-title">Fiche de Candidature & Modération</h3>
+            <span class="modal-subtitle">Examen approfondi des métadonnées du candidat</span>
           </div>
           <button type="button" class="modal-close-btn" (click)="fermerModalDetails()">✕</button>
         </div>
@@ -265,12 +293,17 @@
               <h4 class="applicant-name">{{ selectedDemande.nomComplet }}</h4>
               <p class="applicant-meta">
                 <span>{{ selectedDemande.email }}</span>
+                @if (selectedDemande.telephone) {
+                  • <span>{{ selectedDemande.telephone }}</span>
+                }
                 @if (selectedDemande.adresse) {
                   • <span>{{ selectedDemande.adresse }}</span>
                 }
               </p>
               <div class="applicant-tags">
-                <span class="tag-badge">{{ selectedDemande.typePartenaire || selectedDemande.role || 'Partenaire' }}</span>
+                <span class="tag-badge">
+                  {{ isGuide(selectedDemande) ? 'Guide touristique' : (isPromoteur(selectedDemande) ? 'Promoteur culturel' : (selectedDemande.typePartenaire || selectedDemande.role || 'Partenaire')) }}
+                </span>
                 @if (selectedDemande.statutModeration === 'VALIDE') {
                   <span class="status-badge badge-valid">✓ Validé</span>
                 } @else if (selectedDemande.statutModeration === 'REJETE') {
@@ -282,38 +315,65 @@
             </div>
           </div>
 
-          <!-- Section Projet -->
+          <!-- Section Projet / Motivation -->
           <div class="detail-block">
-            <h5 class="block-title">Projet & Demande de Partenariat</h5>
+            <h5 class="block-title">{{ isGuide(selectedDemande) ? 'Motivation & Profil Guide Touristique' : 'Titre du projet & Demande de Partenariat' }}</h5>
             <div class="highlight-card">
-              <h6 class="highlight-title">{{ selectedDemande.titreProjet || 'Proposition de partenariat culturel' }}</h6>
-              <p class="highlight-desc">{{ selectedDemande.besoinPartenariat || 'Ce partenaire souhaite développer des initiatives touristiques et patrimoniales avec la plateforme.' }}</p>
+              <h6 class="highlight-title">{{ selectedDemande.titreProjet || (isGuide(selectedDemande) ? 'Candidature Guide Touristique Officiel' : 'Projet Culturel & Événementiel') }}</h6>
+              <p class="highlight-desc">{{ selectedDemande.besoinPartenariat || (isGuide(selectedDemande) ? 'Professionnel du guidage local passionné par le patrimoine malien. Disponible pour accompagner les visiteurs et valoriser les circuits culturels.' : 'Recherche active de partenariats et opportunités pour promouvoir les manifestations culturelles et touristiques.') }}</p>
             </div>
           </div>
 
           <!-- Section Informations professionnelles -->
           <div class="detail-block">
-            <h5 class="block-title">Informations structurelles</h5>
+            <h5 class="block-title">Informations professionnelles & Coordonnées</h5>
             <div class="info-grid">
+              @if (isPromoteur(selectedDemande)) {
+                <div class="info-item">
+                  <span class="info-label">Organisation</span>
+                  <strong class="info-value">{{ selectedDemande.nomOrganisation || selectedDemande.specialiteOuOrganisation || 'Promoteur indépendant' }}</strong>
+                </div>
+              }
+              @if (isGuide(selectedDemande)) {
+                <div class="info-item">
+                  <span class="info-label">Langues parlées</span>
+                  <strong class="info-value">{{ selectedDemande.langue || selectedDemande.specialiteOuOrganisation || 'Français, Bambara' }}</strong>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Expérience sur le terrain</span>
+                  <strong class="info-value">
+                    {{ (selectedDemande.experience !== undefined && selectedDemande.experience !== null) ? selectedDemande.experience + ' an(s) d\'expérience' : 'Guide débutant / En cours' }}
+                  </strong>
+                </div>
+              }
               <div class="info-item">
-                <span class="info-label">Organisation / Métier</span>
-                <strong class="info-value">{{ selectedDemande.specialiteOuOrganisation || 'Non renseigné' }}</strong>
+                <span class="info-label">Téléphone</span>
+                <strong class="info-value">{{ selectedDemande.telephone || 'Non renseigné' }}</strong>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Adresse / Localité</span>
+                <strong class="info-value">{{ selectedDemande.adresse || 'Mali' }}</strong>
               </div>
               <div class="info-item">
                 <span class="info-label">Date de soumission</span>
                 <strong class="info-value">{{ selectedDemande.dateCreation || 'Récemment' }}</strong>
               </div>
+              <div class="info-item">
+                <span class="info-label">Statut de modération</span>
+                <strong class="info-value">{{ selectedDemande.statutModeration || 'EN_ATTENTE_VALIDATION' }}</strong>
+              </div>
               @if (selectedDemande.pieceIdentite) {
                 <div class="info-item" style="grid-column: 1 / -1;">
-                  <span class="info-label">Pièce d'identité / Justificatif fourni</span>
-                  <div style="margin-top: 6px;">
+                  <span class="info-label">Pièce d'identité officielle & Justificatif</span>
+                  <div style="margin-top: 8px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                     <a
                       [href]="selectedDemande.pieceIdentite"
                       target="_blank"
                       rel="noopener noreferrer"
-                      style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: #E8F4F0; color: #075E4D; border-radius: 8px; font-size: 12.5px; font-weight: 700; text-decoration: none;">
-                      📄 Consulter le document justificatif
+                      style="display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; background: #E8F4F0; color: #075E4D; border: 1px solid #C1E1D7; border-radius: 8px; font-size: 13px; font-weight: 700; text-decoration: none;">
+                      📄 Voir la pièce d'identité officielle
                     </a>
+                    <span style="font-size: 12px; color: #6C7C77;">Document justificatif fourni lors de l'enregistrement</span>
                   </div>
                 </div>
               }

@@ -271,6 +271,18 @@ export const routes: Routes = [
     title: 'Demandes de Partenariat - MaliExplorer Admin'
   },
   {
+    path: 'promoteurs',
+    component: DemandesPartenariatComponent,
+    canActivate: [authGuard],
+    title: 'Validation des Promoteurs - MaliExplorer Admin'
+  },
+  {
+    path: 'validation-promoteurs',
+    component: DemandesPartenariatComponent,
+    canActivate: [authGuard],
+    title: 'Validation des Promoteurs - MaliExplorer Admin'
+  },
+  {
     path: '**',
     redirectTo: 'dashboard'
   }

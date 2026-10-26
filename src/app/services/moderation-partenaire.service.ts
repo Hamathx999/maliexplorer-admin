@@ -69,10 +69,11 @@ export class ModerationPartenaireService {
 
   /**
    * Récupère la liste des demandes de partenariat en attente de modération administrative.
-   * GET /api/admin/moderation/opportunites
+   * GET /api/admin/moderation/opportunites?statut=EN_ATTENTE_VALIDATION
    */
   getDemandesEnAttente(): Observable<OpportuniteResponseDTO[]> {
-    return this.http.get<OpportuniteResponseDTO[]>(this.adminApiUrl).pipe(
+    const params = new HttpParams().set('statut', 'EN_ATTENTE_VALIDATION');
+    return this.http.get<OpportuniteResponseDTO[]>(this.adminApiUrl, { params }).pipe(
       tap((list) => {
         const items = Array.isArray(list) ? list : [];
         this.setPendingCount(items.length);
@@ -85,6 +86,36 @@ export class ModerationPartenaireService {
         );
         this.setPendingCount(pending.length);
         return of(pending);
+      })
+    );
+  }
+
+  /**
+   * Récupère les dossiers de partenariat validés.
+   * GET /api/admin/moderation/opportunites?statut=VALIDE
+   */
+  getDemandesValidees(): Observable<OpportuniteResponseDTO[]> {
+    const params = new HttpParams().set('statut', 'VALIDE');
+    return this.http.get<OpportuniteResponseDTO[]>(this.adminApiUrl, { params }).pipe(
+      catchError((error) => {
+        console.warn('API modération dossiers validés non joignable, fallback :', error);
+        const local = this.getLocalOpportunites();
+        return of(local.filter((o) => o.statutModeration === 'VALIDE'));
+      })
+    );
+  }
+
+  /**
+   * Récupère les dossiers de partenariat rejetés.
+   * GET /api/admin/moderation/opportunites?statut=REJETE
+   */
+  getDemandesRejetees(): Observable<OpportuniteResponseDTO[]> {
+    const params = new HttpParams().set('statut', 'REJETE');
+    return this.http.get<OpportuniteResponseDTO[]>(this.adminApiUrl, { params }).pipe(
+      catchError((error) => {
+        console.warn('API modération dossiers rejetés non joignable, fallback :', error);
+        const local = this.getLocalOpportunites();
+        return of(local.filter((o) => o.statutModeration === 'REJETE'));
       })
     );
   }
@@ -115,31 +146,31 @@ export class ModerationPartenaireService {
   }
 
   /**
-   * Rejette un dossier de partenariat avec motif explicatif optionnel.
+   * Rejette un dossier de partenariat avec motif explicatif.
    * PATCH /api/admin/moderation/opportunites/{idUsers}/rejeter?motif=...
    */
   rejeterDemande(idUsers: number, motif?: string): Observable<OpportuniteResponseDTO> {
     let params = new HttpParams();
-    if (motif && motif.trim()) {
-      params = params.set('motif', motif.trim());
-    }
+    const cleanMotif = motif && motif.trim() ? motif.trim() : 'Dossier non conforme ou incomplet';
+    params = params.set('motif', cleanMotif);
+    const body = { motif: cleanMotif, motifRejet: cleanMotif };
 
-    return this.http.patch<OpportuniteResponseDTO>(`${this.adminApiUrl}/${idUsers}/rejeter`, {}, { params }).pipe(
+    return this.http.patch<OpportuniteResponseDTO>(`${this.adminApiUrl}/${idUsers}/rejeter`, body, { params }).pipe(
       map((res) => {
-        this.updateLocalStatus(idUsers, 'REJETE', motif);
+        this.updateLocalStatus(idUsers, 'REJETE', cleanMotif);
         this.setPendingCount(this.pendingCount() - 1);
         return res;
       }),
       catchError((error) => {
         console.warn('API rejet partenaire hors ligne, mise à jour locale :', error);
-        this.updateLocalStatus(idUsers, 'REJETE', motif);
+        this.updateLocalStatus(idUsers, 'REJETE', cleanMotif);
         this.setPendingCount(this.pendingCount() - 1);
         return of({
           idUsers,
           nomComplet: 'Partenaire rejeté',
           email: '',
           statutModeration: 'REJETE',
-          motifRejet: motif
+          motifRejet: cleanMotif
         } as OpportuniteResponseDTO);
       })
     );

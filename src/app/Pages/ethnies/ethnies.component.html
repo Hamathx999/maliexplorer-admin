@@ -41,7 +41,7 @@
             @if (isLoading) {
               <tr><td colspan="6" style="text-align: center; padding: 24px; color: #64748B;">Chargement des ethnies...</td></tr>
             } @else if (ethnies.length === 0) {
-              <tr><td colspan="6" style="text-align: center; padding: 24px; color: #64748B;">Aucune ethnie trouvée.</td></tr>
+              <tr><td colspan="6" style="text-align: center; padding: 24px; color: #64748B;">Aucune ethnie enregistrée pour le moment.</td></tr>
             } @else {
               @for (ethnie of ethnies; track ethnie.id ?? ethnie.nom) {
                 <tr>
