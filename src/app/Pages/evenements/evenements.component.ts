@@ -26,6 +26,7 @@ export class EvenementsComponent implements OnInit {
   filteredEvenements: Evenement[] = [];
   searchTerm: string = '';
   selectedStatut: string = 'TOUS';
+  selectedVille: string = 'TOUTES';
 
   isEditing: boolean = false;
   isSubmitting: boolean = false;
@@ -88,20 +89,43 @@ export class EvenementsComponent implements OnInit {
     });
   }
 
+  get villesDisponibles(): string[] {
+    const set = new Set<string>();
+    for (const evt of this.evenements) {
+      const ville = (evt.ville || '').trim();
+      if (ville) {
+        set.add(ville);
+      }
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'fr'));
+  }
+
   filterEvenements(): void {
+    const query = (this.searchTerm || '').trim().toLowerCase();
+
     this.filteredEvenements = this.evenements.filter((e) => {
       const matchSearch =
-        !this.searchTerm ||
-        (e.titre && e.titre.toLowerCase().includes(this.searchTerm.toLowerCase())) ||
-        (e.ville && e.ville.toLowerCase().includes(this.searchTerm.toLowerCase())) ||
-        (e.lieu && e.lieu.toLowerCase().includes(this.searchTerm.toLowerCase())) ||
-        (e.nomOrganisateur && e.nomOrganisateur.toLowerCase().includes(this.searchTerm.toLowerCase()));
+        !query ||
+        (e.titre && e.titre.toLowerCase().includes(query)) ||
+        (e.ville && e.ville.toLowerCase().includes(query)) ||
+        (e.lieu && e.lieu.toLowerCase().includes(query)) ||
+        (e.nomOrganisateur && e.nomOrganisateur.toLowerCase().includes(query)) ||
+        (e.categorie && e.categorie.toLowerCase().includes(query)) ||
+        (e.dateDebut && e.dateDebut.toLowerCase().includes(query));
 
-      const matchStatut =
-        this.selectedStatut === 'TOUS' ||
-        e.statut?.toUpperCase() === this.selectedStatut.toUpperCase();
+      const normalizedStatut = (e.statut || '').toUpperCase();
+      let matchStatut = true;
+      if (this.selectedStatut === 'VALIDE') {
+        matchStatut = normalizedStatut === 'APPROUVE' || normalizedStatut === 'VALIDE';
+      } else if (this.selectedStatut !== 'TOUS') {
+        matchStatut = normalizedStatut === this.selectedStatut.toUpperCase();
+      }
 
-      return matchSearch && matchStatut;
+      const matchVille =
+        this.selectedVille === 'TOUTES' ||
+        (e.ville && e.ville.trim().toLowerCase() === this.selectedVille.trim().toLowerCase());
+
+      return matchSearch && matchStatut && matchVille;
     });
   }
 

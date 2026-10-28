@@ -1,7 +1,16 @@
 <div class="page-container">
   <!-- VUE 1 : LISTE DES UTILISATEURS (Figma) -->
   @if (!isEditing) {
-    <div class="figma-list-topbar">
+    <div class="figma-list-topbar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+      <button type="button" class="figma-btn-refresh" (click)="loadUsers()" [disabled]="isLoading" title="Rafraîchir et synchroniser la liste">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" [style.animation]="isLoading ? 'spin 1s linear infinite' : 'none'">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <polyline points="1 20 1 14 7 14"></polyline>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+        </svg>
+        <span>Actualiser</span>
+      </button>
+
       <button type="button" class="figma-btn-header-add" (click)="startAdd()">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -130,6 +139,22 @@
                   <td style="color: #64748B;">{{ user.dateInscription || 'Récemment inscrit' }}</td>
                   <td>
                     <div class="figma-action-cell">
+                      @if (user.statut === 'BLOQUE') {
+                        <button type="button" class="figma-icon-btn unblock-btn" (click)="toggleBlockUser(user)" title="réactiver le compte" style="color: #DC2626; background: #FEE2E2; border-color: #FECACA;">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+                          </svg>
+                        </button>
+                      } @else {
+                        <button type="button" class="figma-icon-btn block-btn" (click)="toggleBlockUser(user)" title="Bloquer le compte">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+                          </svg>
+                        </button>
+                      }
+
                       @if (user.role?.toLowerCase()?.includes('guide') || user.role?.toLowerCase()?.includes('promoteur')) {
                         @if (user.statutModeration !== 'VALIDE') {
                           <button type="button" class="figma-icon-btn approve" (click)="validerPartenaire(user)" title="Valider le compte">
@@ -192,7 +217,7 @@
 
         <div class="figma-role-label">rôle de l'utilisateur</div>
 
-        <!-- 3 Rôles Switcher (Touriste, Promoteur, Guide) -->
+        <!-- 4 Rôles Switcher (Touriste, Promoteur, Guide, Administrateur) -->
         <div class="figma-role-pill-group">
           <button
             type="button"
@@ -232,6 +257,19 @@
             </svg>
             Guide
           </button>
+
+          <button
+            type="button"
+            class="figma-role-pill-btn admin-pill-btn"
+            [class.active]="activeRoleTab === 'Administrateur'"
+            (click)="selectRole('Administrateur')"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              <circle cx="12" cy="11" r="3"></circle>
+            </svg>
+            Administrateur
+          </button>
         </div>
       </div>
 
@@ -242,9 +280,18 @@
       <input #eventPhotosFileInput type="file" multiple accept="image/png,image/jpeg,image/webp" style="display: none;" (change)="onEventPhotosPicked($event)" />
 
       <!-- ========================================== -->
-      <!-- CAS 1 : INTERFACE TOURISTE INSCRIPTION     -->
+      <!-- CAS 1 : INTERFACE TOURISTE & ADMIN         -->
       <!-- ========================================== -->
-      @if (activeRoleTab === 'Touriste') {
+      @if (activeRoleTab === 'Touriste' || activeRoleTab === 'Administrateur') {
+        @if (activeRoleTab === 'Administrateur') {
+          <div class="figma-admin-banner" style="background: #FEF3C7; border: 1.5px solid #FCD34D; color: #92400E; padding: 12px 16px; border-radius: 10px; margin-bottom: 20px; font-size: 13.5px; display: flex; align-items: center; gap: 10px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0;">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              <circle cx="12" cy="11" r="3"></circle>
+            </svg>
+            <span><strong>Rôle Administrateur :</strong> Ce compte aura un accès complet au tableau de bord, à la validation des partenaires, à la modération et au blocage des utilisateurs.</span>
+          </div>
+        }
         <div class="figma-field-row">
           <div class="figma-input-with-icon">
             <span class="figma-input-icon">
@@ -278,6 +325,17 @@
               </svg>
             </span>
             <input type="text" class="figma-native-input" [(ngModel)]="formData.adresse" placeholder="Adresse" />
+          </div>
+        </div>
+
+        <div class="figma-field-row">
+          <div class="figma-input-with-icon">
+            <span class="figma-input-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+              </svg>
+            </span>
+            <input type="tel" class="figma-native-input" [(ngModel)]="formData.telephone" placeholder="Téléphone" />
           </div>
         </div>
 
@@ -352,7 +410,7 @@
         </div> -->
 
         <button type="button" class="figma-btn-submit-main" (click)="saveUser()" [disabled]="isUploadingPhoto">
-          {{ editingUser ? 'Mettre à jour le compte' : 'S\'inscrire' }}
+          {{ editingUser ? 'Mettre à jour le compte' : (activeRoleTab === 'Administrateur' ? 'Créer l\'administrateur' : 'Créer l\'utilisateur') }}
         </button>
 
         <!-- <div class="figma-footer-login-link">
