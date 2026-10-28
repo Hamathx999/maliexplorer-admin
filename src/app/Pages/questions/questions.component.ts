@@ -28,6 +28,7 @@ export class QuestionsComponent implements OnInit {
   filteredQuestions: Question[] = [];
   searchTerm: string = '';
   selectedTheme: string = 'TOUS';
+  selectedQuizId: string = 'TOUS';
 
   isEditing: boolean = false;
   editingQuestion: Question | null = null;
@@ -58,6 +59,7 @@ export class QuestionsComponent implements OnInit {
     this.quizService.getQuizList().subscribe({
       next: (data) => {
         this.quizzes = data;
+        this.filterQuestions();
         this.cdr.markForCheck();
       },
       error: (err) => console.error('Erreur chargement quiz', err)
@@ -92,20 +94,36 @@ export class QuestionsComponent implements OnInit {
   }
 
   filterQuestions(): void {
+    const query = (this.searchTerm || '').trim().toLowerCase();
     this.filteredQuestions = this.questions.filter((q) => {
-      const qText = q.question || q.nomQuestion || '';
+      const qText = (q.question || q.nomQuestion || '').toLowerCase();
+      const repText = (q.reponse || '').toLowerCase();
+      const themeText = (q.theme || 'Culture générale').toLowerCase();
+      const quizNameText = this.getQuizName(q.quizId).toLowerCase();
+
       const matchSearch =
-        !this.searchTerm ||
-        qText.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-        (q.reponse && q.reponse.toLowerCase().includes(this.searchTerm.toLowerCase())) ||
-        (q.theme && q.theme.toLowerCase().includes(this.searchTerm.toLowerCase()));
+        !query ||
+        qText.includes(query) ||
+        repText.includes(query) ||
+        themeText.includes(query) ||
+        quizNameText.includes(query);
 
       const matchTheme =
         this.selectedTheme === 'TOUS' ||
-        (q.theme && q.theme.toLowerCase() === this.selectedTheme.toLowerCase());
+        themeText === this.selectedTheme.toLowerCase();
 
-      return matchSearch && matchTheme;
+      const matchQuiz =
+        this.selectedQuizId === 'TOUS' ||
+        String(q.quizId ?? '') === String(this.selectedQuizId);
+
+      return matchSearch && matchTheme && matchQuiz;
     });
+  }
+
+  clearSearch(): void {
+    this.searchTerm = '';
+    this.selectedQuizId = 'TOUS';
+    this.filterQuestions();
   }
 
   startAdd(): void {

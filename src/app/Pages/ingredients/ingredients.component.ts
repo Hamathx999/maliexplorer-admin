@@ -23,6 +23,7 @@ export class IngredientsComponent implements OnInit {
   ingredients: Ingredient[] = [];
   filteredIngredients: Ingredient[] = [];
   searchTerm: string = '';
+  sortOrder: string = 'DEFAULT';
 
   isEditing: boolean = false;
   editingIngredient: Ingredient | null = null;
@@ -73,13 +74,28 @@ export class IngredientsComponent implements OnInit {
   }
 
   filterIngredients(): void {
-    this.filteredIngredients = this.ingredients.filter((item) => {
-      return (
-        !this.searchTerm ||
-        item.nom.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-        (item.description && item.description.toLowerCase().includes(this.searchTerm.toLowerCase()))
-      );
+    const query = (this.searchTerm || '').trim().toLowerCase();
+    const filtered = this.ingredients.filter((item) => {
+      if (!query) return true;
+      const matchNom = (item.nom || '').toLowerCase().includes(query);
+      const matchCat = (item.categorie || '').toLowerCase().includes(query);
+      const matchDesc = (item.description || '').toLowerCase().includes(query);
+      return matchNom || matchCat || matchDesc;
     });
+
+    if (this.sortOrder === 'AZ') {
+      filtered.sort((a, b) => (a.nom || '').localeCompare(b.nom || '', 'fr'));
+    } else if (this.sortOrder === 'ZA') {
+      filtered.sort((a, b) => (b.nom || '').localeCompare(a.nom || '', 'fr'));
+    }
+
+    this.filteredIngredients = filtered;
+  }
+
+  clearSearch(): void {
+    this.searchTerm = '';
+    this.sortOrder = 'DEFAULT';
+    this.filterIngredients();
   }
 
   startAdd(): void {

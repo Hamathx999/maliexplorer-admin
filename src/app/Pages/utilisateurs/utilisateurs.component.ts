@@ -33,8 +33,8 @@ export class UtilisateursComponent implements OnInit {
   isLoading: boolean = false;
   errorMessage: string = '';
 
-  // Sélecteur de rôle pour le formulaire d'ajout/édition (Touriste, Promoteur, Guide)
-  activeRoleTab: 'Touriste' | 'Promoteur' | 'Guide' = 'Touriste';
+  // Sélecteur de rôle pour le formulaire d'ajout/édition (Touriste, Promoteur, Guide, Administrateur)
+  activeRoleTab: 'Touriste' | 'Promoteur' | 'Guide' | 'Administrateur' = 'Touriste';
   showPassword: boolean = false;
   acceptTerms: boolean = true;
 
@@ -177,7 +177,7 @@ export class UtilisateursComponent implements OnInit {
     this.filterUsers();
   }
 
-  selectRole(role: 'Touriste' | 'Promoteur' | 'Guide'): void {
+  selectRole(role: 'Touriste' | 'Promoteur' | 'Guide' | 'Administrateur'): void {
     this.activeRoleTab = role;
     this.formData.role = role;
   }
@@ -322,7 +322,9 @@ export class UtilisateursComponent implements OnInit {
   startEdit(user: User): void {
     this.editingUser = user;
     const r = (user.role || '').toLowerCase();
-    if (r.includes('guide')) {
+    if (r.includes('admin') || r.includes('super')) {
+      this.activeRoleTab = 'Administrateur';
+    } else if (r.includes('guide')) {
       this.activeRoleTab = 'Guide';
     } else if (r.includes('promoteur')) {
       this.activeRoleTab = 'Promoteur';
@@ -375,7 +377,7 @@ export class UtilisateursComponent implements OnInit {
     return palette[index];
   }
 
-  saveUser(): void {
+  async saveUser(): Promise<void> {
     if (!this.formData.nom?.trim() || !this.formData.email?.trim()) {
       this.dialogService.toastError('Veuillez renseigner le nom et l’adresse email.');
       return;
@@ -385,7 +387,19 @@ export class UtilisateursComponent implements OnInit {
       this.formData.prenom = this.formData.nom.trim();
     }
 
-    this.formData.role = this.activeRoleTab;
+    // Avertissement de sécurité si on promeut un utilisateur au rang d'Administrateur
+    if (this.activeRoleTab === 'Administrateur' && this.editingUser && !this.editingUser.role?.toLowerCase()?.includes('admin')) {
+      const confirmed = await this.dialogService.confirm({
+        title: 'Nommer Administrateur',
+        message: `Voulez-vous vraiment accorder les privilèges d'administrateur à "${this.formData.email}" ? Il aura un accès complet à la gestion de la plateforme MaliExplorer.`,
+        confirmText: 'Confirmer la promotion',
+        cancelText: 'Annuler',
+        type: 'warning'
+      });
+      if (!confirmed) return;
+    }
+
+    this.formData.role = this.activeRoleTab === 'Administrateur' ? 'admin' : this.activeRoleTab;
     const editingId = this.editingUser?.id ?? (this.editingUser as any)?.idUsers ?? this.formData?.id ?? (this.formData as any)?.idUsers;
 
     if (editingId) {
@@ -445,6 +459,50 @@ export class UtilisateursComponent implements OnInit {
       error: (err) => {
         console.error('Erreur suppression utilisateur:', err);
         this.dialogService.toastError('Impossible de supprimer cet utilisateur.');
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  async toggleBlockUser(user: User): Promise<void> {
+    const userId = user?.id ?? (user as any)?.idUsers;
+    if (!userId) return;
+
+    const isCurrentlyBlocked = user.statut === 'BLOQUE';
+    const actionName = isCurrentlyBlocked ? 'Débloquer' : 'Bloquer temporairement';
+
+    const confirmed = await this.dialogService.confirm({
+      title: `${actionName} l'utilisateur`,
+      message: isCurrentlyBlocked
+        ? `Voulez-vous réactiver le compte de "${user.email}" ? Il pourra à nouveau se connecter et interagir avec l'application.`
+        : `Voulez-vous bloquer temporairement "${user.email}" ? L'accès à son compte sera immédiatement révoqué sur l'application et Firebase.`,
+      confirmText: actionName,
+      cancelText: 'Annuler',
+      type: isCurrentlyBlocked ? 'info' : 'warning'
+    });
+
+    if (!confirmed) return;
+
+    // Optimistic UI : Bascule visuelle instantanée (0 ms)
+    const previousStatut = user.statut;
+    user.statut = isCurrentlyBlocked ? 'ACTIF' : 'BLOQUE';
+    this.cdr.detectChanges();
+
+    this.userService.toggleBlockUser(userId).subscribe({
+      next: (updated) => {
+        user.statut = updated.statut;
+        this.dialogService.toastSuccess(
+          user.statut === 'BLOQUE'
+            ? `Compte "${user.email}" bloqué temporairement.`
+            : `Compte "${user.email}" réactivé avec succès.`
+        );
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        // En cas d'erreur réseau, restaurer l'état précédent
+        user.statut = previousStatut;
+        console.error('Erreur basculement statut utilisateur:', err);
+        this.dialogService.toastError('Impossible de modifier le statut de ce compte.');
         this.cdr.detectChanges();
       }
     });

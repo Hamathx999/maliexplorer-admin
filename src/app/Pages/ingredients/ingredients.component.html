@@ -1,7 +1,39 @@
 <div class="page-container">
   <!-- VUE 1 : LISTE DES INGRÉDIENTS (Figma) -->
   @if (!isEditing) {
-    <div class="figma-list-topbar">
+    <div class="figma-list-topbar ingredients-topbar">
+      <div class="ingredients-search-controls">
+        <div class="ingredients-search-box">
+          <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input
+            type="text"
+            class="ingredients-search-input"
+            [(ngModel)]="searchTerm"
+            (ngModelChange)="filterIngredients()"
+            placeholder="Rechercher un ingrédient par nom (ex: Soumbala, Fonio, Baobab...)"
+          />
+          @if (searchTerm) {
+            <button type="button" class="clear-search-btn" (click)="searchTerm = ''; filterIngredients()" title="Effacer la recherche">
+              ✕
+            </button>
+          }
+        </div>
+
+        <select
+          class="ingredients-sort-select"
+          [(ngModel)]="sortOrder"
+          (ngModelChange)="filterIngredients()"
+          title="Trier le catalogue culinaire"
+        >
+          <option value="DEFAULT">Tri : Ordre d'ajout</option>
+          <option value="AZ">Tri : Alphabétique (A → Z)</option>
+          <option value="ZA">Tri : Alphabétique (Z → A)</option>
+        </select>
+      </div>
+
       <button type="button" class="figma-btn-header-add" (click)="startAdd()">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -12,7 +44,12 @@
     </div>
 
     <div class="figma-card">
-      <h2 class="figma-card-title-center">Liste des ingrédients</h2>
+      <div class="ingredients-card-header-row">
+        <h2 class="figma-card-title-center" style="margin-bottom: 0;">Liste des ingrédients</h2>
+        <span class="ingredients-count-badge">
+          {{ filteredIngredients.length }} / {{ ingredients.length }} ingrédient(s)
+        </span>
+      </div>
 
       <div class="table-responsive">
         <table class="figma-table">

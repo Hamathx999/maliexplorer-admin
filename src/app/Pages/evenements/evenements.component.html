@@ -1,7 +1,52 @@
 <div class="page-container">
   <!-- VUE 1 : LISTE DES ÉVÉNEMENTS (Figma) -->
   @if (!isEditing) {
-    <div class="figma-list-topbar">
+    <div class="figma-list-topbar evenements-topbar">
+      <div class="evenements-search-controls">
+        <div class="evenements-search-box">
+          <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input
+            type="text"
+            class="evenements-search-input"
+            [(ngModel)]="searchTerm"
+            (ngModelChange)="filterEvenements()"
+            placeholder="Rechercher par nom d'événement, lieu, ville, date ou organisateur..."
+          />
+          @if (searchTerm) {
+            <button type="button" class="clear-search-btn" (click)="searchTerm = ''; filterEvenements()" title="Effacer la recherche">
+              ✕
+            </button>
+          }
+        </div>
+
+        <select
+          class="evenements-filter-select"
+          [(ngModel)]="selectedStatut"
+          (ngModelChange)="filterEvenements()"
+          title="Filtrer par statut de modération"
+        >
+          <option value="TOUS">Tous les statuts</option>
+          <option value="VALIDE">Validés</option>
+          <option value="EN_ATTENTE">En attente</option>
+          <option value="REFUSE">Rejetés</option>
+        </select>
+
+        <select
+          class="evenements-filter-select"
+          [(ngModel)]="selectedVille"
+          (ngModelChange)="filterEvenements()"
+          title="Filtrer par ville"
+        >
+          <option value="TOUTES">Toutes les villes</option>
+          @for (ville of villesDisponibles; track ville) {
+            <option [value]="ville">{{ ville }}</option>
+          }
+        </select>
+      </div>
+
       <button type="button" class="figma-btn-header-add" (click)="startAdd()">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -12,7 +57,12 @@
     </div>
 
     <div class="figma-card">
-      <h2 class="figma-card-title-center">Liste des événements</h2>
+      <div class="evenements-card-header-row">
+        <h2 class="figma-card-title-center" style="margin-bottom: 0;">Liste des événements</h2>
+        <span class="evenements-count-badge">
+          {{ filteredEvenements.length }} / {{ evenements.length }} événement(s)
+        </span>
+      </div>
 
       <div class="table-responsive">
         <table class="figma-table">
